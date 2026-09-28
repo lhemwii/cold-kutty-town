@@ -25,15 +25,15 @@ const ICONS = {
 };
 for (const el of document.querySelectorAll('[data-ico]')){ const [art, pal] = ICONS[el.dataset.ico]; el.outerHTML = pixelSVG(art, pal, 'ico'); }
 // drapeaux en grand pour l'interface (48 x 26), dessines comme ceux du jeu mais plus fins
-// USC : 13 bandes rouges et blanches, une tete de chat blanche au centre du coin bleu. CCR : tete de chat, marteau et faucille, centres.
+// USC : 13 bandes rouges et blanches, la meme tete de chat que la CCR, en blanc, au centre du coin bleu. CCR : tete de chat, marteau et faucille, centres.
 const FLAG_HEX = { b: '#2a45a6', c: '#fbf7ef', w: '#fbf7ef', r: '#c8283a', y: '#ffd23f', R: '#d42a2a' };
 const FLAG_HI = {
   usc: ['bbbbbbbbbbbbbbbbbbbbrrrrrrrrrrrrrrrrrrrrrrrrrrrr', 'bbbbbbbbbbbbbbbbbbbbrrrrrrrrrrrrrrrrrrrrrrrrrrrr',
-    'bbbbbbbbbbbbbbbbbbbbwwwwwwwwwwwwwwwwwwwwwwwwwwww', 'bbbbbcbbbbbbbcbbbbbbwwwwwwwwwwwwwwwwwwwwwwwwwwww',
-    'bbbbbccbbbbbccbbbbbbrrrrrrrrrrrrrrrrrrrrrrrrrrrr', 'bbbbbcccbbbcccbbbbbbrrrrrrrrrrrrrrrrrrrrrrrrrrrr',
-    'bbbbbcccccccccbbbbbbwwwwwwwwwwwwwwwwwwwwwwwwwwww', 'bbbbbccbcccbccbbbbbbwwwwwwwwwwwwwwwwwwwwwwwwwwww',
-    'bbbbbcccccccccbbbbbbrrrrrrrrrrrrrrrrrrrrrrrrrrrr', 'bbbbbcccbcbcccbbbbbbrrrrrrrrrrrrrrrrrrrrrrrrrrrr',
-    'bbbbbbcccccccbbbbbbbwwwwwwwwwwwwwwwwwwwwwwwwwwww', 'bbbbbbbbbbbbbbbbbbbbwwwwwwwwwwwwwwwwwwwwwwwwwwww',
+    'bbbbcbbbbbbbbbcbbbbbwwwwwwwwwwwwwwwwwwwwwwwwwwww', 'bbbbccbbbbbbbccbbbbbwwwwwwwwwwwwwwwwwwwwwwwwwwww',
+    'bbbbcccbbbbbcccbbbbbrrrrrrrrrrrrrrrrrrrrrrrrrrrr', 'bbbbcccccccccccbbbbbrrrrrrrrrrrrrrrrrrrrrrrrrrrr',
+    'bbbcccccccccccccbbbbwwwwwwwwwwwwwwwwwwwwwwwwwwww', 'bbbccbbcccccbbccbbbbwwwwwwwwwwwwwwwwwwwwwwwwwwww',
+    'bbbcccccccccccccbbbbrrrrrrrrrrrrrrrrrrrrrrrrrrrr', 'bbbcccccbbbcccccbbbbrrrrrrrrrrrrrrrrrrrrrrrrrrrr',
+    'bbbbcccccbcccccbbbbbwwwwwwwwwwwwwwwwwwwwwwwwwwww', 'bbbbbcccccccccbbbbbbwwwwwwwwwwwwwwwwwwwwwwwwwwww',
     'bbbbbbbbbbbbbbbbbbbbrrrrrrrrrrrrrrrrrrrrrrrrrrrr', 'bbbbbbbbbbbbbbbbbbbbrrrrrrrrrrrrrrrrrrrrrrrrrrrr',
     'wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww', 'wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww',
     'rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr', 'rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr',
@@ -43,15 +43,15 @@ const FLAG_HI = {
     'rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr', 'rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr'],
   ccp: ['RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR', 'RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR',
     'RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR', 'RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR',
-    'RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR', 'RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRyyyyyyRRRRRRRRRRRR',
-    'RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRyyyyRRRRRRRRRRR', 'RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRyyyRRRRRRRRRR',
-    'RRRRRRRRRyRRRRRRRRRyRRRRRRRRRRRRRRRRyyyRRRRRRRRR', 'RRRRRRRRRyyRRRRRRRyyRRRRRRRRRRRyyyRRRyyRRRRRRRRR',
-    'RRRRRRRRRyyyRRRRRyyyRRRRRRRRRRyyyyRRRyyRRRRRRRRR', 'RRRRRRRRRyyyyyyyyyyyRRRRRRRRRRyyyyRRRyyRRRRRRRRR',
-    'RRRRRRRRyyyyyyyyyyyyyRRRRRRRRRyyyyyRyyyRRRRRRRRR', 'RRRRRRRRyyRRyyyyyRRyyRRRRRRRRRRRRRyyyyyRRRRRRRRR',
-    'RRRRRRRRyyyyyyyyyyyyyRRRRRRRRRRRRRyyyyRRRRRRRRRR', 'RRRRRRRRyyyyyRRRyyyyyRRRRRRyyyyyyyyyyyyRRRRRRRRR',
-    'RRRRRRRRRyyyyyRyyyyyRRRRRRyyyRyyyyyRRyyyRRRRRRRR', 'RRRRRRRRRRyyyyyyyyyRRRRRRRyyRRRRRRRRRRRRRRRRRRRR',
-    'RRRRRRRRRRRRRRRRRRRRRRRRRyyyRRRRRRRRRRRRRRRRRRRR', 'RRRRRRRRRRRRRRRRRRRRRRRRyyyRRRRRRRRRRRRRRRRRRRRR',
-    'RRRRRRRRRRRRRRRRRRRRRRRRRyyRRRRRRRRRRRRRRRRRRRRR', 'RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR',
+    'RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR', 'RRRRRRRRRRRRRRRRRRRRRRRRRRRRyyyyyyRRRRRRRRRRRRRR',
+    'RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRyyyyRRRRRRRRRRRRR', 'RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRyyyRRRRRRRRRRRR',
+    'RRRRRRRyRRRRRRRRRyRRRRRRRRRRRRRRRRyyyRRRRRRRRRRR', 'RRRRRRRyyRRRRRRRyyRRRRRRRRRRRyyyRRRyyRRRRRRRRRRR',
+    'RRRRRRRyyyRRRRRyyyRRRRRRRRRRyyyyRRRyyRRRRRRRRRRR', 'RRRRRRRyyyyyyyyyyyRRRRRRRRRRyyyyRRRyyRRRRRRRRRRR',
+    'RRRRRRyyyyyyyyyyyyyRRRRRRRRRyyyyyRyyyRRRRRRRRRRR', 'RRRRRRyyRRyyyyyRRyyRRRRRRRRRRRRRyyyyyRRRRRRRRRRR',
+    'RRRRRRyyyyyyyyyyyyyRRRRRRRRRRRRRyyyyRRRRRRRRRRRR', 'RRRRRRyyyyyRRRyyyyyRRRRRRyyyyyyyyyyyyRRRRRRRRRRR',
+    'RRRRRRRyyyyyRyyyyyRRRRRRyyyRyyyyyRRyyyyRRRRRRRRR', 'RRRRRRRRyyyyyyyyyRRRRRRRyyRRRRRRRRRRRRyyRRRRRRRR',
+    'RRRRRRRRRRRRRRRRRRRRRRRyyyRRRRRRRRRRRRRyyRRRRRRR', 'RRRRRRRRRRRRRRRRRRRRRRyyyRRRRRRRRRRRRRRRyyRRRRRR',
+    'RRRRRRRRRRRRRRRRRRRRRRRyyRRRRRRRRRRRRRRRRRRRRRRR', 'RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR',
     'RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR', 'RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR',
     'RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR', 'RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR']
 };

@@ -72,6 +72,11 @@ Les demandes qui arrivent en cours de route et ne rentrent dans aucune étape de
 - [x] Drapeaux de l’interface en 48 x 26 pour plus de finesse.
 - [x] Bug vu en passant : on pouvait bâtir (même le QG) sous les pentes d’une montagne. C’est maintenant refusé.
 
+## Étape 0.8. Drapeaux, retouches (fait)
+
+- [x] USC : la tête de chat du coin bleu est la même que celle de la CCR, en blanc.
+- [x] CCR : manche du marteau rallongé, emblème recentré.
+
 ## Étape 1. Fiabiliser ce qui existe
 
 - [ ] Jouer une vraie partie à la souris et noter chaque bug d’interface.

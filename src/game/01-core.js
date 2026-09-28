@@ -322,17 +322,17 @@ function plateW(s, a, b, z, opt, dir){
 }
 
 /* ================= drapeaux ================= */
-// USC : les bandes rouges et blanches, et au centre du coin bleu une seule tete de chat blanche en guise d'etoile.
+// USC : les bandes rouges et blanches, et au centre du coin bleu la tete de chat de la CCR, en blanc.
 // CCR : fond rouge, au centre une tete de chat jaune et, a cote, le marteau et la faucille.
 // b bleu, c chat blanc du coin, r rouge, w blanc des bandes ; R rouge et y jaune de la CCR
 const FLAG_W = 19, FLAG_H = 11;
 const FLAG_ART = {
-  usc: ['bbbbbbbbrrrrrrrrrrr', 'bcbbbcbbwwwwwwwwwww', 'bcccccbbrrrrrrrrrrr', 'bcbcbcbbwwwwwwwwwww',
-    'bbcccbbbrrrrrrrrrrr', 'bbbbbbbbwwwwwwwwwww', 'rrrrrrrrrrrrrrrrrrr', 'wwwwwwwwwwwwwwwwwww',
+  usc: ['bbbbbbbbbrrrrrrrrrr', 'bcbbbbbcbwwwwwwwwww', 'bccbbbccbrrrrrrrrrr', 'bcccccccbwwwwwwwwww',
+    'bcbcccbcbrrrrrrrrrr', 'bcccbcccbwwwwwwwwww', 'bbcccccbbrrrrrrrrrr', 'bbbbbbbbbwwwwwwwwww',
     'rrrrrrrrrrrrrrrrrrr', 'wwwwwwwwwwwwwwwwwww', 'rrrrrrrrrrrrrrrrrrr'],
   ccp: ['RRRRRRRRRRRRRRRRRRR', 'RRRRRRRRRRRRRyyyRRR', 'RRRRRRRRRRRRRRRyyRR', 'RyRRRRRyRRRRRyyRyyR',
     'RyyRRRyyRRRRyyyRyyR', 'RyyyyyyyRRRRRRyyyRR', 'RyRyyyRyRRRyRRyyyRR', 'RyyyRyyyRRyyyyyRyyR',
-    'RRyyyyyRRyyRRRRRRRR', 'RRRRRRRRRyyRRRRRRRR', 'RRRRRRRRRRRRRRRRRRR']
+    'RRyyyyyRRyyRRRRRRyy', 'RRRRRRRRRyyRRRRRRRy', 'RRRRRRRRRRRRRRRRRRR']
 };
 function flagPixels(kind, t){
   const out = [], w = FLAG_W, h = FLAG_H, art = FLAG_ART[kind];
