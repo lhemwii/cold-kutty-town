@@ -275,16 +275,54 @@ function levelBadge(l){
   CUR = M.ICON_Y;
   for (let k = 0; k < l.lvl - 1; k++) for (let d = 0; d < 3; d++){ fput(x + k * 6 + d, y - d, 1); fput(x + k * 6 + 4 - d, y - d, 1); }
 }
+/* ---- batiments tournes : on les construit face a +b, puis on les tourne d'un quart de tour autour de leur centre ---- */
+// le port et la pecherie gerent eux-memes leur direction (face a la mer)
+const SELF_DIR = { port: 1, pecherie: 1 };
+const DIR_ROT = [0, -Math.PI / 2, Math.PI, Math.PI / 2];
+// dessin tourne : meme centre a l'ecran, projection tournee de l'angle, soleil et lune ramenes dans le repere du batiment
+function turnDraw(ca, cb, th, fn){
+  const c = Math.cos(th), s = Math.sin(th);
+  return (t) => {
+    const sv = [PC, PS, TX, TY], su = [SUN[0], SUN[1]], mo = [MOON[0], MOON[1]];
+    const X = TX + ((ca * PC - cb * PS) - (ca * PS + cb * PC)) * SC, Y = TY + ((ca * PC - cb * PS) + (ca * PS + cb * PC)) * .5 * SC;
+    const pc = PC * c - PS * s, ps = PS * c + PC * s; PC = pc; PS = ps;
+    TX = Math.round(X - ((ca * PC - cb * PS) - (ca * PS + cb * PC)) * SC); TY = Math.round(Y - ((ca * PC - cb * PS) + (ca * PS + cb * PC)) * .5 * SC);
+    SUN[0] = su[0] * c + su[1] * s; SUN[1] = -su[0] * s + su[1] * c; MOON[0] = mo[0] * c + mo[1] * s; MOON[1] = -mo[0] * s + mo[1] * c;
+    const cap = CAPTURE ? CAPTURE.length : -1;
+    try { fn(t); }
+    finally {
+      [PC, PS, TX, TY] = sv; SUN[0] = su[0]; SUN[1] = su[1]; MOON[0] = mo[0]; MOON[1] = mo[1];
+      if (CAPTURE && cap >= 0) for (let i = cap; i + 1 < CAPTURE.length; i += 3){ const a = CAPTURE[i] - ca, b = CAPTURE[i + 1] - cb; CAPTURE[i] = ca + a * c - b * s; CAPTURE[i + 1] = cb + a * s + b * c; }
+    }
+  };
+}
+const turnsItself = (l) => !l.dir || SELF_DIR[l.type] || (ECO[l.type] && ECO[l.type].coast);
+// construit le dessin d'un batiment dans sa direction
+function buildParts(l, seed){
+  if (turnsItself(l)) return TYPES[l.type].build(l, seed);
+  const [fa, fb] = footOf(l.type), th = DIR_ROT[l.dir], c = Math.cos(th), s = Math.sin(th), ca = l.ca, cb = l.cb;
+  const lot = Object.assign({}, l, { a0: ca - fa / 2, a1: ca + fa / 2, b0: cb - fb / 2, b1: cb + fb / 2, dir: 0 });
+  const r = TYPES[l.type].build(lot, seed);
+  const R = (a, b) => [ca + (a - ca) * c - (b - cb) * s, cb + (a - ca) * s + (b - cb) * c];
+  const Rpts = (pts) => { const o = pts.slice(); for (let i = 0; i + 1 < o.length; i += 3){ const q = R(o[i], o[i + 1]); o[i] = q[0]; o[i + 1] = q[1]; } return o; };
+  for (const p of r.parts){ const q = R(p.a, p.b); p.a = q[0]; p.b = q[1]; p.draw = turnDraw(ca, cb, th, p.draw); if (p.shadow) p.shadow = Rpts(p.shadow); }
+  if (r.shadowPts) r.shadowPts = Rpts(r.shadowPts);
+  if (r.decals) r.decals = r.decals.map(d => turnDraw(ca, cb, th, d));
+  for (const L of r.lights || []){ const q = R(L.a, L.b); L.a = q[0]; L.b = q[1]; if (L.da != null){ const da = L.da * c - L.db * s, db = L.da * s + L.db * c; L.da = da; L.db = db; } }
+  if (r.beacon){ const q = R(r.beacon[0], r.beacon[1]); r.beacon = [q[0], q[1]].concat(r.beacon.slice(2)); }
+  r.turned = R;
+  return r;
+}
 function rebuildTown(){
   TOWN_VER++;
   BUILT = []; STATIC_PARTS = []; DECALS = []; LIGHTS_STATIC = []; BEACONS = [];
   for (const l of BLD){
     if (!l.done || !TYPES[l.type]) continue;
-    const sd = seedOf(l), r = TYPES[l.type].build(l, sd);
+    const sd = seedOf(l), r = buildParts(l, sd);
     BUILT.push({ lot: l, r });
     const bm = BUILD_MAT[l.type] || (l.side === 'ccp' ? CCP_MATS[sd % 3] : USC_MATS[sd % 5]);
     for (const p of r.parts){ if (p.m == null) p.m = bm; p.side = l.side; p.lot = l; }
-    if (r.parts[0]){ const sh = (SHADOW_EXTRA[l.type] ? SHADOW_EXTRA[l.type](l) : []).concat(r.shadowPts || []); if (sh.length) r.parts[0].shadow = sh; }
+    if (r.parts[0]){ let ex = SHADOW_EXTRA[l.type] ? SHADOW_EXTRA[l.type](l) : []; if (r.turned){ ex = ex.slice(); for (let i = 0; i + 1 < ex.length; i += 3){ const q = r.turned(ex[i], ex[i + 1]); ex[i] = q[0]; ex[i + 1] = q[1]; } } const sh = ex.concat(r.shadowPts || []); if (sh.length) r.parts[0].shadow = sh; }
     if (l.lvl > 1 && !LVL_POP[l.type] && l.type !== 'port') STATIC_PARTS.push(Object.assign(part(l.ca, l.b1 + 1, .05, () => levelBadge(l)), { side: l.side, lot: l }));
     STATIC_PARTS.push(...r.parts); LIGHTS_STATIC.push(...(r.lights || []));
     if (r.beacon) BEACONS.push(r.beacon);

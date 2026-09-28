@@ -4,7 +4,7 @@ const $ = (id) => document.getElementById(id);
 state.tool = 'walk'; state.buildType = 'maison'; state.sel = null;
 const HINTS = {
   walk: 'Glisse pour te déplacer, molette pour zoomer, clic droit glissé pour tourner. Clique sur un bâtiment ou un chat.',
-  build: 'Choisis un bâtiment puis clique dans ton territoire. Les bâtiments de la mer se posent face à l’eau.',
+  build: 'Choisis un bâtiment puis clique dans ton territoire. Clic droit glissé ou T pour le tourner. Les bâtiments de la mer se posent face à l’eau.',
   road: 'Clique le départ, puis l’arrivée. La route continue depuis son bout : clic droit ou Échap pour arrêter.',
   curve: 'Clique le départ, puis le point qui tire la courbe, puis l’arrivée.',
   wall: 'Clique le début du Rideau de Laine puis sa fin. Il fige ta frontière. 3 laine tous les 10 pas.',
@@ -31,7 +31,7 @@ function toast(msg){ const el = $('toast'); el.textContent = msg; el.hidden = fa
 // position proposee pour le batiment sous le curseur (arrondie a 2 unites), et sa direction s'il est au bord de l'eau
 function buildSpot(a, b){
   const type = state.buildType, e = ECO[type], ca = Math.round(a / 2) * 2, cb = Math.round(b / 2) * 2;
-  const dir = e && e.coast ? coastDir(ca, cb) : 0;
+  const dir = e && e.coast ? coastDir(ca, cb) : (state.buildDir || 0);
   return { type, ca, cb, dir, why: placeProblem(type, GAME.side, ca, cb, dir, false) };
 }
 function tryBuild(a, b){
@@ -180,7 +180,7 @@ function drawToolPreview(t){
     const s = buildSpot(hoverW[0], hoverW[1]), key = s.type + ':' + s.ca + ':' + s.cb + ':' + s.dir;
     if (!ghost || ghost.key !== key){
       const l = makeBuilding(s.type, GAME.side, s.ca, s.cb, Math.max(0, s.dir));
-      ghost = { key, l, parts: s.why ? null : TYPES[s.type].build(l, 7).parts.slice().sort((u, v) => (dep(u.a, u.b) + u.zb) - (dep(v.a, v.b) + v.zb)), why: s.why };
+      ghost = { key, l, parts: s.why ? null : buildParts(l, 7).parts.slice().sort((u, v) => (dep(u.a, u.b) + u.zb) - (dep(v.a, v.b) + v.zb)), why: s.why };
     }
     const l = ghost.l;
     dashRect(l.a0, l.a1, l.b0, l.b1, !ghost.why);
@@ -281,9 +281,11 @@ scene.addEventListener('pointerdown', e => {
       drag = null; cam.target = null; cam.follow = null; return;
     }
   }
-  const turn = e.pointerType === 'mouse' && (e.button === 2 || (e.button === 0 && e.shiftKey));
+  // en construction, le clic droit glisse fait tourner le batiment au lieu de la vue
+  const spin = e.pointerType === 'mouse' && e.button === 2 && state.tool === 'build' && !OV_ON;
+  const turn = !spin && e.pointerType === 'mouse' && (e.button === 2 || (e.button === 0 && e.shiftKey));
   if (e.pointerType === 'mouse' && e.button !== 0 && e.button !== 2) return;
-  drag = { x: e.clientX, y: e.clientY, a: cam.a, b: cam.b, phi: cam.phi, moved: false, id: e.pointerId, turn, right: e.button === 2 };
+  drag = { x: e.clientX, y: e.clientY, a: cam.a, b: cam.b, phi: cam.phi, moved: false, id: e.pointerId, turn, spin, dir0: state.buildDir || 0, right: e.button === 2 };
   try { scene.setPointerCapture(e.pointerId); } catch (_) {}
 });
 scene.addEventListener('pointermove', e => {
@@ -301,9 +303,10 @@ scene.addEventListener('pointermove', e => {
   }
   if (drag && drag.id === e.pointerId){
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
-    if (!drag.moved && Math.hypot(dx, dy) > 5){ drag.moved = true; scene.classList.add(drag.turn ? 'turning' : 'panning'); cam.target = null; cam.follow = null; }
+    if (!drag.moved && Math.hypot(dx, dy) > 5){ drag.moved = true; scene.classList.add(drag.turn || drag.spin ? 'turning' : 'panning'); cam.target = null; cam.follow = null; }
     if (drag.moved){
-      if (drag.turn){ cam.phi = drag.phi + dx * 0.008; cam.phiT = null; }
+      if (drag.spin){ const nd = ((drag.dir0 + Math.round(dx / 50)) % 4 + 4) % 4; if (nd !== (state.buildDir || 0)){ state.buildDir = nd; ghost = null; sfx('click'); } }
+      else if (drag.turn){ cam.phi = drag.phi + dx * 0.008; cam.phiT = null; }
       else {
         const s = DPR / Z, sv = { a: cam.a, b: cam.b };
         cam.a = drag.a; cam.b = drag.b; setProj();
@@ -371,6 +374,7 @@ window.addEventListener('keydown', e => {
   if (GAME.mode !== 'play'){ if (k === '+' || k === '=') zoomStep(1); else if (k === '-' || k === '_') zoomStep(-1); return; }
   if (k === 'b') setTool(state.tool === 'build' ? 'walk' : 'build');
   else if (k === 'r') setTool('road');
+  else if (k === 't' && state.tool === 'build'){ state.buildDir = ((state.buildDir || 0) + 1) % 4; ghost = null; sfx('click'); }
   else if (k === 'c') setTool('curve');
   else if (k === 'm') setTool('wall');
   else if (k === 'x') setTool('demolish');

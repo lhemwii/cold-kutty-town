@@ -82,6 +82,12 @@ Les demandes qui arrivent en cours de route et ne rentrent dans aucune étape de
 - [x] Juste sous le zoom rapproché (jusqu’à 70 % de KMIN, donc le palier « 74 % »), on garde le vrai dessin de près, en plus petit, au lieu de la vue de loin. Plus loin, la vue de loin prend le relais.
 - [x] Enseignes de façade (mairie, épicerie, usine, bowling, radio, grand magasin) : quand on passe derrière le bâtiment, elles se mettent sur la façade arrière au lieu de disparaître. Enseigne du cirque visible des deux côtés.
 
+## Étape 0.10. Tourner les bâtiments (fait)
+
+- [x] En construction, clic droit glissé (ou la touche T) fait tourner le bâtiment d’un quart de tour, au lieu de tourner la vue. Le fantôme montre le sens avant de poser.
+- [x] Tous les bâtiments se tournent : ils sont dessinés face à +b puis tournés autour de leur centre (projection, soleil, ombres et lumières suivent). Le port et la pêcherie gardent leur sens face à la mer.
+- [x] Question réglée : la vue de près en plus petit ne peut pas descendre sous 74 %. À 52 %, on tombe à 30 images par seconde ; en dessous, un pixel du jeu devient plus petit qu’un pixel de l’écran. Pour aller plus loin, il faudra le rendu par la carte graphique (étape 10).
+
 ## Étape 1. Fiabiliser ce qui existe
 
 - [ ] Jouer une vraie partie à la souris et noter chaque bug d’interface.
@@ -95,7 +101,7 @@ Les demandes qui arrivent en cours de route et ne rentrent dans aucune étape de
 ## Étape 2. Construire et tracer
 
 - [ ] Aperçu du prix et de l’effet au survol, en direct, dans le fantôme du bâtiment.
-- [ ] Orientation des bâtiments (touche pour tourner d’un quart de tour), et alignement automatique face à la route la plus proche.
+- [~] Orientation des bâtiments : fait (clic droit glissé ou T, étape 0.10). Reste l’alignement automatique face à la route la plus proche.
 - [ ] Routes : tracé à main levée en plus de droite et courbe, accroche sur le milieu d’une route, pont court au-dessus d’une rivière ou d’une anse.
 - [ ] Routes à deux niveaux : chemin de terre (pas cher) puis route goudronnée (amélioration).
 - [ ] Défrichage visible : souches et chantier quand on coupe une forêt.

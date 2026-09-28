@@ -19,7 +19,7 @@ Le résultat est un site statique dans `dist/` : `index.html`, un CSS et deux sc
 | `07-world.js` | Forêts et montagnes rangées par cases, Rideau de Laine en pans libres, miradors, phare, lampadaires, voilier, vestiges catzi (`VEST`, `VEST_DEF`). |
 | `08-territory.js` | Territoires : grille de cases de 4 unités, influence des bâtiments, expansion en direct, pression aux frontières, verrous. |
 | `09-roads.js` | Routes droites et courbes : peinture au sol, graphe, raccords, accès au QG, voitures. |
-| `10-town.js` | Bâtiments posés (`BLD`), règles de pose, chats nommés qui arrivent avec leur bâtiment, reconstruction de la scène. |
+| `10-town.js` | Bâtiments posés (`BLD`), règles de pose, chats nommés qui arrivent avec leur bâtiment, reconstruction de la scène. Bâtiments tournés d’un quart de tour (`buildParts`, `turnDraw`). |
 | `11-render.js` | Palette jour et nuit, météo, zoom, vue de loin en direct, rendu du sol avec territoires, objets, ombres. |
 | `12-portrait.js` | Portrait détaillé du chat dans la fenêtre de discussion. |
 | `13-ui.js` | Outils : observer, construire, routes, Rideau, démolir, annuler ; souris, tactile, clavier ; pause et vitesse. |
