@@ -44,7 +44,7 @@ button{font:inherit;color:inherit}
 .brand-old{font-family:var(--script);font-size:26px;line-height:.8;transform:translateY(2px)}
 .brand-name{font-family:var(--display);font-weight:700;font-size:13px;letter-spacing:.03em}
 .tb-camp{background:var(--me);color:#fff;gap:9px}
-.tb-camp .flag{width:36px;height:18px;outline:2px solid #fff}
+.tb-camp .flag{width:37px;height:20px;outline:2px solid #fff}
 .tb-camp-name{font:700 9px/1.25 var(--display);letter-spacing:.06em;max-width:120px;text-transform:uppercase}
 .tb-res{gap:6px;padding:6px 8px}
 .res{display:grid;grid-template-columns:auto auto;grid-template-rows:auto auto;column-gap:7px;align-items:center;padding:4px 9px 4px 6px;border:2px solid transparent;background:none;cursor:help;text-align:left;min-width:0}
@@ -201,7 +201,7 @@ body.sel-open .bottom,body.chat-open .bottom{right:322px}
 .intro p{margin:0;font-size:15px;line-height:1.45;text-wrap:pretty}
 .sides{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .side-card{display:grid;gap:6px;padding:10px;border:2px solid var(--paper);background:var(--ink);cursor:pointer;text-align:center;justify-items:center}
-.side-card .flag{width:100%;aspect-ratio:2/1;outline:2px solid var(--paper)}
+.side-card .flag{width:100%;aspect-ratio:48/26;outline:2px solid var(--paper)}
 .side-card b{font:700 10px/1.2 var(--display);letter-spacing:.05em}
 .side-card span{font-size:12px;line-height:1.35;color:var(--mute)}
 .side-card[aria-checked="true"]{box-shadow:inset 0 0 0 4px var(--paper),6px 6px 0 var(--paper);transform:translate(-2px,-2px)}
@@ -215,7 +215,7 @@ body.sel-open .bottom,body.chat-open .bottom{right:322px}
 .intro-rules li{display:grid;grid-template-columns:24px 1fr;gap:8px}
 .intro-rules b{font-family:var(--display);font-size:10px;line-height:1.7}
 .end-card{justify-items:center;text-align:center}
-.end-card .flag{width:160px;height:80px;outline:3px solid var(--paper)}
+.end-card .flag{width:160px;height:87px;outline:3px solid var(--paper)}
 .end-title{margin:0;font:900 34px/1 var(--text);font-stretch:90%}
 body:not(.playing) .minimap,body:not(.playing) #btnMenu{display:none}
 

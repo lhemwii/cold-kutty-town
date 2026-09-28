@@ -65,6 +65,13 @@ Les demandes qui arrivent en cours de route et ne rentrent dans aucune étape de
 - [x] Plus de trame en petits carrés sur les montagnes : faces pleines, seul l’éclairage change d’une face à l’autre. Plus de gros carrés au zoom ni d’effet bizarre en tournant.
 - [x] Sol rocheux : taches claires accrochées au sol au lieu d’une trame calée sur l’écran.
 
+## Étape 0.7. Drapeaux, deuxième passe (fait)
+
+- [x] USC : une seule tête de chat, plus petite, au centre du coin bleu, et les 13 bandes.
+- [x] CCR : tête de chat et marteau et faucille bien dessinés (d’après le vrai symbole), côte à côte au centre.
+- [x] Drapeaux de l’interface en 48 x 26 pour plus de finesse.
+- [x] Bug vu en passant : on pouvait bâtir (même le QG) sous les pentes d’une montagne. C’est maintenant refusé.
+
 ## Étape 1. Fiabiliser ce qui existe
 
 - [ ] Jouer une vraie partie à la souris et noter chaque bug d’interface.

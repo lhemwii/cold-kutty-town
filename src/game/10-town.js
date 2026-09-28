@@ -42,6 +42,9 @@ function placeProblem(type, side, ca, cb, dir, free){
   } else if (land < n) return 'Pas de construction dans l’eau.';
   if (bad) return bad;
   for (const o of BLD) if (l.a0 < o.a1 + 1 && l.a1 > o.a0 - 1 && l.b0 < o.b1 + 1 && l.b1 > o.b0 - 1) return 'Il y a déjà un bâtiment ici.';
+  // les montagnes debordent de la roche : on ne bati pas sous leurs pentes
+  let peak = false; peaksIn(l.a0 - 70, l.a1 + 70, l.b0 - 70, l.b1 + 70, (pk) => { const da = Math.max(l.a0 - pk.a, 0, pk.a - l.a1), db = Math.max(l.b0 - pk.b, 0, pk.b - l.b1); if (Math.hypot(da, db) < pk.R * .85) peak = true; });
+  if (peak) return 'Une montagne se dresse ici.';
   for (const v of VEST) if (!v.looted && v.a > l.a0 - (v.kind === 'statue' ? 32 : 14) && v.a < l.a1 + 14 && v.b > l.b0 - (v.kind === 'statue' ? 16 : 14) && v.b < l.b1 + 14) return 'Des vestiges catzi sont ici : fouille-les d’abord.';
   for (const r of ROADS) if (rectRoadDist(l, r) < RW + .5) return 'Une route passe ici.';
   for (const w of WALLS){ const m = [(w.pa + w.qa) / 2, (w.pb + w.qb) / 2]; if (m[0] > l.a0 - 6 && m[0] < l.a1 + 6 && m[1] > l.b0 - 6 && m[1] < l.b1 + 6) return 'Le Rideau de Laine passe ici.'; }
