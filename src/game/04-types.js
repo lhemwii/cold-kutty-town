@@ -76,7 +76,7 @@ const TYPES = {
       for (let r = 1; r <= 5; r++) for (let x = bx - 4 + r; x <= bx + 4 - r; x++) fput(x, by - 11 - r, (x === bx - 4 + r || x === bx + 4 - r) ? 1 : 0);
       fput(bx, by - 17, 1); fput(bx, by - 18, 1);
     }), part(g.ca + 10, g.b1 + 4, 0, (t) => drawFlagPole(g.ca + 10, g.b1 + 4, 0, 20, lot.side, t)),
-      part(g.ca, g.b1, .3, () => { if (!frontVisible(0)) return; plateW('MAIRIE', g.ca, g.b1, g.hh - 1); })];
+      part(g.ca, g.cb, .6, () => facadePlate('MAIRIE', g.ca, g.b1, g.b0, g.hh - 1))];
     return { parts, lights: houseLights(g).concat([Lc(g.ca, g.b1 + 9, 14, 1.3)]) };
   } },
   diner: { name: 'Diner', fem: false, build(lot, seed){
@@ -167,8 +167,7 @@ const TYPES = {
       drawFace([a0 + 1, b1, 7, a1 - 1, b1, 7, a1 - 1, b1 + 4, 5, a0 + 1, b1 + 4, 5], [0, 2, 4],
         ccp ? ((x, y) => bz(x, y) < 3 ? 1 : 0) : alongSh(a0 + 1, b1 + 4, 5, a1 - 1, b1 + 4, 5, la - 2, (u) => (Math.floor(u / 1.5) & 1) ? 1 : 0), 1);
       CUR = savedM;
-      if (!frontVisible(0) && !faceVisible([0, 2, 4])) return;
-      plateW(ccp ? 'GASTRONOM' : 'EPICERIE', lot.ca, b1, hh + .5);
+      facadePlate(ccp ? 'GASTRONOM' : 'EPICERIE', lot.ca, b1, b0, hh + .5);
     };
     const parts = [part(lot.ca, lot.cb - 3, 0, body), part(lot.ca, lot.cb - 3, .3, awning)];
     // la file avance : toutes les 7 s, le premier entre, les autres font un pas, un nouveau arrive au bout
@@ -303,7 +302,7 @@ const TYPES = {
         const p = prj(cx, cy2, 32); smokeAt(p[0], p[1] - 1, t * 1.4, sd + seed); smokeAt(p[0] + 2, p[1] - 3, t * 1.1 + .5, sd * 3 + seed);
       }));
     }
-    parts.push(part(lot.ca, b1, .6, () => { if (!frontVisible(0)) return; plateW(ccp ? 'USINE 7' : 'KUTTY MOTORS', lot.ca, b1, hh + .5); }));
+    parts.push(part(lot.ca, lot.cb, .7, () => facadePlate(ccp ? 'USINE 7' : 'KUTTY MOTORS', lot.ca, b1, b0, hh + .5)));
     return { parts, lights: [sideLight(a0, a1, b0, b1, 0, 10, 1.2), sideLight(a0, a1, b0, b1, 1, 8, 1.1)] };
   } },
   statue: { name: 'Statue', fem: true, build(lot, seed){

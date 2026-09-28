@@ -151,7 +151,10 @@ let devW = 0, devH = 0, ob = null;
 let Z = 2, ZT = 2, ZANCH = null, ZLEVELS = [], OV_ON = false;
 // budget de pixels du rendu detaille : au-dela, tout ralentit ; la carte prend le relais
 const PIX_BUDGET = 430000;
-const renderK = (z) => Math.max(KMIN, Math.floor(z + 1e-6));
+// Juste sous KMIN (jusqu'a FAR_T * KMIN), on garde la vue rapprochee avec un tampon un peu plus grand (echelle de rendu
+// fractionnaire) : c'est le meme dessin qu'au zoom rapproche, en plus petit. Plus loin, on passe a la vue de loin (SC < 1).
+const FAR_T = .7;
+const renderK = (z) => z >= KMIN - 1e-6 ? Math.max(KMIN, Math.floor(z + 1e-6)) : z >= KMIN * FAR_T - 1e-6 ? Math.max(KMIN * FAR_T * .98, Math.floor(z * 16) / 16) : KMIN;
 function applyK(){
   W = Math.ceil(devW / K); H = Math.ceil(devH / K);
   N = W * H;
@@ -163,7 +166,7 @@ function applyK(){
 }
 // taille et position du canvas a l'ecran
 function applyView(force){
-  const ov = Z < KMIN - 1e-6;
+  const ov = Z < KMIN * FAR_T - 1e-6;
   if (ov !== OV_ON || force){
     OV_ON = ov;
     if (scene.width !== W || scene.height !== H){ scene.width = W; scene.height = H; }

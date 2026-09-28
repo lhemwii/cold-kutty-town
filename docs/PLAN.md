@@ -77,6 +77,11 @@ Les demandes qui arrivent en cours de route et ne rentrent dans aucune étape de
 - [x] USC : la tête de chat du coin bleu est la même que celle de la CCR, en blanc.
 - [x] CCR : manche du marteau rallongé, emblème recentré.
 
+## Étape 0.9. Vue à 75 % et enseignes des deux côtés (fait)
+
+- [x] Juste sous le zoom rapproché (jusqu’à 70 % de KMIN, donc le palier « 74 % »), on garde le vrai dessin de près, en plus petit, au lieu de la vue de loin. Plus loin, la vue de loin prend le relais.
+- [x] Enseignes de façade (mairie, épicerie, usine, bowling, radio, grand magasin) : quand on passe derrière le bâtiment, elles se mettent sur la façade arrière au lieu de disparaître. Enseigne du cirque visible des deux côtés.
+
 ## Étape 1. Fiabiliser ce qui existe
 
 - [ ] Jouer une vraie partie à la souris et noter chaque bug d’interface.

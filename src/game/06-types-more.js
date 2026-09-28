@@ -115,7 +115,7 @@ Object.assign(TYPES, {
       if (h > 6.5 && h < 9 && cu > 1.2 && cu < 3.8) return ((COLOR && DAY) || hash2(Math.floor(u / 5) + k, seed) < .5) ? 3 : 0;
       return wallBase(k, x, y);
     }, (x, y) => ((x + y) & 3) === 0 ? 1 : 3);
-    const sign = () => { if (!frontVisible(0)) return; plateW(ccp ? 'GRAND MAGASIN' : 'MAGASIN', (a0 + a1) / 2, b1, 13); };
+    const sign = () => facadePlate(ccp ? 'GRAND MAGASIN' : 'MAGASIN', (a0 + a1) / 2, b1, b0, 13);
     return { parts: [part(lot.ca, lot.cb - 1, 0, body), part(lot.ca, lot.cb - 1, .4, sign)], lights: [Lc(lot.ca, b1 + 7, 14, 1.3)] };
   } },
   supermarche: { name: 'Supermarché', nameCCP: 'Univermag', fem: false, build(lot, seed){

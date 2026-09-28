@@ -10,6 +10,8 @@ function sideLight(a0, a1, b0, b1, k, r, kk){
   return Lc(ca + n[0] * ((a1 - a0) / 2 + 4), cb + n[1] * ((b1 - b0) / 2 + 4), r || 7, kk);
 }
 const frontVisible = (k) => faceVisible(SIDE_N[k]);
+// enseigne de facade lisible des deux cotes : sur la face +b quand on la voit, sinon sur la face -b
+function facadePlate(s, a, bFront, bBack, z, opt){ return plateW(s, a, frontVisible(0) ? bFront : bBack, z, opt); }
 // coordonnee le long d'un segment projete, pour les stores rayes
 function alongSh(pa, pb, pz, qa, qb, qz, L, fn){
   const P = prj(pa, pb, pz), Q = prj(qa, qb, qz), ex = Q[0] - P[0], ey = Q[1] - P[1], ee = ex * ex + ey * ey || 1;
