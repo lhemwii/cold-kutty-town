@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Cold Kutty Town</title>
+<meta name="description" content="Un city builder cozy de chats, en pleine guerre froide, en 1961. En couleur, du matin à la nuit.">
+<meta name="theme-color" content="#fbf7ee">
+<meta property="og:title" content="Cold Kutty Town">
+<meta property="og:description" content="Un city builder cozy de chats, en pleine guerre froide, en 1961. En couleur, du matin à la nuit.">
+<meta property="og:image" content="/og.jpg">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@400;600&family=Silkscreen:wght@400;700&family=Yellowtail&family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&family=Playfair+Display:wght@700;900&family=UnifrakturMaguntia&display=swap">
+<link rel="stylesheet" href="%STYLE%">
+</head>
+<body>
+<canvas id="scene" tabindex="0" aria-label="Cold Kutty Town, une île coupée en deux par le Rideau de Laine, en couleur, du matin à la nuit. Glisser pour se déplacer, molette pour zoomer, clic droit glissé pour tourner, cliquer sur un chat pour lui parler."></canvas>
+
+<div class="bubbles" id="bubbles" aria-hidden="true"></div>
+<header class="brand panel">
+  <div class="brand-title"><span class="brand-old">Cold</span><span class="brand-name">KUTTY TOWN</span></div>
+  <div class="brand-sub">ÎLE DE KUTTY · GUERRE FROIDE · 1961</div>
+  <div class="clock" id="clock" hidden>
+    <button class="btn" id="clockPlay" type="button" aria-label="Mettre le temps en pause" aria-pressed="false">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="3" width="3.5" height="10" fill="currentColor"/><rect x="9.5" y="3" width="3.5" height="10" fill="currentColor"/></svg>
+    </button>
+    <output id="clockTime">10:30</output>
+    <input type="range" id="clockRange" min="0" max="1439" step="1" value="630" aria-label="Heure de la journée">
+    <button class="btn" id="clockSpeed" type="button" aria-label="Vitesse du temps">×1</button>
+  </div>
+  <div class="brand-actions">
+    <button class="btn" id="btnLight" type="button" aria-pressed="false" aria-controls="lightPanel">Lumière</button>
+    <button class="btn" id="btnWx" type="button" hidden>Météo auto</button>
+    <button class="btn" id="btnHide" type="button" aria-pressed="false">Masquer</button>
+  </div>
+</header>
+
+<section class="radio panel" id="radio" aria-label="Radio">
+  <div class="radio-tag"><i id="radioDot"></i><span id="radioStation">RADIO</span></div>
+  <div class="radio-track"><div class="radio-text" id="radioText" aria-live="off"></div></div>
+</section>
+
+<nav class="view panel" aria-label="Vue">
+  <button class="btn" id="zoomOut" type="button" aria-label="Dézoomer">
+    <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="7" width="12" height="2" fill="currentColor"/></svg>
+  </button>
+  <button class="btn" id="zoomLabel" type="button" aria-label="Zoom par défaut">100 %</button>
+  <button class="btn" id="zoomIn" type="button" aria-label="Zoomer">
+    <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="7" width="12" height="2" fill="currentColor"/><rect x="7" y="2" width="2" height="12" fill="currentColor"/></svg>
+  </button>
+  <button class="btn" id="rotL" type="button" aria-label="Tourner vers la gauche">
+    <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3v4h4V5H6.2A5 5 0 1 1 3.4 10H1.3A7 7 0 1 0 5 3.3V3H3z" fill="currentColor"/></svg>
+  </button>
+  <button class="btn" id="compass" type="button" aria-label="Remettre le nord en haut"><canvas width="11" height="11"></canvas></button>
+  <button class="btn" id="rotR" type="button" aria-label="Tourner vers la droite">
+    <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13 3v4H9V5h.8A5 5 0 1 0 12.6 10h2.1A7 7 0 1 1 11 3.3V3h2z" fill="currentColor"/></svg>
+  </button>
+  <button class="btn" id="btnSound" type="button" aria-pressed="false" aria-label="Activer le son" title="Son">
+    <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 6h3l4-3v10L5 10H2z" fill="currentColor"/><path class="snd-on" d="M11 5.2a4 4 0 0 1 0 5.6M12.8 3.4a6.5 6.5 0 0 1 0 9.2" stroke="currentColor" stroke-width="1.5" fill="none"/><path class="snd-off" d="M11 5.5l4 4M15 5.5l-4 4" stroke="currentColor" stroke-width="1.5"/></svg>
+  </button>
+  <button class="btn" id="btnPhoto" type="button" aria-pressed="false" aria-label="Mode photo" title="Mode photo">
+    <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 5h3l1.5-2h5L12 5h3v8H1z" fill="currentColor"/><circle cx="8" cy="9" r="2.6" fill="var(--ink)"/><circle cx="8" cy="9" r="1.4" fill="currentColor"/></svg>
+  </button>
+</nav>
+
+<section class="minimap panel" id="minimap" aria-label="Carte de l’île : clique pour t’y rendre">
+  <div class="map-head"><span>CARTE</span><span class="map-hint">clique pour y aller</span></div>
+  <canvas id="mapCv" width="220" height="124"></canvas>
+</section>
+
+<div class="tip" id="tip" hidden></div>
+
+<section class="photo-bar panel" id="photoBar" aria-label="Mode photo" hidden>
+  <div class="pf" role="radiogroup" aria-label="Filtre">
+    <button class="btn" type="button" role="radio" data-pf="couleur" aria-checked="true">Couleur</button>
+    <button class="btn" type="button" role="radio" data-pf="sepia" aria-checked="false">Sépia</button>
+    <button class="btn" type="button" role="radio" data-pf="journal" aria-checked="false">Journal</button>
+    <button class="btn" type="button" role="radio" data-pf="vintage" aria-checked="false">Carte postale</button>
+  </div>
+  <button class="btn primary" type="button" id="photoShoot">Prendre la photo</button>
+  <button class="btn" type="button" id="photoQuit">Quitter</button>
+</section>
+<div class="photo-preview" id="photoPreview" hidden>
+  <div class="pp-card panel"><img id="photoImg" alt="Ta photo de Kutty"><div class="pp-row"><span>Clic droit (ou appui long) sur l’image pour l’enregistrer.</span><button class="btn" type="button" id="photoPreviewClose">Fermer</button></div></div>
+</div>
+
+<section class="light-panel panel" id="lightPanel" aria-label="Réglages de la lumière" hidden>
+  <div>
+    <div class="label"><span>Motif de la lumière</span></div>
+    <div class="patterns" role="radiogroup" aria-label="Motif">
+      <button class="btn pbtn" type="button" role="radio" data-p="dots" aria-checked="true"><canvas width="12" height="12"></canvas><span>Points</span></button>
+      <button class="btn pbtn" type="button" role="radio" data-p="stripes" aria-checked="false"><canvas width="12" height="12"></canvas><span>Rayures</span></button>
+      <button class="btn pbtn" type="button" role="radio" data-p="noise" aria-checked="false"><canvas width="12" height="12"></canvas><span>Bruit</span></button>
+      <button class="btn pbtn" type="button" role="radio" data-p="diamond" aria-checked="false"><canvas width="12" height="12"></canvas><span>Losanges</span></button>
+    </div>
+  </div>
+  <div>
+    <div class="label"><span>Intensité de la ville</span><output id="ival" for="ibar">0.40</output></div>
+    <div class="ibar" id="ibar" role="slider" tabindex="0" aria-label="Intensité" aria-valuemin="0" aria-valuemax="1" aria-valuenow="0.4"></div>
+    <div class="rule" id="rule">bayer4(x, y) &lt; 6.40</div>
+  </div>
+  <div class="row">
+    <button class="btn" type="button" id="btnView" aria-pressed="false">Vue motif</button>
+    <button class="btn" type="button" id="btnRot" aria-pressed="true">Phare qui tourne</button>
+    <button class="btn" type="button" id="btnInsp" aria-pressed="false">Inspecteur</button>
+  </div>
+</section>
+
+<section class="inspector panel" id="inspector" aria-label="Inspecteur de pixels" hidden>
+  <div class="insp-head"><span class="insp-title" id="inspTitle">Points</span><span class="insp-sub">1 case = 1 pixel</span></div>
+  <canvas id="insp" width="144" height="144"></canvas>
+</section>
+
+<section class="camps panel" id="camps" aria-label="Les deux camps" hidden>
+  <div class="mp-line" id="mpLine" hidden></div>
+  <div class="camp usc"><div class="camp-top"><b>RÊVE DES NATIONS LIBRES</b><span id="gU">50 %</span></div><div class="gauge"><i id="gUbar"></i></div><div class="camp-want" id="wU"></div><div class="camp-res" id="rU"></div></div>
+  <div class="camp ccp"><div class="camp-top"><b>GRAND PLAN DU PEUPLE</b><span id="gC">50 %</span></div><div class="gauge"><i id="gCbar"></i></div><div class="camp-want" id="wC"></div><div class="camp-res" id="rC"></div></div>
+  <div class="tension"><span>Tension</span><div class="tbar"><i id="tBar"></i></div><b id="tLab">Froid</b></div>
+</section>
+
+<section class="chat panel" id="chat" aria-label="Conversation" hidden>
+  <div class="chat-head">
+    <div class="portrait-wrap"><canvas id="portrait" width="160" height="120" role="img" aria-label="Portrait du chat"></canvas></div>
+    <div class="chat-id">
+      <div class="chat-side"><canvas id="flag" width="15" height="10"></canvas><span id="chatSide">USC</span></div>
+      <h2 class="chat-name" id="chatName">Minou</h2>
+      <div class="chat-job" id="chatJob">Maire</div>
+    </div>
+    <button class="btn chat-close" id="chatClose" type="button" aria-label="Fermer la conversation">Fermer</button>
+  </div>
+  <div class="chat-log" id="chatLog" aria-live="polite"></div>
+  <div class="chat-foot">
+    <form class="chat-form" id="chatForm">
+      <input class="chat-input" id="chatInput" type="text" maxlength="300" autocomplete="off" placeholder="Écris ce que tu veux…" aria-label="Ton message">
+      <button class="btn" type="submit" id="chatSend">Envoyer</button>
+    </form>
+    <div class="quick-wrap"><span class="quick-label">Idées</span><div class="quick" id="quick"></div></div>
+    <div class="chat-note" id="chatNote"><span id="chatNoteText"></span> <button class="btn chat-allow" id="chatAllow" type="button" hidden>Autoriser Claude</button></div>
+  </div>
+</section>
+
+<div class="bottom">
+  <section class="event panel" id="eventCard" aria-live="polite" hidden>
+    <div class="ev-side" id="evSide"></div>
+    <div class="ev-title" id="evTitle"></div>
+    <p class="ev-text" id="evText"></p>
+    <div class="ev-choices"><button class="btn" id="evA" type="button"></button><button class="btn" id="evB" type="button"></button></div>
+  </section>
+  <div class="toast" id="toast" hidden></div>
+  <section class="dock panel" id="dock" aria-label="Actions">
+    <div class="modes" role="group" aria-label="Mode">
+      <button class="btn" type="button" data-mode="walk" aria-pressed="true">Se balader</button>
+      <button class="btn" type="button" data-mode="build" aria-pressed="false">Construire</button>
+      <button class="btn" type="button" data-mode="road" aria-pressed="false">Routes</button>
+      <button class="btn" type="button" data-mode="demolish" aria-pressed="false">Démolir</button>
+      <button class="btn" type="button" id="btnUndo" disabled title="Annuler (Ctrl+Z)">Annuler</button>
+      <button class="btn" type="button" id="btnMenu" title="Changer de partie">Partie</button>
+      <button class="btn" type="button" id="btnPaper" title="Le journal du matin" hidden>Journal</button>
+      <span class="hint" id="modeHint"></span>
+    </div>
+    <div class="palette" id="palette" role="radiogroup" aria-label="Bâtiment à construire" hidden></div>
+  </section>
+</div>
+
+<div class="countdown" id="countdown" hidden></div>
+
+<div class="paper" id="paper" hidden>
+  <div class="paper-card" role="dialog" aria-modal="true" aria-labelledby="npHead">
+    <div class="paper-tabs">
+      <button class="btn" type="button" data-np="usc" aria-pressed="true">Gazette de Kutty</button>
+      <button class="btn" type="button" data-np="ccp" aria-pressed="false">Pravdachat</button>
+      <button class="btn paper-close" type="button" id="paperClose">Fermer</button>
+    </div>
+    <article class="np" id="np" data-side="usc">
+      <header class="np-mast"><div class="np-name" id="npName">Gazette de Kutty</div><div class="np-line" id="npLine"></div></header>
+      <h2 class="np-head" id="npHead"></h2>
+      <p class="np-lede" id="npLede"></p>
+      <div class="np-grid">
+        <figure class="np-photo"><canvas id="npPhoto" width="480" height="300" role="img" aria-label="Photo de une"></canvas><figcaption id="npCap"></figcaption></figure>
+        <div class="np-cols" id="npCols"></div>
+      </div>
+      <footer class="np-foot"><span id="npBreve"></span><span class="np-by" id="npBy"></span></footer>
+    </article>
+    <p class="paper-note" id="npNote"></p>
+  </div>
+</div>
+
+<div class="intro" id="intro">
+  <div class="intro-card panel" role="dialog" aria-labelledby="introTitle">
+    <div class="intro-kicker">KUTTY TOWN · LA GUERRE FROIDE</div>
+    <h1 class="intro-title" id="introTitle"><span class="brand-old">Cold</span><span class="brand-name">KUTTY TOWN</span></h1>
+    <p>Automne 1961. La grande île de Kutty est coupée en deux par le Rideau de Laine. Le phare tourne, la radio grésille, et au Checkpoint Minou on ne passe qu'avec un sourire.</p>
+    <div class="sides">
+      <div class="side-card"><b>USC · À L'OUEST</b><span>United Sands of Cats. Diners, drive-in, stade, gratte-ciel art déco, Gare Centrale, métro aérien et aéroport. Leur idéal : le Rêve des Nations Libres.</span></div>
+      <div class="side-card"><b>CCR · À L'EST</b><span>Cats Communist Republik. Usines, kolkhozes, églises à bulbes, défilé militaire, Gare du Peuple, métro aérien et aéroport. Leur idéal : le Grand Plan du Peuple.</span></div>
+    </div>
+    <ul>
+      <li><b>01</b><span>Glisse pour te balader. Molette, pincement ou boutons pour zoomer.</span></li>
+      <li><b>02</b><span>Clic droit glissé, deux doigts ou flèches rondes pour tourner à 360°.</span></li>
+      <li><b>03</b><span>Clique sur un chat et écris-lui ce que tu veux : il te répond dans son rôle.</span></li>
+      <li><b>04</b><span>Avec Construire, pose des bâtiments : ils coûtent de la laine et grandissent avec un bon voisinage. Avec Routes, trace de nouvelles rues.</span></li>
+      <li><b>05</b><span>Chaque camp réclame un bâtiment : exauce-le pour faire monter sa jauge. Surveille croquettes et moral, et tranche les événements.</span></li>
+      <li><b>06</b><span>Chaque matin, lis la Gazette et la Pravdachat. Active le son, prends des photos, gagne la course à l’espace.</span></li>
+    </ul>
+    <div class="intro-modes">
+      <button class="btn primary" id="introGo" type="button">Ville de 1961</button>
+      <button class="btn" id="introDeb" type="button">Débarquement</button>
+      <button class="btn" id="introMp" type="button">Partie à deux</button>
+    </div>
+    <p class="intro-help"><b>Ville de 1961</b> : l’île est déjà construite, à toi de la faire vivre. <b>Débarquement</b> : chaque camp arrive par la mer à un bout de l’île et avance vers le centre, le mur se tricote quand ils se rejoignent. <b>Partie à deux</b> : un joueur par camp, sur la même île, en direct.</p>
+    <button class="btn intro-reset" id="introDebNew" type="button" hidden>Recommencer le Débarquement à zéro</button>
+  </div>
+</div>
+
+<div class="intro" id="mpBox" hidden>
+  <div class="intro-card panel" role="dialog" aria-modal="true" aria-labelledby="mpTitle">
+    <div class="intro-kicker">PARTIE À DEUX · EN DIRECT</div>
+    <h2 class="mp-title" id="mpTitle">Un joueur par camp, sur la même île</h2>
+    <p class="intro-help">Crée une partie puis envoie le code à ton adversaire. Pour jouer, il doit pouvoir modifier cet artefact : partage-le avec lui en accès Contributeur.</p>
+    <div class="mp-block">
+      <div class="label"><span>Créer une partie</span></div>
+      <div class="mp-opts" role="radiogroup" aria-label="Ton camp"><button class="btn" type="button" role="radio" data-mps="usc" aria-checked="true">Je joue l’USC</button><button class="btn" type="button" role="radio" data-mps="ccp" aria-checked="false">Je joue la CCR</button></div>
+      <div class="mp-opts" role="radiogroup" aria-label="Carte"><button class="btn" type="button" role="radio" data-mpm="deb" aria-checked="true">Débarquement</button><button class="btn" type="button" role="radio" data-mpm="ville" aria-checked="false">Ville de 1961</button></div>
+      <button class="btn primary" type="button" id="mpCreate">Créer la partie</button>
+    </div>
+    <div class="mp-block">
+      <div class="label"><span>Rejoindre une partie</span></div>
+      <form class="mp-join" id="mpJoinForm"><input class="chat-input" id="mpCode" maxlength="6" autocomplete="off" spellcheck="false" placeholder="Code, par ex. KTX7" aria-label="Code de la partie"><button class="btn" type="submit" id="mpJoin">Rejoindre</button></form>
+      <button class="btn" type="button" id="mpResume" hidden>Reprendre la partie</button>
+    </div>
+    <p class="mp-msg" id="mpMsg" aria-live="polite"></p>
+    <button class="btn" type="button" id="mpBack">Retour</button>
+  </div>
+</div>
+
+<script src="%PLATFORM%"></script>
+<script src="%GAME%"></script>
+</body>
+</html>
