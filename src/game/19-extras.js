@@ -64,15 +64,17 @@ function sndAmbience(t){
   const c = SND.ctx, now = c.currentTime, set = (p, v) => p.setTargetAtTime(v, now, .6);
   let sea = 0; for (let k = 0; k < 16; k++){ const ang = k / 16 * TAU, r = 60 + (k & 1) * 70; if (typeAt(cam.a + Math.cos(ang) * r, cam.b + Math.sin(ang) * r) === T_SEA) sea++; }
   sea /= 16;
-  let built = 0; for (const l of LOTS) if (l.type && Math.abs(l.ca - cam.a) < 160 && Math.abs(l.cb - cam.b) < 160) built++;
+  let built = 0; for (const l of BLD) if (Math.abs(l.ca - cam.a) < 160 && Math.abs(l.cb - cam.b) < 160) built++;
   const far = OV_ON ? 1 : clamp((KDEF - Z) / KDEF, 0, 1), night = NIGHT;
   set(SND.waves.g.gain, .05 + .32 * sea + .08 * far);
   set(SND.city.g.gain, (.14 * Math.min(1, built / 28)) * (1 - night * .55) * (1 - far * .7));
   const wx = WEATHER.shown, k = WEATHER.k;
   set(SND.rain.g.gain, wx === 'pluie' ? .2 * k : 0);
   set(SND.wind.g.gain, wx === 'neige' || wx === 'brouillard' ? .07 * k : .012);
-  const us = clamp((WALL_A - cam.a) / 160 + .5, 0, 1);
-  set(SND.musU.gain, us); set(SND.musC.gain, 1 - us);
+  // la musique suit le camp qu'on regarde : rock a l'USC, marche a la CCR
+  const here = sideAt(cam.a, cam.b) || GAME.side;
+  SND.us = (SND.us == null ? (here === 'usc' ? 1 : 0) : SND.us) + ((here === 'usc' ? 1 : 0) - (SND.us || 0)) * .15;
+  set(SND.musU.gain, SND.us); set(SND.musC.gain, 1 - SND.us);
   set(SND.mus.gain, (state.chatCat ? .22 : .42) * (1 - night * .35) * (OV_ON ? .6 : 1));
   set(SND.master.gain, SND.on ? .7 : 0);
 }
@@ -80,9 +82,6 @@ function stepSound(dt, t){
   if (!SND.on || !SND.ctx) return;
   schedMusic();
   SND.amb += dt; if (SND.amb > .25){ SND.amb = 0; sndAmbience(t); }
-  // cloche du passage a niveau
-  const cr = CROSSINGS.find(x => x.closed && Math.abs(x.A - cam.a) < 220 && Math.abs(RAIL_B - cam.b) < 200);
-  if (cr && t > SND.bell){ SND.bell = t + .45; const v = .05 * (1 - Math.hypot(cr.A - cam.a, RAIL_B - cam.b) / 320); if (v > 0) tone(SND.fx, 1250, SND.ctx.currentTime, .09, 'square', v); }
 }
 HOOKS.step.push(stepSound);
 // bruitages ponctuels
@@ -120,101 +119,60 @@ $('btnSound').addEventListener('click', () => setSound(!SND.on));
 if (SND.want){ $('btnSound').setAttribute('aria-pressed', 'true'); window.addEventListener('pointerdown', () => { if (SND.want && !SND.on) setSound(true); }, { once: true }); }
 document.addEventListener('visibilitychange', () => { if (!SND.ctx) return; if (document.hidden) SND.ctx.suspend(); else if (SND.on) SND.ctx.resume(); });
 
-/* ================= mini-carte ================= */
-const MAP = { a0: IS.ca - IS.ra - 24, a1: IS.ca + IS.ra + 24, b0: LH.b - 24, b1: IS.cb + IS.rb + 30, key: '', base: null, t: 0, drag: false, peers: [] };
+/* ================= mini-carte : la carte strategique vue de haut, avec le cadre de la vue ================= */
 const mapCv = $('mapCv'), mapCtx = mapCv.getContext('2d');
-MAP.sx = mapCv.width / (MAP.a1 - MAP.a0); MAP.sy = mapCv.height / (MAP.b1 - MAP.b0);
-const mapXY = (a, b) => [(a - MAP.a0) * MAP.sx, (b - MAP.b0) * MAP.sy];
-function mapBase(){
-  const w = mapCv.width, h = mapCv.height, img = mapCtx.createImageData(w, h), d = img.data;
-  const COL = { [T_SEA]: [36, 92, 150], [T_GRASS]: [98, 150, 66], [T_BEACH]: [226, 207, 150], [T_ROAD]: [132, 134, 140], [T_WALK]: [170, 168, 160], [T_PATH]: [150, 140, 110], [T_PIER]: [123, 82, 49], [T_ROCK]: [110, 107, 102], [T_STRIP]: [196, 182, 150], [T_TARMAC]: [90, 92, 98], [T_APRON]: [150, 150, 144], [T_RAIL]: [80, 70, 64], [T_QUAY]: [185, 182, 173] };
-  const deb = GAME.mode === 'deb' && !DEB.wall;
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++){
-    const a = MAP.a0 + (x + .5) / MAP.sx, b = MAP.b0 + (y + .5) / MAP.sy, ty = typeAt(a, b), i = (y * w + x) * 4;
-    let c = COL[ty] || COL[T_GRASS];
-    if (ty === T_SEA){ const sd = gSea[cellOf(a, b)] || 99; if (sd < 16) c = [58, 140, 190]; }
-    if (deb && ty !== T_SEA && !inFront(a)) c = [c[0] * .72 + 40, c[1] * .72 + 40, c[2] * .72 + 40];
-    // version 1-bit : carte en noir et blanc, la mer noire, les routes claires
-    if (!COLOR){ const g = ty === T_SEA ? 0 : ty === T_ROAD || ty === T_WALK || ty === T_QUAY || ty === T_TARMAC ? 150 : ty === T_BEACH || ty === T_STRIP ? 90 : 45; c = [g, g, g]; }
-    d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2]; d[i + 3] = 255;
-  }
-  mapCtx.putImageData(img, 0, 0);
-  for (const l of LOTS){
-    if (!l.type) continue;
-    const [x0, y0] = mapXY(l.a0, l.b0), [x1, y1] = mapXY(l.a1, l.b1);
-    mapCtx.fillStyle = !COLOR ? (l.type === 'parc' ? '#777777' : '#ffffff') : l.type === 'parc' ? '#3d7a2e' : l.side === 'usc' ? '#3e5bbf' : '#c8424f';
-    mapCtx.fillRect(Math.round(x0), Math.round(y0), Math.max(1, Math.round(x1 - x0)), Math.max(1, Math.round(y1 - y0)));
-  }
-  if (wallUp()){ const [x, y0] = mapXY(WALL_A, IS.cb - IS.rb), [, y1] = mapXY(WALL_A, IS.cb + IS.rb); mapCtx.fillStyle = COLOR ? '#1f1d24' : '#ffffff'; mapCtx.fillRect(Math.round(x) - 1, y0, 2, y1 - y0); }
-  MAP.base = mapCtx.getImageData(0, 0, w, h);
-}
-function mapPoly(ctx2, pts, style, fill){
-  ctx2.beginPath(); pts.forEach(([a, b], i) => { const [x, y] = mapXY(a, b); if (i) ctx2.lineTo(x, y); else ctx2.moveTo(x, y); }); ctx2.closePath();
-  if (fill){ ctx2.fillStyle = fill; ctx2.fill(); }
-  ctx2.strokeStyle = style; ctx2.lineWidth = 1.5; ctx2.stroke();
-}
+const MINI = { t: 0, drag: false };
+// l'ile tient dans la mini-carte, en gardant les proportions
+const miniScale = () => Math.min(mapCv.width / MAPV.W, mapCv.height / MAPV.H);
+const miniXY = (a, b) => { const s = miniScale(), ox = (mapCv.width - MAPV.W * s) / 2, oy = (mapCv.height - MAPV.H * s) / 2; return [ox + (a - GA0) / MS * s, oy + (b - GB0) / MS * s]; };
+const miniAB = (x, y) => { const s = miniScale(), ox = (mapCv.width - MAPV.W * s) / 2, oy = (mapCv.height - MAPV.H * s) / 2; return [GA0 + (x - ox) / s * MS, GB0 + (y - oy) / s * MS]; };
 function viewCorners(){
-  if (OV_ON) return [[MAP.a0 + 20, MAP.b0 + 20], [MAP.a1 - 20, MAP.b0 + 20], [MAP.a1 - 20, MAP.b1 - 20], [MAP.a0 + 20, MAP.b1 - 20]];
   const vw = window.innerWidth, vh = window.innerHeight;
   return [[0, 0], [vw, 0], [vw, vh], [0, vh]].map(([x, y]) => screenToWorld(x, y));
 }
 function drawMap(t){
-  if (!document.body.classList.contains('has-map')) return;
-  const key = TOWN_VER + ':' + GAME.mode + ':' + Math.round(DEB.front.usc) + ':' + Math.round(DEB.front.ccp) + ':' + DEB.wall;
-  if (key !== MAP.key || !MAP.base){ MAP.key = key; mapBase(); }
-  if (t - MAP.t < .1) return; MAP.t = t;
-  mapCtx.putImageData(MAP.base, 0, 0);
-  for (const p of MAP.peers) if (p.view) mapPoly(mapCtx, p.view, p.side === 'ccp' ? '#ffb3b3' : '#b3c4ff', 'rgba(255,255,255,.12)');
-  mapPoly(mapCtx, viewCorners(), '#fffaf0', 'rgba(255,250,240,.18)');
-  // les trains et le ferry, en petits points
-  mapCtx.fillStyle = '#ffd23f';
-  if (typeof ferryPos === 'function'){ const [a, b] = ferryPos(t), [x, y] = mapXY(a, b); mapCtx.fillRect(Math.round(x) - 1, Math.round(y) - 1, 3, 3); }
+  if (!document.body.classList.contains('has-map') || !MAPV.cv || GAME.mode === 'menu') return;
+  if (t - MINI.t < .12) return; MINI.t = t;
+  if (!OV_ON) mapUpdate();
+  const g = mapCtx, s = miniScale();
+  g.fillStyle = '#1d5c96'; g.fillRect(0, 0, mapCv.width, mapCv.height);
+  const [x0, y0] = miniXY(GA0, GB0);
+  g.imageSmoothingEnabled = true; g.drawImage(MAPV.cv, x0, y0, MAPV.W * s, MAPV.H * s);
+  g.beginPath(); viewCorners().forEach(([a, b], i) => { const [x, y] = miniXY(a, b); if (i) g.lineTo(x, y); else g.moveTo(x, y); }); g.closePath();
+  g.fillStyle = 'rgba(255,250,240,.16)'; g.fill(); g.strokeStyle = '#fffaf0'; g.lineWidth = 1.5; g.stroke();
+  for (const b of BOATS){ if (b.state === 'gone') continue; const [x, y] = miniXY(b.a, b.b); g.fillStyle = b.side === 'usc' ? '#8fb0ff' : '#ff9a90'; g.fillRect(Math.round(x) - 1, Math.round(y) - 1, 3, 3); }
 }
 function mapPick(e){
   const r = mapCv.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * mapCv.width, y = (e.clientY - r.top) / r.height * mapCv.height;
-  const a = MAP.a0 + x / MAP.sx, b = MAP.b0 + y / MAP.sy;
+  const [a, b] = miniAB(x, y);
   if (state.chatCat) closeChat();
   cam.target = null; cam.follow = null; cam.a = a; cam.b = b; clampCam();
-  if (OV_ON) setZoom(KDEF * .8);
 }
-mapCv.addEventListener('pointerdown', (e) => { MAP.drag = true; try { mapCv.setPointerCapture(e.pointerId); } catch (_) {} mapPick(e); });
-mapCv.addEventListener('pointermove', (e) => { if (MAP.drag) mapPick(e); });
-mapCv.addEventListener('pointerup', () => { MAP.drag = false; });
-mapCv.addEventListener('pointercancel', () => { MAP.drag = false; });
-function mapFit(){ document.body.classList.toggle('has-map', window.innerWidth >= 1101 && window.innerHeight >= 620); }
+mapCv.addEventListener('pointerdown', (e) => { MINI.drag = true; try { mapCv.setPointerCapture(e.pointerId); } catch (_) {} mapPick(e); });
+mapCv.addEventListener('pointermove', (e) => { if (MINI.drag) mapPick(e); });
+mapCv.addEventListener('pointerup', () => { MINI.drag = false; });
+mapCv.addEventListener('pointercancel', () => { MINI.drag = false; });
+function mapFit(){ document.body.classList.toggle('has-map', window.innerWidth >= 1000 && window.innerHeight >= 600); }
 window.addEventListener('resize', mapFit); mapFit();
 HOOKS.after.push(drawMap);
 
 /* ================= fiche d'un batiment au survol ================= */
-const TIP_H = { maison: 13, immeuble: 18, artdeco: 42, stalinien: 44, gare: 18, stade: 8, parc: 3, fontaine: 5, usine: 22, bulbes: 28, fusee: 40, radio: 48, cirque: 16, tribune: 10, statue: 22, panneau: 20, chateau: 32, mairie: 22, peuple: 24, supermarche: 11, grandmagasin: 20, metro: 14, kolkhoze: 12, kiosque: 10, cinema: 15, bowling: 11, drivein: 12, diner: 9, motel: 12, station: 9, epicerie: 10 };
-function tipHeight(l){ const h = TIP_H[l.type] || 14; return l.type === 'immeuble' ? [16, 24, 34][(l.lvl || 1) - 1] : l.type === 'maison' ? [13, 18, 18][(l.lvl || 1) - 1] : h; }
-function lotPick(lx, ly){
-  for (let z = 50; z >= 0; z -= 1){
-    const [a, b] = unprj(lx + .5, ly + .5 + z), l = lotAt(a, b);
-    if (l && l.type && z <= tipHeight(l) && inFront(l.ca)) return l;
-  }
-  return null;
-}
 const tipEl = $('tip');
 let tipLot = null;
-function showTip(e, lx, ly){
-  if (state.mode !== 'walk' || OV_ON || hoverCat || e.pointerType !== 'mouse' || document.body.classList.contains('photo')){ tipEl.hidden = true; tipLot = null; return; }
-  const l = lotPick(lx, ly);
-  if (!l){ tipEl.hidden = true; tipLot = null; return; }
+function showTip(e, l){
+  if (state.tool !== 'walk' || OV_ON || hoverCat || e.pointerType !== 'mouse' || document.body.classList.contains('photo') || !l || l === state.sel){ tipEl.hidden = true; tipLot = null; return; }
   if (l !== tipLot){
     tipLot = l; tipEl.textContent = '';
     const head = document.createElement('div'); head.className = 'tip-head';
     const nm = document.createElement('b'); nm.textContent = lvlName(l);
-    const sd = document.createElement('span'); sd.className = 'tip-side ' + l.side; sd.textContent = l.side === 'ccp' ? 'CCR' : 'USC';
+    const sd = document.createElement('span'); sd.className = 'tip-side ' + l.side; sd.textContent = CAMP_SHORT[l.side];
     head.append(nm, sd); tipEl.append(head);
     const row = (txt, cls) => { const p = document.createElement('div'); if (cls) p.className = cls; p.textContent = txt; tipEl.append(p); };
-    if (l.buildT && NOW_T < l.buildT + BUILD_DUR) row('En chantier…');
-    if (LVL_POP[l.type]){ const lv = l.lvl || 1; row('Niveau ' + lv + ' sur 3 · ' + LVL_POP[l.type][lv - 1] + ' habitants'); }
-    const E = ECO[l.type];
-    if (E){ const bits = []; if (E[0]) bits.push((E[0] > 0 ? '+' : '') + E[0] + ' croquettes'); if (E[1]) bits.push((E[1] > 0 ? '+' : '') + E[1] + ' laine'); if (bits.length) row(bits.join(' · ') + ' par minute'); if (E[2]) row((E[2] > 0 ? '+' : '') + E[2] + ' loisirs pour le quartier'); }
-    const nb = neighborOf(l, l.type);
-    if (nb.s || nb.why.length) row('Voisinage ' + (nb.s > 0 ? '+' : '') + nb.s + (nb.why.length ? ' : ' + nb.why.join(', ') : ''), 'tip-mute');
-    if (CAMPS[l.side] && CAMPS[l.side].want === l.type) row('Les habitants en redemandent', 'tip-want');
+    if (!l.done) row('En chantier…');
+    else if (!l.active) row('À l’arrêt : pas de route jusqu’au QG', 'tip-want');
+    const E2 = ECO[l.type];
+    if (E2){ const bits = []; const mult = LVL_MULT[(l.lvl || 1) - 1]; for (const [k, nm2] of [['c', 'croquettes'], ['l', 'laine'], ['r', 'ronrons']]) if (E2[k]) bits.push((E2[k] > 0 ? '+' + Math.round(E2[k] * mult) : '−' + Math.abs(E2[k])) + ' ' + nm2); if (bits.length) row(bits.join(' · ') + ' par minute'); if (popOf(l)) row(popOf(l) + ' habitants'); }
+    row('Clique pour les détails', 'tip-mute');
   }
   tipEl.hidden = false;
   const x = Math.min(e.clientX + 16, window.innerWidth - tipEl.offsetWidth - 8), y = Math.min(e.clientY + 18, window.innerHeight - tipEl.offsetHeight - 8);
@@ -263,7 +221,7 @@ async function photoCanvas(){
   g.fillStyle = '#2a2622'; g.textBaseline = 'middle';
   g.font = Math.round(band * .5) + 'px Yellowtail, cursive'; g.fillText(COLOR ? 'Cold Kutty Town' : 'Old Kutty Town', pad, vh + pad + band / 2);
   g.font = '600 ' + Math.round(band * .2) + 'px "IBM Plex Mono", monospace'; g.textAlign = 'right';
-  g.fillText(MONTHS[CAL.m].toUpperCase() + ' ' + CAL.y + ' · ' + String(Math.floor(CLOCK.h)).padStart(2, '0') + ' H ' + String(Math.floor((CLOCK.h % 1) * 60)).padStart(2, '0'), pic.width - pad, vh + pad + band / 2);
+  g.fillText(MONTHS[CAL.m].toUpperCase() + ' · ' + String(Math.floor(CLOCK.h)).padStart(2, '0') + ' H ' + String(Math.floor((CLOCK.h % 1) * 60)).padStart(2, '0'), pic.width - pad, vh + pad + band / 2);
   return pic;
 }
 async function photoShoot(){
@@ -274,7 +232,7 @@ async function photoShoot(){
     const blob = await new Promise(r => pic.toBlob(r, 'image/png'));
     if (!blob){ toast('La photo n’a pas pu être préparée.'); return; }
     sfx('click');
-    const name = 'cold-kutty-town-' + MONTHS[CAL.m].normalize('NFD').replace(/[^a-z]/g, '') + '-' + CAL.y + '-' + String(Math.floor(CLOCK.h)).padStart(2, '0') + 'h.png';
+    const name = 'cold-kutty-town-' + MONTHS[CAL.m].normalize('NFD').replace(/[^a-z]/g, '') + '-' + String(Math.floor(CLOCK.h)).padStart(2, '0') + 'h.png';
     if (PHOTO.dl === undefined){ try { PHOTO.dl = window.claude && typeof window.claude.use === 'function' ? await window.claude.use('downloads') : null; } catch (_) { PHOTO.dl = null; } }
     if (PHOTO.dl){
       try { await PHOTO.dl.save({ filename: name, data: blob }); toast('Photo enregistrée.'); }

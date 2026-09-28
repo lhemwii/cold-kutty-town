@@ -149,3 +149,41 @@ function drawCar(a, b, axis, dir, style){
     if (faceVisible([fa, fb2, 0])){ const p = prj(pa, pb, 2); fput(Math.round(p[0]), Math.round(p[1]), 1); }
   }
 }
+
+/* ================= objets tournes : voitures en courbe, coques de bateaux ================= */
+const rot2 = (a, b, ang, u, v) => { const c = Math.cos(ang), s = Math.sin(ang); return [a + u * c - v * s, b + u * s + v * c]; };
+// boite tournee : coins dans l'ordre de boxS pour que les normales sortent
+function rbox(a, b, ang, u0, u1, v0, v1, z0, z1, side, top, edge){
+  const P = [[u0, v1], [u1, v1], [u1, v0], [u0, v0]].map(([u, v]) => rot2(a, b, ang, u, v)), e = edge == null ? 1 : edge;
+  for (let i = 0; i < 4; i++){ const p = P[i], q = P[(i + 1) & 3]; wallFace(p[0], p[1], q[0], q[1], z0, z1, side, e); }
+  if (top != null) drawFace([P[3][0], P[3][1], z1, P[2][0], P[2][1], z1, P[1][0], P[1][1], z1, P[0][0], P[0][1], z1], UP, top, e);
+}
+// voiture dans n'importe quelle direction (ang : cap au sol)
+function drawCarAng(a, b, ang, style){
+  const usc = style === 'usc';
+  CUR = usc ? M.CAR_USC : M.CAR_CCP;
+  rbox(a, b, ang, -6, 6, -3.4, 3.4, .8, usc ? 3.4 : 3.8, usc ? ((u, h, x, y) => h < 1.2 ? 1 : (bz(x, y) < 6 ? 1 : 0)) : ((u, h, x, y) => h < .8 ? 1 : (bz(x, y) < 2 ? 1 : 0)), usc ? ((x, y) => bz(x, y) < 11 ? 1 : 0) : ((x, y) => bz(x, y) < 4 ? 1 : 0), 1);
+  const off = usc ? -1.2 : -.4, cl = usc ? 2.6 : 3.2, cw = 2.7;
+  rbox(a, b, ang, off - cl, off + cl, -cw, cw, usc ? 3.4 : 3.8, usc ? 5.6 : 6.6, (u, h) => (h > .5 && h < 1.8) ? 1 : 0, 1, 1);
+  CUR = M.LAMP;
+  const da = Math.cos(ang), db = Math.sin(ang);
+  if (faceVisible([da, db, 0])) for (const s of [-1, 1]){ const p = rot2(a, b, ang, 6, s * 2.4), q = prj(p[0], p[1], 2); fput(Math.round(q[0]), Math.round(q[1]), 1); }
+}
+// coque : poupe carree, proue en pointe
+function drawHull(a, b, ang, L, Wd, z0, z1, mat, deckMat, band){
+  const h = L / 2, w = Wd / 2, bow = Math.min(L * .2, Wd * 1.1);
+  const P = [[-h, w], [h - bow, w], [h, 0], [h - bow, -w], [-h, -w]].map(([u, v]) => rot2(a, b, ang, u, v));
+  if (band != null){ CUR = band; for (let i = 0; i < P.length; i++){ const p = P[i], q = P[(i + 1) % P.length]; wallFace(p[0], p[1], q[0], q[1], z0, z0 + 1, 0, 1); } }
+  CUR = mat;
+  for (let i = 0; i < P.length; i++){ const p = P[i], q = P[(i + 1) % P.length]; wallFace(p[0], p[1], q[0], q[1], band != null ? z0 + 1 : z0, z1, (u, hh, x, y) => hh > (z1 - z0) - 1.3 ? 1 : (bz(x, y) < 3 ? 1 : 0), 1); }
+  CUR = deckMat;
+  const pts = []; for (let i = P.length - 1; i >= 0; i--) pts.push(P[i][0], P[i][1], z1);
+  drawFace(pts, UP, (x, y) => ((x + y) & 3) === 0 ? 0 : 1, 1);
+}
+function bobZ(t, seed){ return Math.sin(t * 1.3 + seed) > .55 ? .6 : 0; }
+// petit fanion de camp (bateaux, chantiers, piquets)
+function pennant(x, y, side, t, seed){
+  CUR = side === 'usc' ? M.FLAG_BLUE : M.FLAG_RED; const w = Math.round(Math.sin(t * 3 + (seed || 0)));
+  for (let yy = 0; yy < 3; yy++) for (let xx = 1; xx <= 4; xx++) fput(x + xx, y + yy + (xx > 2 ? w : 0), side === 'usc' && yy === 1 && xx === 2 ? 1 : 0);
+}
+const PED_FUR = [M.CAT, M.CAT_OR, M.CAT_GRAY, M.CAT_BLACK, M.CAT_SIAM];

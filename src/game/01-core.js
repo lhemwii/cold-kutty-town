@@ -11,9 +11,10 @@ const M = { SEA:0, GRASS:1, BEACH:2, ROAD:3, WALK:4, STRIP:5, ROCK:6, PIER:7, BE
   FLAG_CCP:26, FOAM:27, LAMP:28, STATUE:29, SMOKE:30, NEUTRAL:31, WATER:32, TENT:33, ROCKET:34, CAT_SIAM:35, SCREEN:36, CAT_GRAY:37, CAT_BLACK:38, REDLIGHT:39,
   USC2:40, USC3:41, USC4:42, USC5:43, CCP2:44, CCP3:45, BRICK:46, SANDSTONE:47, SEA_MID:48, SEA_SHALLOW:49, ROOF_USC2:50, ROOF_USC3:51, GRAVEL:52, CHROME:53,
   MILITARY:54, WHEAT:55, DOME_A:56, DOME_B:57, DOME_C:58, CONCRETE:59, KVAS:60, FIELD:61, DIRT:62,
-  RAIL:63, RAIN:64, SNOW:65, GIRDER:66, TRAIN_CCP:67, FW_BLUE:68, FW_GREEN:69, BUBBLE:70, ICON_R:71, ICON_Y:72, REFLECT:73, HULL:74 };
+  RAIL:63, RAIN:64, SNOW:65, GIRDER:66, TRAIN_CCP:67, FW_BLUE:68, FW_GREEN:69, BUBBLE:70, ICON_R:71, ICON_Y:72, REFLECT:73, HULL:74,
+  FOREST:75, WOOL:76, FISH:77 };
 // crochets : chaque module ajoute ses fonctions (pas de jeu, dessins dynamiques, dessus de l'image, retouche finale, apres rendu)
-const HOOKS = { step: [], dyn: [], top: [], post: [], after: [], town: [] };
+const HOOKS = { step: [], dyn: [], top: [], post: [], after: [], town: [], map: [] };
 // couleur d'accent : un shader peut rendre 4 (accent clair) ou 5 (accent sombre)
 let ACC = 24;
 // version couleur : niveau d'eclairage par pixel (0 plein soleil ... 3 face a l'ombre, 4 ombre portee au sol)
@@ -69,8 +70,12 @@ let fb = null, mb = null, lb = null, img = null, px32 = null, ctx = null;
 let GHOST = false, GHOST_T = 0;
 
 let PROJ_FIX = null, NOW_T = 0;
-// mode de jeu : 'ville' (1961, la ville est deja la), 'deb' (debarquement), 'mp' (a deux)
-const GAME = { mode: 'ville', seat: null };
+// partie : 'menu' (accueil), 'landing' (choix de la plage), 'play', 'over'. side : le camp du joueur, rival : l'IA en face
+const GAME = { mode: 'menu', side: 'usc', rival: 'ccp', speed: 1, paused: false, t: 0, seed: 1, winner: null };
+const SIDES = ['usc', 'ccp'];
+const other = (s) => s === 'usc' ? 'ccp' : 'usc';
+const CAMP_FULL = { usc: 'United Sands of Cats', ccp: 'Cats Communist Republic' };
+const CAMP_SHORT = { usc: 'USC', ccp: 'CCR' };
 function setProj(){
   PC = Math.cos(cam.phi); PS = Math.sin(cam.phi);
   if (PROJ_FIX){ TX = PROJ_FIX[0]; TY = PROJ_FIX[1]; return; }
@@ -289,25 +294,26 @@ function plate2(put, s, cx, by, opt){
 }
 
 /* ================= drapeaux ================= */
-// USC : rayures et canton a points. CCR : champ plein et etoile.
+// USC : fond bleu, tete de chat blanche au nez rouge, liseres blanc et rouge (le collier).
+// CCR : fond rouge, tete de chat jaune dans le coin.
+// b bleu, w blanc, r rouge, y jaune, R fond rouge de la CCR
+const FLAG_ART = {
+  usc: ['bbbwbbbbbwbbb', 'bbbwwbbbwwbbb', 'bbbwwwwwwwbbb', 'bbbwbwwwbwbbb', 'bbbwwwrwwwbbb', 'bbbbwwwwwbbbb', 'wwwwwwwwwwwww', 'rrrrrrrrrrrrr'],
+  ccp: ['RRRRRRRRRRRRR', 'RyRRRyRRRRRRR', 'RyyyyyRRRRRRR', 'RyRyRyRRRRRRR', 'RyyyyyRRRRRRR', 'RRyyyRRRRRRRR', 'RRRRRRRRRRRRR', 'RRRRRRRRRRRRR']
+};
 function flagPixels(kind, t){
-  const out = [], w = 13, h = 8;
+  const out = [], w = 13, h = 8, art = FLAG_ART[kind];
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++){
     const wave = Math.round(Math.sin(t * 4 - x * .55) * (x / w) * 1.2);
     let v;
-    if (kind === 'usc'){
-      if (x < 5 && y < 4) v = ((x + y) & 1) ? 1 : 0;
-      else v = (y & 1) ? 0 : 1;
-    } else if (kind === 'ccp'){
-      v = 1;
-      const sx = x - 1, sy = y - 1;
-      if (sx >= 0 && sy >= 0 && sx < 5 && sy < 5 && STAR5[sy][sx] === '1') v = 0;
-    } else v = ((x >> 1) + (y >> 1)) & 1;
+    if (art){ const c = art[y][x]; v = (c === 'w' || c === 'R') ? 1 : 0; }
+    else v = ((x >> 1) + (y >> 1)) & 1;
     out.push([x, y + wave, v]);
   }
   return out;
 }
-function flagMat(kind, x, y){ return kind === 'usc' ? ((x < 5 && y < 4) ? M.FLAG_BLUE : M.FLAG_RED) : kind === 'ccp' ? M.FLAG_CCP : M.NEUTRAL; }
+// bleu et blanc sur FLAG_BLUE (sombre, clair), rouge sur FLAG_RED ; jaune et rouge sur FLAG_CCP
+function flagMat(kind, x, y){ return kind === 'usc' ? (FLAG_ART.usc[y][x] === 'r' ? M.FLAG_RED : M.FLAG_BLUE) : kind === 'ccp' ? M.FLAG_CCP : M.NEUTRAL; }
 function drawFlagPole(a, b, z0, hgt, kind, t){
   const savedM = CUR;
   const p = prj(a, b, z0), bx = Math.round(p[0]), by = Math.round(p[1]);

@@ -1,43 +1,32 @@
 # Règles du jeu
 
+Le détail et les intentions sont dans le [PRD](PRD.md). En bref :
+
 ## Le monde
 
-Une grande île de chats, en 1961. À l’ouest, les **United Sands of Cats** (USC), leur idéal : le **Rêve des Nations Libres**. À l’est, la **Cats Communist Republik** (CCR), leur idéal : le **Grand Plan du Peuple**. Entre les deux, le **Rideau de Laine** et le **Checkpoint Minou**. Aucun pays réel n’est jamais nommé.
+Une île vierge tirée au sort à chaque partie : forêts, plages, rochers, îlots. Deux camps de chats : les **United Sands of Cats** (USC) et la **Cats Communist Republic** (CCR). Aucun pays réel, aucune année.
 
-## Les modes
+## Le déroulé
 
-- **Ville de 1961** : l’île est déjà construite, il faut la faire vivre.
-- **Débarquement** : chaque camp arrive en barges dans son port, au bout de l’île. Construire et exaucer les demandes fait avancer sa frontière. À 10, 22 puis 36 bâtiments, l’aéroport, le train puis le métro ouvrent. Quand les deux frontières se touchent, le mur se tricote depuis le checkpoint.
-- **Partie à deux** : un joueur par camp, en direct (dans claude.ai uniquement pour l’instant).
+1. Choisis ton camp, puis clique sur la côte où débarquer.
+2. Les barges accostent, l’équipage bâtit ton QG et un premier bout de route. L’autre camp débarque de l’autre côté.
+3. Construis dans ton territoire. Relie tes bâtiments au QG par la route, sinon ils restent à l’arrêt.
+4. Chaque bâtiment rayonne : ton territoire grandit tout seul autour, case par case. Les avant-postes le poussent plus loin, les barges (depuis un port) l’emmènent sur d’autres côtes.
+5. Quand les frontières se touchent, la plus forte grignote l’autre. Le Rideau de Laine fige la frontière.
+6. Le premier camp à tenir 60 % de l’île gagne.
 
-## L’économie
+## Les ressources
 
-- **Croquettes** : produites par les épiceries, supermarchés, kolkhozes ; mangées par les habitants. En pénurie, le moral chute.
-- **Laine** : produite par les usines et les grands bâtiments ; chaque construction en coûte.
-- **Moral** : dépend des loisirs par habitant, du voisinage, des événements, des pénuries.
-- **Voisinage** : un parc, des commerces ou une gare près des logements donnent un bonus, une usine un malus. Avec un bon voisinage et un bon moral, une maison devient pavillon puis villa (datcha côté CCR), un immeuble devient barre puis tour.
+- **Croquettes** : les habitants en mangent ; les avant-postes et les barges en coûtent. En pénurie, plus de ronrons.
+- **Laine** : pour construire, améliorer, tracer routes et Rideau.
+- **Ronrons** : produits par les habitants nourris et distraits. Ils accélèrent la conquête et paient avant-postes, barges et améliorations.
 
-## Les camps
+Chaque bâtiment produit et coûte en fonctionnement. Les producteurs ont besoin d’habitants pour les emplois.
 
-Chaque camp a une jauge. La ville de départ vaut 50 %. Chaque bâtiment compte selon ce qu’il vaut pour ce camp (un diner plaît au Rêve, une usine au Plan), et exaucer la demande des habitants donne un gros bonus. Quand un camp distance l’autre, la tension monte : Détente, Froid, Glacial, Crise.
+## Améliorer
 
-## Les événements
+Trois niveaux pour la plupart des bâtiments : le port passe de ponton à quai puis à grand port (chalutiers, puis cargo), la maison devient pavillon puis villa.
 
-Régulièrement, une carte demande un choix (pénurie au Gastronom, grève des dockers, échange d’espions, téléphone rouge...). Chaque choix change les ressources, le moral et la tension. Sans réponse, le choix prudent s’applique au bout de 50 secondes.
+## Commandes
 
-## La course à l’espace
-
-À 60, 75 puis 90 % de jauge, un camp qui a une base de lancement lance le premier satellite, le premier chat en orbite puis le premier chat sur la Lune. Arriver avant l’autre rapporte plus.
-
-## Le temps
-
-Un jour de jeu dure 3 minutes et vaut un mois. Les saisons changent la couleur des arbres et la météo. Décembre illumine les sapins, juillet fête le Jour du Rêve, mai la Fête du Grand Plan, avec feux d’artifice la nuit.
-
-## Claude dans le jeu
-
-- Chaque chat a un nom, un métier, un caractère. On lui écrit ce qu’on veut, il répond dans son rôle et se souvient des conversations.
-- Chaque matin à 7 h arrivent la **Gazette de Kutty** et la **Pravdachat**, écrites à partir des événements de la veille, chacune avec sa propagande.
-
-## Le reste
-
-Port avec grues et cargos, ferry autour de l’île, passants, matchs au stade, reflets la nuit, son généré par le navigateur, mini-carte, fiche au survol des bâtiments, mode photo, bouton Annuler.
+Glisser pour se déplacer, molette pour zoomer, clic droit glissé pour tourner. B construire, R route, C courbe, M Rideau, X démolir, Échap arrêter, Espace pause, 1 2 3 vitesse, Ctrl+Z annuler.

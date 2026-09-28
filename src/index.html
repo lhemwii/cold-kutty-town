@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Cold Kutty Town</title>
-<meta name="description" content="Un city builder cozy de chats, en pleine guerre froide, en 1961. En couleur, du matin à la nuit.">
+<meta name="description" content="Un city builder de chats pendant la guerre froide : débarque sur une île vierge et fais grandir ton territoire avant l’autre camp.">
 <meta name="theme-color" content="#fbf7ee">
 <meta property="og:title" content="Cold Kutty Town">
-<meta property="og:description" content="Un city builder cozy de chats, en pleine guerre froide, en 1961. En couleur, du matin à la nuit.">
+<meta property="og:description" content="Un city builder de chats pendant la guerre froide : débarque sur une île vierge et fais grandir ton territoire avant l’autre camp.">
 <meta property="og:image" content="/og.jpg">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,58 +16,78 @@
 <link rel="stylesheet" href="%STYLE%">
 </head>
 <body>
-<canvas id="scene" tabindex="0" aria-label="Cold Kutty Town, une île coupée en deux par le Rideau de Laine, en couleur, du matin à la nuit. Glisser pour se déplacer, molette pour zoomer, clic droit glissé pour tourner, cliquer sur un chat pour lui parler."></canvas>
+<canvas id="scene" tabindex="0" aria-label="Cold Kutty Town : une île où débarquent deux camps de chats. Glisser pour se déplacer, molette pour zoomer, clic droit glissé pour tourner."></canvas>
 
 <div class="bubbles" id="bubbles" aria-hidden="true"></div>
-<header class="brand panel">
-  <div class="brand-title"><span class="brand-old">Cold</span><span class="brand-name">KUTTY TOWN</span></div>
-  <div class="brand-sub">ÎLE DE KUTTY · GUERRE FROIDE · 1961</div>
-  <div class="clock" id="clock" hidden>
-    <button class="btn" id="clockPlay" type="button" aria-label="Mettre le temps en pause" aria-pressed="false">
-      <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="3" width="3.5" height="10" fill="currentColor"/><rect x="9.5" y="3" width="3.5" height="10" fill="currentColor"/></svg>
-    </button>
-    <output id="clockTime">10:30</output>
-    <input type="range" id="clockRange" min="0" max="1439" step="1" value="630" aria-label="Heure de la journée">
-    <button class="btn" id="clockSpeed" type="button" aria-label="Vitesse du temps">×1</button>
+<div class="floats" id="floats" aria-hidden="true"></div>
+
+<!-- barre du haut : camp, ressources, territoire, temps -->
+<header class="topbar panel" id="topbar" hidden>
+  <div class="tb-brand"><span class="brand-old">Cold</span><span class="brand-name">KUTTY TOWN</span></div>
+  <div class="tb-camp" id="tbCamp"><span class="flag" id="tbFlag"></span><span class="tb-camp-name" id="tbCampName">USC</span></div>
+  <div class="tb-res" role="group" aria-label="Ressources">
+    <button class="res" type="button" data-k="c" aria-describedby="resPop"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true" shape-rendering="crispEdges"><path d="M3 6h2V5h2V4h3v1h2v1h1v1h1v2h-1v1h-1v1h-2v1H7v-1H5v-1H3V9H1V7h2z" fill="#c9782f"/><path d="M4 7h1v1H4zM11 6h1v1h-1zM7 5h1v1H7zM9 9h2v1H9z" fill="#f2c27a"/><path d="M1 6h1v1H1zM1 9h1v1H1zM11 7h1v1h-1z" fill="#3a220f"/></svg><span class="res-lab">Croquettes</span><b id="vC">0</b><i id="dC">+0</i></button>
+    <button class="res" type="button" data-k="l" aria-describedby="resPop"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true" shape-rendering="crispEdges"><path d="M6 2h4v1h2v1h1v2h1v4h-1v2h-1v1h-2v1H6v-1H4v-1H3v-2H2V6h1V4h1V3h2z" fill="#e8e1f0"/><path d="M5 4h1v1h1v1h1v1h1v1h1v1h1v1h1v1h-1v-1h-1V9H9V8H8V7H7V6H6V5H5zM4 8h1v1h1v1h1v1h1v1H7v-1H6v-1H5V9H4zM9 3h1v1h1v1h1v1h-1V5h-1V4H9z" fill="#8f6fb5"/><path d="M13 12h2v1h-1v2h-1z" fill="#8f6fb5"/></svg><span class="res-lab">Laine</span><b id="vL">0</b><i id="dL">+0</i></button>
+    <button class="res" type="button" data-k="r" aria-describedby="resPop"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true" shape-rendering="crispEdges"><path d="M2 2h2v1h1v1h6V3h1V2h2v4h1v5h-1v2h-2v1H5v-1H3v-2H2V6H1V6h1z" fill="#f08aa6"/><path d="M5 7h2v1H5zM9 7h2v1H9zM7 9h2v1H7z" fill="#3a1d2a"/><path d="M3 3h1v2H3zM12 3h1v2h-1z" fill="#ffd0dc"/></svg><span class="res-lab">Ronrons</span><b id="vR">0</b><i id="dR">+0</i></button>
+    <div class="res pop" title="Habitants et emplois"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true" shape-rendering="crispEdges"><path d="M4 3h1v1h1v1h4V4h1V3h1v3h1v4h-1v1h-1v1h1v3H4v-3h1v-1H4v-1H3V6h1z" fill="#2a2622"/><path d="M6 7h1v1H6zM9 7h1v1H9z" fill="#ffe45c"/></svg><b id="vP">0</b><i id="dP">habitants</i></div>
   </div>
-  <div class="brand-actions">
-    <button class="btn" id="btnLight" type="button" aria-pressed="false" aria-controls="lightPanel">Lumière</button>
-    <button class="btn" id="btnWx" type="button" hidden>Météo auto</button>
-    <button class="btn" id="btnHide" type="button" aria-pressed="false">Masquer</button>
+  <div class="tb-ter" title="Part de l’île contrôlée. Objectif : 60 %.">
+    <div class="terbar"><i class="t-usc" id="tbU"></i><i class="t-ccp" id="tbC"></i><em class="goal-l"></em><em class="goal-r"></em></div>
+    <div class="ter-lab"><span id="tbUpct">USC 0 %</span><span class="ter-goal">objectif 60 %</span><span id="tbCpct">CCR 0 %</span></div>
+  </div>
+  <div class="tb-time">
+    <button class="btn icon" id="clockPlay" type="button" aria-label="Mettre en pause" aria-pressed="false"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="3" width="3.5" height="10" fill="currentColor"/><rect x="9.5" y="3" width="3.5" height="10" fill="currentColor"/></svg></button>
+    <button class="btn" id="clockSpeed" type="button" aria-label="Vitesse du jeu">×1</button>
+    <div class="tb-clock"><output id="clockTime">10:30</output><span id="calLabel">septembre</span></div>
   </div>
 </header>
+<div class="res-pop panel" id="resPop" role="tooltip" hidden></div>
 
-<section class="radio panel" id="radio" aria-label="Radio">
+<section class="radio panel" id="radio" aria-label="Radio" hidden>
   <div class="radio-tag"><i id="radioDot"></i><span id="radioStation">RADIO</span></div>
   <div class="radio-track"><div class="radio-text" id="radioText" aria-live="off"></div></div>
 </section>
 
 <nav class="view panel" aria-label="Vue">
-  <button class="btn" id="zoomOut" type="button" aria-label="Dézoomer">
+  <button class="btn" id="zoomOut" type="button" aria-label="Dézoomer" title="Dézoomer (-)">
     <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="7" width="12" height="2" fill="currentColor"/></svg>
   </button>
   <button class="btn" id="zoomLabel" type="button" aria-label="Zoom par défaut">100 %</button>
-  <button class="btn" id="zoomIn" type="button" aria-label="Zoomer">
+  <button class="btn" id="zoomIn" type="button" aria-label="Zoomer" title="Zoomer (+)">
     <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="7" width="12" height="2" fill="currentColor"/><rect x="7" y="2" width="2" height="12" fill="currentColor"/></svg>
   </button>
-  <button class="btn" id="rotL" type="button" aria-label="Tourner vers la gauche">
+  <button class="btn" id="rotL" type="button" aria-label="Tourner vers la gauche" title="Tourner (Page précédente)">
     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3v4h4V5H6.2A5 5 0 1 1 3.4 10H1.3A7 7 0 1 0 5 3.3V3H3z" fill="currentColor"/></svg>
   </button>
   <button class="btn" id="compass" type="button" aria-label="Remettre le nord en haut"><canvas width="11" height="11"></canvas></button>
-  <button class="btn" id="rotR" type="button" aria-label="Tourner vers la droite">
+  <button class="btn" id="rotR" type="button" aria-label="Tourner vers la droite" title="Tourner (Page suivante)">
     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13 3v4H9V5h.8A5 5 0 1 0 12.6 10h2.1A7 7 0 1 1 11 3.3V3h2z" fill="currentColor"/></svg>
   </button>
+  <button class="btn" id="btnWx" type="button" title="Météo">Météo auto</button>
   <button class="btn" id="btnSound" type="button" aria-pressed="false" aria-label="Activer le son" title="Son">
     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 6h3l4-3v10L5 10H2z" fill="currentColor"/><path class="snd-on" d="M11 5.2a4 4 0 0 1 0 5.6M12.8 3.4a6.5 6.5 0 0 1 0 9.2" stroke="currentColor" stroke-width="1.5" fill="none"/><path class="snd-off" d="M11 5.5l4 4M15 5.5l-4 4" stroke="currentColor" stroke-width="1.5"/></svg>
   </button>
   <button class="btn" id="btnPhoto" type="button" aria-pressed="false" aria-label="Mode photo" title="Mode photo">
     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 5h3l1.5-2h5L12 5h3v8H1z" fill="currentColor"/><circle cx="8" cy="9" r="2.6" fill="var(--ink)"/><circle cx="8" cy="9" r="1.4" fill="currentColor"/></svg>
   </button>
+  <button class="btn" id="btnMenu" type="button" title="Menu">Menu</button>
 </nav>
 
 <section class="minimap panel" id="minimap" aria-label="Carte de l’île : clique pour t’y rendre">
   <div class="map-head"><span>CARTE</span><span class="map-hint">clique pour y aller</span></div>
-  <canvas id="mapCv" width="220" height="124"></canvas>
+  <canvas id="mapCv" width="240" height="162"></canvas>
+</section>
+
+<!-- batiment selectionne -->
+<section class="sel panel" id="sel" aria-label="Bâtiment sélectionné" hidden>
+  <div class="sel-head">
+    <canvas id="selPic" width="96" height="72" aria-hidden="true"></canvas>
+    <div class="sel-id"><div class="sel-side" id="selSide"></div><h2 id="selName">Bâtiment</h2><div class="sel-lvl" id="selLvl"></div></div>
+    <button class="btn sel-close" id="selClose" type="button" aria-label="Fermer">×</button>
+  </div>
+  <div class="sel-state" id="selState"></div>
+  <div class="sel-stats" id="selStats"></div>
+  <div class="sel-actions" id="selActions"></div>
 </section>
 
 <div class="tip" id="tip" hidden></div>
@@ -86,40 +106,6 @@
   <div class="pp-card panel"><img id="photoImg" alt="Ta photo de Kutty"><div class="pp-row"><span>Clic droit (ou appui long) sur l’image pour l’enregistrer.</span><button class="btn" type="button" id="photoPreviewClose">Fermer</button></div></div>
 </div>
 
-<section class="light-panel panel" id="lightPanel" aria-label="Réglages de la lumière" hidden>
-  <div>
-    <div class="label"><span>Motif de la lumière</span></div>
-    <div class="patterns" role="radiogroup" aria-label="Motif">
-      <button class="btn pbtn" type="button" role="radio" data-p="dots" aria-checked="true"><canvas width="12" height="12"></canvas><span>Points</span></button>
-      <button class="btn pbtn" type="button" role="radio" data-p="stripes" aria-checked="false"><canvas width="12" height="12"></canvas><span>Rayures</span></button>
-      <button class="btn pbtn" type="button" role="radio" data-p="noise" aria-checked="false"><canvas width="12" height="12"></canvas><span>Bruit</span></button>
-      <button class="btn pbtn" type="button" role="radio" data-p="diamond" aria-checked="false"><canvas width="12" height="12"></canvas><span>Losanges</span></button>
-    </div>
-  </div>
-  <div>
-    <div class="label"><span>Intensité de la ville</span><output id="ival" for="ibar">0.40</output></div>
-    <div class="ibar" id="ibar" role="slider" tabindex="0" aria-label="Intensité" aria-valuemin="0" aria-valuemax="1" aria-valuenow="0.4"></div>
-    <div class="rule" id="rule">bayer4(x, y) &lt; 6.40</div>
-  </div>
-  <div class="row">
-    <button class="btn" type="button" id="btnView" aria-pressed="false">Vue motif</button>
-    <button class="btn" type="button" id="btnRot" aria-pressed="true">Phare qui tourne</button>
-    <button class="btn" type="button" id="btnInsp" aria-pressed="false">Inspecteur</button>
-  </div>
-</section>
-
-<section class="inspector panel" id="inspector" aria-label="Inspecteur de pixels" hidden>
-  <div class="insp-head"><span class="insp-title" id="inspTitle">Points</span><span class="insp-sub">1 case = 1 pixel</span></div>
-  <canvas id="insp" width="144" height="144"></canvas>
-</section>
-
-<section class="camps panel" id="camps" aria-label="Les deux camps" hidden>
-  <div class="mp-line" id="mpLine" hidden></div>
-  <div class="camp usc"><div class="camp-top"><b>RÊVE DES NATIONS LIBRES</b><span id="gU">50 %</span></div><div class="gauge"><i id="gUbar"></i></div><div class="camp-want" id="wU"></div><div class="camp-res" id="rU"></div></div>
-  <div class="camp ccp"><div class="camp-top"><b>GRAND PLAN DU PEUPLE</b><span id="gC">50 %</span></div><div class="gauge"><i id="gCbar"></i></div><div class="camp-want" id="wC"></div><div class="camp-res" id="rC"></div></div>
-  <div class="tension"><span>Tension</span><div class="tbar"><i id="tBar"></i></div><b id="tLab">Froid</b></div>
-</section>
-
 <section class="chat panel" id="chat" aria-label="Conversation" hidden>
   <div class="chat-head">
     <div class="portrait-wrap"><canvas id="portrait" width="160" height="120" role="img" aria-label="Portrait du chat"></canvas></div>
@@ -133,15 +119,14 @@
   <div class="chat-log" id="chatLog" aria-live="polite"></div>
   <div class="chat-foot">
     <form class="chat-form" id="chatForm">
-      <input class="chat-input" id="chatInput" type="text" maxlength="300" autocomplete="off" placeholder="Écris ce que tu veux…" aria-label="Ton message">
+      <input class="chat-input" id="chatInput" type="text" maxlength="300" autocomplete="off" placeholder="Écris-lui quelque chose…" aria-label="Ton message">
       <button class="btn" type="submit" id="chatSend">Envoyer</button>
     </form>
     <div class="quick-wrap"><span class="quick-label">Idées</span><div class="quick" id="quick"></div></div>
-    <div class="chat-note" id="chatNote"><span id="chatNoteText"></span> <button class="btn chat-allow" id="chatAllow" type="button" hidden>Autoriser Claude</button></div>
   </div>
 </section>
 
-<div class="bottom">
+<div class="bottom" id="bottom" hidden>
   <section class="event panel" id="eventCard" aria-live="polite" hidden>
     <div class="ev-side" id="evSide"></div>
     <div class="ev-title" id="evTitle"></div>
@@ -150,18 +135,28 @@
   </section>
   <div class="toast" id="toast" hidden></div>
   <section class="dock panel" id="dock" aria-label="Actions">
-    <div class="modes" role="group" aria-label="Mode">
-      <button class="btn" type="button" data-mode="walk" aria-pressed="true">Se balader</button>
-      <button class="btn" type="button" data-mode="build" aria-pressed="false">Construire</button>
-      <button class="btn" type="button" data-mode="road" aria-pressed="false">Routes</button>
-      <button class="btn" type="button" data-mode="demolish" aria-pressed="false">Démolir</button>
+    <div class="tools" role="group" aria-label="Outils">
+      <button class="btn tool" type="button" data-tool="walk" aria-pressed="true" title="Observer et sélectionner (Échap)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 2l9 5-4 1 3 5-2 1-3-5-3 3z" fill="currentColor"/></svg><span>Observer</span></button>
+      <button class="btn tool" type="button" data-tool="build" aria-pressed="false" title="Construire (B)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 14V7l6-5 6 5v7h-4v-4H6v4z" fill="currentColor"/></svg><span>Construire</span></button>
+      <button class="btn tool" type="button" data-tool="road" aria-pressed="false" title="Route droite (R)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 1h6l3 14H2z" fill="currentColor"/><path d="M7.4 3h1.2v2H7.4zM7.2 7h1.6v2.5H7.2zM7 11.5h2V14H7z" fill="var(--ink)"/></svg><span>Route</span></button>
+      <button class="btn tool" type="button" data-tool="curve" aria-pressed="false" title="Route courbe (C)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 14C2 6 6 2 14 2v4C9 6 6 9 6 14z" fill="currentColor"/></svg><span>Courbe</span></button>
+      <button class="btn tool" type="button" data-tool="wall" aria-pressed="false" title="Rideau de Laine (M)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 5h14v9H1z" fill="currentColor"/><path d="M1 8h14v1H1zM1 11h14v1H1zM5 5h1v3H5zM10 5h1v3h-1zM3 9h1v2H3zM8 9h1v2H8zM13 9h1v2h-1z" fill="var(--ink)"/><path d="M1 3l2 1 2-1 2 1 2-1 2 1 2-1 2 1" stroke="currentColor" fill="none"/></svg><span>Rideau</span></button>
+      <button class="btn tool" type="button" data-tool="demolish" aria-pressed="false" title="Démolir (X)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 2l11 11-1 1L2 3zM13 2l1 1L3 14l-1-1z" fill="currentColor"/></svg><span>Démolir</span></button>
+      <span class="tools-sep"></span>
       <button class="btn" type="button" id="btnUndo" disabled title="Annuler (Ctrl+Z)">Annuler</button>
-      <button class="btn" type="button" id="btnMenu" title="Changer de partie">Partie</button>
       <button class="btn" type="button" id="btnPaper" title="Le journal du matin" hidden>Journal</button>
-      <span class="hint" id="modeHint"></span>
     </div>
-    <div class="palette" id="palette" role="radiogroup" aria-label="Bâtiment à construire" hidden></div>
+    <div class="build-menu" id="buildMenu" hidden>
+      <div class="cats" id="buildCats" role="tablist" aria-label="Catégories"></div>
+      <div class="palette" id="palette" role="radiogroup" aria-label="Bâtiment à construire"></div>
+    </div>
+    <div class="hint" id="modeHint"></div>
   </section>
+</div>
+
+<div class="landing panel" id="landing" hidden>
+  <b>Choisis ta plage</b>
+  <span id="landingText">Clique sur une côte de l’île : tes barges y accosteront. L’autre camp débarquera ailleurs.</span>
 </div>
 
 <div class="countdown" id="countdown" hidden></div>
@@ -183,55 +178,38 @@
       </div>
       <footer class="np-foot"><span id="npBreve"></span><span class="np-by" id="npBy"></span></footer>
     </article>
-    <p class="paper-note" id="npNote"></p>
   </div>
 </div>
 
 <div class="intro" id="intro">
   <div class="intro-card panel" role="dialog" aria-labelledby="introTitle">
-    <div class="intro-kicker">KUTTY TOWN · LA GUERRE FROIDE</div>
+    <div class="intro-kicker">ÎLE DE KUTTY · LA GUERRE FROIDE</div>
     <h1 class="intro-title" id="introTitle"><span class="brand-old">Cold</span><span class="brand-name">KUTTY TOWN</span></h1>
-    <p>Automne 1961. La grande île de Kutty est coupée en deux par le Rideau de Laine. Le phare tourne, la radio grésille, et au Checkpoint Minou on ne passe qu'avec un sourire.</p>
-    <div class="sides">
-      <div class="side-card"><b>USC · À L'OUEST</b><span>United Sands of Cats. Diners, drive-in, stade, gratte-ciel art déco, Gare Centrale, métro aérien et aéroport. Leur idéal : le Rêve des Nations Libres.</span></div>
-      <div class="side-card"><b>CCR · À L'EST</b><span>Cats Communist Republik. Usines, kolkhozes, églises à bulbes, défilé militaire, Gare du Peuple, métro aérien et aéroport. Leur idéal : le Grand Plan du Peuple.</span></div>
+    <p>Une île vierge, des forêts, des plages. Deux camps de chats débarquent chacun de leur côté. Choisis le tien, choisis ta plage, et fais grandir ton territoire avant l’autre.</p>
+    <div class="sides" role="radiogroup" aria-label="Ton camp">
+      <button class="side-card" type="button" role="radio" data-side="usc" aria-checked="true"><span class="flag big" data-flag="usc"></span><b>United Sands of Cats</b><span>USC. Diners, drive-in, voitures à ailerons et rock’n’roll.</span></button>
+      <button class="side-card" type="button" role="radio" data-side="ccp" aria-checked="false"><span class="flag big" data-flag="ccp"></span><b>Cats Communist Republic</b><span>CCR. Kolkhozes, usines, défilés et cosmonautes.</span></button>
     </div>
-    <ul>
-      <li><b>01</b><span>Glisse pour te balader. Molette, pincement ou boutons pour zoomer.</span></li>
-      <li><b>02</b><span>Clic droit glissé, deux doigts ou flèches rondes pour tourner à 360°.</span></li>
-      <li><b>03</b><span>Clique sur un chat et écris-lui ce que tu veux : il te répond dans son rôle.</span></li>
-      <li><b>04</b><span>Avec Construire, pose des bâtiments : ils coûtent de la laine et grandissent avec un bon voisinage. Avec Routes, trace de nouvelles rues.</span></li>
-      <li><b>05</b><span>Chaque camp réclame un bâtiment : exauce-le pour faire monter sa jauge. Surveille croquettes et moral, et tranche les événements.</span></li>
-      <li><b>06</b><span>Chaque matin, lis la Gazette et la Pravdachat. Active le son, prends des photos, gagne la course à l’espace.</span></li>
-    </ul>
     <div class="intro-modes">
-      <button class="btn primary" id="introGo" type="button">Ville de 1961</button>
-      <button class="btn" id="introDeb" type="button">Débarquement</button>
-      <button class="btn" id="introMp" type="button">Partie à deux</button>
+      <button class="btn primary" id="introGo" type="button">Débarquer</button>
+      <button class="btn" id="introResume" type="button" hidden>Reprendre la partie</button>
     </div>
-    <p class="intro-help"><b>Ville de 1961</b> : l’île est déjà construite, à toi de la faire vivre. <b>Débarquement</b> : chaque camp arrive par la mer à un bout de l’île et avance vers le centre, le mur se tricote quand ils se rejoignent. <b>Partie à deux</b> : un joueur par camp, sur la même île, en direct.</p>
-    <button class="btn intro-reset" id="introDebNew" type="button" hidden>Recommencer le Débarquement à zéro</button>
+    <ul class="intro-rules">
+      <li><b>01</b><span>Choisis ta plage : tes barges accostent et bâtissent ton QG.</span></li>
+      <li><b>02</b><span>Chaque bâtiment rayonne : ton territoire grandit tout seul autour. Les avant-postes le poussent plus loin, les barges l’emmènent sur d’autres côtes.</span></li>
+      <li><b>03</b><span>Trois ressources : croquettes pour manger, laine pour bâtir, ronrons pour conquérir. Chaque bâtiment produit et coûte en fonctionnement.</span></li>
+      <li><b>04</b><span>Relie tes bâtiments au QG par des routes, droites ou courbes, sinon ils restent à l’arrêt. Améliore-les : un ponton devient quai, puis grand port.</span></li>
+      <li><b>05</b><span>Le premier camp à tenir 60 % de l’île gagne. Le Rideau de Laine fige ta frontière.</span></li>
+    </ul>
   </div>
 </div>
 
-<div class="intro" id="mpBox" hidden>
-  <div class="intro-card panel" role="dialog" aria-modal="true" aria-labelledby="mpTitle">
-    <div class="intro-kicker">PARTIE À DEUX · EN DIRECT</div>
-    <h2 class="mp-title" id="mpTitle">Un joueur par camp, sur la même île</h2>
-    <p class="intro-help">Crée une partie puis envoie le code à ton adversaire. Pour jouer, il doit pouvoir modifier cet artefact : partage-le avec lui en accès Contributeur.</p>
-    <div class="mp-block">
-      <div class="label"><span>Créer une partie</span></div>
-      <div class="mp-opts" role="radiogroup" aria-label="Ton camp"><button class="btn" type="button" role="radio" data-mps="usc" aria-checked="true">Je joue l’USC</button><button class="btn" type="button" role="radio" data-mps="ccp" aria-checked="false">Je joue la CCR</button></div>
-      <div class="mp-opts" role="radiogroup" aria-label="Carte"><button class="btn" type="button" role="radio" data-mpm="deb" aria-checked="true">Débarquement</button><button class="btn" type="button" role="radio" data-mpm="ville" aria-checked="false">Ville de 1961</button></div>
-      <button class="btn primary" type="button" id="mpCreate">Créer la partie</button>
-    </div>
-    <div class="mp-block">
-      <div class="label"><span>Rejoindre une partie</span></div>
-      <form class="mp-join" id="mpJoinForm"><input class="chat-input" id="mpCode" maxlength="6" autocomplete="off" spellcheck="false" placeholder="Code, par ex. KTX7" aria-label="Code de la partie"><button class="btn" type="submit" id="mpJoin">Rejoindre</button></form>
-      <button class="btn" type="button" id="mpResume" hidden>Reprendre la partie</button>
-    </div>
-    <p class="mp-msg" id="mpMsg" aria-live="polite"></p>
-    <button class="btn" type="button" id="mpBack">Retour</button>
+<div class="intro" id="endBox" hidden>
+  <div class="intro-card panel end-card" role="dialog" aria-labelledby="endTitle">
+    <span class="flag big" id="endFlag"></span>
+    <h2 class="end-title" id="endTitle">Victoire</h2>
+    <p id="endText"></p>
+    <div class="intro-modes"><button class="btn primary" id="endNew" type="button">Nouvelle partie</button><button class="btn" id="endKeep" type="button">Continuer à jouer</button></div>
   </div>
 </div>
 

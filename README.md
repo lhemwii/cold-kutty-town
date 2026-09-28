@@ -2,9 +2,9 @@
 
 # Cold Kutty Town
 
-Un city builder cozy de chats, en pleine guerre froide, en 1961. En couleur, du matin à la nuit.
+Un city builder de chats pendant la guerre froide. En couleur, du matin à la nuit.
 
-Deux camps sur la même île : l’USC et son Rêve des Nations Libres à l’ouest, la CCR et son Grand Plan du Peuple à l’est. On construit, on nourrit, on garde le moral, on tranche les crises, on lance des fusées. Les chats parlent, se souviennent de toi et lisent le journal du matin. Au bout, le mur.
+Une île vierge, deux camps : les United Sands of Cats (USC) et la Cats Communist Republic (CCR). Tu choisis ton camp et ta plage, tes barges accostent, et tu bâtis ta ville : routes droites ou courbes, maisons, pêcheries, bergeries, port qui devient grand port. Chaque bâtiment fait grandir ton territoire, bleu ou rouge, en direct sur la carte. Croquettes pour manger, laine pour bâtir, ronrons pour conquérir. Le premier camp à tenir 60 % de l’île gagne.
 
 **Jouer en ligne :** (lien Vercel à venir)
 
@@ -20,7 +20,7 @@ npm run dev
 
 Ouvre http://localhost:5173. Chaque fois que tu enregistres un fichier dans `src/`, le jeu se reconstruit et la page se recharge toute seule.
 
-Pour que les chats et le journal soient écrits par Claude en local, copie `.env.example` en `.env.local` et mets ta clé API Anthropic dedans. Sans clé, tout marche, avec des phrases toutes faites.
+Pour l’instant, les chats et le journal utilisent des textes tout faits : aucune clé n’est nécessaire.
 
 ## Construire et déployer
 
@@ -39,7 +39,7 @@ Du JavaScript sans framework, rendu pixel par pixel dans un canvas. Le moteur is
 src/
   index.html            la page (panneaux, fenêtres, dock)
   styles/main.css       le style de l’interface
-  game/01-core.js ...   le jeu, en 21 modules chargés dans l’ordre
+  game/01-core.js ...   le jeu, en modules chargés dans l’ordre de leur numéro
   platform/standalone.js  branche Claude et les téléchargements hors de claude.ai
 api/claude.js           fonction Vercel qui relaie vers l’API Claude
 scripts/build.mjs       assemble les modules et écrit dist/
@@ -49,10 +49,11 @@ docs/                   architecture, règles du jeu, développement, feuille de
 
 ## Documentation
 
+- [Document produit (PRD)](docs/PRD.md)
+- [Plan d’implémentation et choses à faire](docs/PLAN.md)
 - [Architecture du moteur](docs/ARCHITECTURE.md)
 - [Règles du jeu](docs/GAMEPLAY.md)
 - [Développer au quotidien](docs/DEVELOPPEMENT.md)
-- [Feuille de route](docs/ROADMAP.md)
 
 ## Images
 

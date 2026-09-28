@@ -200,7 +200,7 @@ Object.assign(TYPES, {
       if (ccp){ const q = prj(ca, (hb0 + hb1) / 2 - 1.6, 40); CUR = M.SIGN_CCP; drawStar(fput, Math.round(q[0]) - 3, Math.round(q[1]) - 6, 1, true); }
     };
     // quai et marquise le long de la voie
-    const qb0 = RAIL_B + 2.3, qb1 = b0 + 1.5;
+    const qb0 = b0 - 6, qb1 = b0 + 1.5;
     const quai = () => { CUR = M.CONCRETE; boxS(a0, a1, qb0, qb1, 0, .8, (u, h) => h > .5 ? 1 : 0, (x, y) => 1, 0); };
     const marquise = () => {
       CUR = M.METAL;
@@ -270,6 +270,161 @@ Object.assign(TYPES, {
     return { parts: [part(ca, cb + 2.5, 0, rail)], decals: [hole], lights: [Lc(ca, cb + 3, 9, 1.3)] };
   } }
 });
-const PALETTE = ['maison', 'immeuble', 'diner', 'cinema', 'drivein', 'motel', 'bowling', 'station', 'epicerie', 'supermarche', 'grandmagasin', 'artdeco', 'stalinien',
-  'metro', 'usine', 'kolkhoze', 'bulbes', 'stade', 'tribune', 'radio', 'fusee', 'cirque', 'statue', 'panneau', 'fontaine', 'chateau', 'kiosque', 'parc'];
-const PREVIEW_SIDE = { immeuble: 'ccp', usine: 'ccp', cirque: 'ccp', fusee: 'ccp', radio: 'ccp', stalinien: 'ccp', kolkhoze: 'ccp', bulbes: 'ccp', metro: 'ccp', grandmagasin: 'ccp', tribune: 'ccp' };
+
+/* ================= batiments du debarquement : QG, mer, frontiere ================= */
+// direction de la mer pour les batiments de la cote : 0 = +b, 1 = +a, 2 = -b, 3 = -a
+const DIR_ANG = [Math.PI / 2, 0, -Math.PI / 2, Math.PI];
+const DIR_V = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+// ponton en bois sur pilotis, de u0 a u1 dans la direction de la mer
+function drawPier(ca, cb, ang, u0, u1, hw, z, mat){
+  CUR = mat || M.PIER;
+  for (let u = u0 + 2; u <= u1; u += 6) for (const s of [-1, 1]){ const p = rot2(ca, cb, ang, u, s * (hw - .4)); line3(p[0], p[1], -1, p[0], p[1], z, 0); }
+  rbox(ca, cb, ang, u0, u1, -hw, hw, z - 1, z, (u, h) => h > .5 ? 1 : 0, mat === M.CONCRETE ? ((x, y) => bz(x, y) < 3 ? 0 : 1) : ((x, y) => ((x + y) & 3) ? 1 : 0), 1);
+}
+// cabane ou entrepot tourne, toit a une pente
+function drawShed(ca, cb, ang, u0, u1, v0, v1, hh, wallMat, roofMat, sign){
+  CUR = wallMat;
+  rbox(ca, cb, ang, u0, u1, v0, v1, 0, hh, (u, h, x, y) => {
+    if (h > hh - 1) return 1;
+    if (h > 1.5 && h < 4 && (Math.floor(u) % 5 === 2)) return 3;
+    return (Math.floor(u * 1.3) % 3 === 0) ? 1 : (bz(x, y) < 4 ? 1 : 0);
+  }, null, 1);
+  CUR = roofMat;
+  const P = [[u0 - .8, v1 + .8, hh], [u1 + .8, v1 + .8, hh], [u1 + .8, v0 - .8, hh + 2.5], [u0 - .8, v0 - .8, hh + 2.5]].map(([u, v, z]) => { const p = rot2(ca, cb, ang, u, v); return [p[0], p[1], z]; });
+  drawFace([P[3][0], P[3][1], P[3][2], P[2][0], P[2][1], P[2][2], P[1][0], P[1][1], P[1][2], P[0][0], P[0][1], P[0][2]], [0, 0, 1], (x, y) => (Math.floor((x + 2 * y) / 2) % 3 === 0) ? 1 : 0, 1);
+  if (sign){ const p = rot2(ca, cb, ang, (u0 + u1) / 2, v1), q = prj(p[0], p[1], hh - .5); plate(fput, sign, Math.round(q[0]), Math.round(q[1])); }
+}
+// grue de quai : pieds, cabine, fleche qui fait l'aller-retour
+function drawPortCrane(a, b, angShip, side, t, ph){
+  const Hc = 15, s = 3;
+  CUR = side === 'usc' ? M.FLAG_RED : M.KVAS;
+  for (const [da, db] of [[-s, -s], [s, -s], [s, s], [-s, s]]) line3(a + da, b + db, 0, a + da * .45, b + db * .45, Hc, 1);
+  line3(a - s, b - s, 5, a + s, b - s, 5, 1); line3(a - s, b + s, 5, a + s, b + s, 5, 1);
+  boxS(a - 2, a + 2, b - 2, b + 2, Hc, Hc + 4, 1, 1, 0);
+  const cyc = ((t * .09 + ph) % 2 + 2) % 2, half = cyc < 1, f = half ? cyc : cyc - 1, e = f * f * (3 - 2 * f), angQuay = angShip + Math.PI;
+  const ang = half ? angShip + (angQuay - angShip) * e : angQuay + (angShip - angQuay) * e;
+  const L = 16, ja = a + Math.cos(ang) * L, jb = b + Math.sin(ang) * L;
+  line3(a, b, Hc + 3, ja, jb, Hc + 2, 1); line3(a, b, Hc + 6, ja, jb, Hc + 2, 1);
+  const hz = Hc + 1 - 11 * (1 - Math.sin(Math.PI * f));
+  CUR = M.METAL; line3(ja, jb, Hc + 2, ja, jb, hz, 0);
+  if (half){ CUR = [M.KVAS, M.MILITARY, M.PIER][Math.floor(t * .09 + ph) % 3]; boxS(ja - 1.6, ja + 1.6, jb - 1.2, jb + 1.2, hz - 2.4, hz, 1, 1); }
+}
+// cargo : cales, mats de charge, chateau a l'arriere
+function drawCargo(s, t){
+  const z = bobZ(t, s.seed), ang = s.ang, L = s.L;
+  drawHull(s.a, s.b, ang, L, s.W, z, 4 + z, M.HULL, M.PIER, s.side === 'usc' ? M.FLAG_BLUE : M.FLAG_RED);
+  CUR = M.CHROME; rbox(s.a, s.b, ang, -L * .46, -L * .28, -s.W * .38, s.W * .38, 4 + z, 10 + z, 1, 1);
+  for (let k = 0; k < 3; k++){ const u = -L * .16 + k * L * .17, m = [M.KVAS, M.MILITARY, M.PIER][(k + s.seed) % 3], hh = 2 + ((k + s.seed) % 2) * 2; CUR = m; rbox(s.a, s.b, ang, u - L * .06, u + L * .06, -s.W * .3, s.W * .3, 4 + z, 4 + hh + z, 1, 1); }
+  CUR = M.METAL;
+  for (const u of [-L * .22, L * .2]){ const p = rot2(s.a, s.b, ang, u, 0); line3(p[0], p[1], 4 + z, p[0], p[1], 17 + z, 1); }
+  const fp = rot2(s.a, s.b, ang, -L * .49, 0); line3(fp[0], fp[1], 4 + z, fp[0], fp[1], 11 + z, 1);
+  const fq = prj(fp[0], fp[1], 11 + z); pennant(Math.round(fq[0]), Math.round(fq[1]), s.side, t, s.seed);
+}
+function drawStackR(ca, cb, ang, u, v, n, m){
+  CUR = m;
+  for (let i = 0; i < n; i++){ const du = (i % 3) * 3.3, h = Math.floor(i / 3) * 2.6; rbox(ca, cb, ang, u + du, u + du + 3, v, v + 3, h, h + 2.5, 1, 1); }
+}
+// mouton : une boule de laine qui broute et se deplace un peu
+function drawSheep(a, b, t, k){
+  const p = prj(a, b, 0), x = Math.round(p[0]), y = Math.round(p[1]), hop = ((t * 1.3 + k) % 4) < .25 ? -1 : 0;
+  CUR = M.WOOL;
+  for (let dy = -4; dy <= -1; dy++) for (let dx = -2; dx <= 2; dx++){ if ((dx === -2 || dx === 2) && (dy === -4 || dy === -1)) continue; fput(x + dx, y + dy + hop, dy === -4 || Math.abs(dx) === 2 ? 1 : (bz(x + dx, y + dy) < 12 ? 1 : 0)); }
+  CUR = M.CAT_BLACK; const f = (k & 1) ? 1 : -1; fput(x + 3 * f, y - 3 + hop, 0); fput(x + 3 * f, y - 2 + hop, 0); fput(x - 1, y, 0); fput(x + 1, y, 0);
+}
+Object.assign(TYPES, {
+  // quartier general du debarquement : la mairie a l'ouest, le Palais du Peuple a l'est
+  qg: { name: 'Mairie', nameCCP: 'Palais du Peuple', fem: true, build(lot, seed){ return (lot.side === 'ccp' ? TYPES.peuple : TYPES.mairie).build(lot, seed); } },
+  port: { name: 'Port', fem: false, coast: true, build(lot, seed){
+    const ca = lot.ca, cb = lot.cb, ang = DIR_ANG[lot.dir || 0], lv = lot.lvl || 1, side = lot.side, ccp = side === 'ccp';
+    const at = (u, v) => rot2(ca, cb, ang, u, v), parts = [], lights = [];
+    const P = (u, v, zb, f) => { const q = at(u, v); parts.push(part(q[0], q[1], zb, f)); };
+    if (lv === 1){
+      P(26, 0, 0, () => drawPier(ca, cb, ang, 10, 44, 3, 1.4));
+      P(-2, -4, 0, () => drawShed(ca, cb, ang, -9, 5, -11, 1, 6, M.PIER, M.ROOF_USC2, 'PORT'));
+      P(4, 8, 0, () => { CUR = M.PIER; rbox(ca, cb, ang, 2, 5, 6, 9, 0, 2.5, 1, 1); rbox(ca, cb, ang, 6, 8.5, 7, 9.5, 0, 2, 1, 1); });
+      const q = at(38, -6); lights.push(Lc(q[0], q[1], 9, 1.1));
+    } else {
+      // quai en beton le long de la cote, jetees, entrepot, grues
+      P(9, 0, -.3, () => drawPier(ca, cb, ang, 4, 16, 15, 1.2, M.CONCRETE));
+      P(36, -9, 0, () => drawPier(ca, cb, ang, 16, lv === 3 ? 62 : 52, 4, 1.4, M.CONCRETE));
+      if (lv === 3) P(36, 10, 0, () => drawPier(ca, cb, ang, 16, 58, 4, 1.4, M.CONCRETE));
+      P(-6, 0, 0, () => drawShed(ca, cb, ang, -14, 2, -12, 12, 8, ccp ? M.CONCRETE : M.BRICK, M.ROOF_CCP, ccp ? 'PORT DU PEUPLE' : 'DOCKS'));
+      const c1 = at(26, -9); P(26, -9, .5, (t) => drawPortCrane(c1[0], c1[1], ang - Math.PI / 2, side, t, .3));
+      if (lv === 3){
+        const c2 = at(44, -9), c3 = at(40, 10);
+        P(44, -9, .5, (t) => drawPortCrane(c2[0], c2[1], ang - Math.PI / 2, side, t, 1.1));
+        P(40, 10, .5, (t) => drawPortCrane(c3[0], c3[1], ang + Math.PI / 2, side, t, .6));
+        P(8, 7, 0, () => drawStackR(ca, cb, ang, 5, 5, 6, M.KVAS));
+        P(8, -12, 0, () => drawStackR(ca, cb, ang, 5, -14, 5, ccp ? M.FLAG_RED : M.FLAG_BLUE));
+        const sh = at(46, 21), shipAng = ang;
+        P(46, 21, 0, (t) => drawCargo({ a: sh[0], b: sh[1], ang: shipAng, L: 44, W: 10, seed: seed % 5, side }, t));
+      } else P(8, 7, 0, () => drawStackR(ca, cb, ang, 4, 5, 3, M.KVAS));
+      for (const [u, v] of [[20, -14], [46, -6], [2, 14]]){ const q = at(u, v); lights.push(Lc(q[0], q[1], 12, 1.2)); }
+    }
+    return { parts, lights };
+  } },
+  pecherie: { name: 'Pêcherie', nameCCP: 'Coopérative de pêche', fem: true, coast: true, build(lot, seed){
+    const ca = lot.ca, cb = lot.cb, ang = DIR_ANG[lot.dir || 0], at = (u, v) => rot2(ca, cb, ang, u, v), parts = [];
+    const P = (u, v, zb, f) => { const q = at(u, v); parts.push(part(q[0], q[1], zb, f)); };
+    P(22, 4, 0, () => drawPier(ca, cb, ang, 10, 34, 2.5, 1.2));
+    P(-3, -5, 0, () => drawShed(ca, cb, ang, -9, 3, -12, -1, 5.5, M.PIER, M.ROOF_USC, lot.side === 'ccp' ? 'KOOP' : 'POISSON'));
+    // sechoirs a poissons
+    P(0, 8, 0, (t) => {
+      for (const v of [4, 9]){
+        const p0 = at(-6, v), p1 = at(6, v); CUR = M.PIER;
+        line3(p0[0], p0[1], 0, p0[0], p0[1], 4, 1); line3(p1[0], p1[1], 0, p1[0], p1[1], 4, 1); line3(p0[0], p0[1], 4, p1[0], p1[1], 4, 1);
+        CUR = M.FISH;
+        for (let u = -5; u <= 5; u += 2){ const q = at(u, v), s = prj(q[0], q[1], 4); const x = Math.round(s[0]), y = Math.round(s[1]); fput(x, y + 1, 1); fput(x, y + 2, 1); fput(x, y + 3, 0); }
+      }
+    });
+    const q = at(30, 0);
+    return { parts, lights: [Lc(q[0], q[1], 8, 1.1)] };
+  } },
+  bergerie: { name: 'Bergerie', nameCCP: 'Bergerie du Peuple', fem: true, build(lot, seed){
+    const g = houseGeo(lot.a0 + 8, lot.b0 + 8, 12, 12, 6, 5, seed, 'b', 0);
+    const barn = () => { CUR = M.BRICK; gableWalls(g.a0, g.a1, g.b0, g.b1, g.hh, g.rh, 'b', (u, h, x, y, k) => { if (k === 0 && Math.abs(u - 6) < 2 && h < 4.5) return (Math.abs(u - 6) > 1.6 || h > 4.1) ? 1 : 0; return (Math.floor(u * 1.2) % 3 === 0) ? 1 : 0; }); gableRoof(g.a0, g.a1, g.b0, g.b1, g.hh, g.rh, 'b', 1, 6, 1); };
+    const pa0 = lot.a0 + 2, pa1 = lot.a1 - 2, pb0 = lot.b0 + 2, pb1 = lot.b1 - 2;
+    const fence = () => { CUR = M.PIER; const fn = (u, h) => (h >= 1 && h < 1.4) || (h >= 2.2 && h < 2.6) ? 1 : ((Math.floor(u / 3) * 3 === Math.floor(u) && h < 2.8) ? 1 : -1);
+      for (const [p, q] of [[[pa0, pb1], [pa1, pb1]], [[pa1, pb1], [pa1, pb0]], [[pa1, pb0], [pa0 + 16, pb0]], [[pa0, pb0 + 16], [pa0, pb1]]]) if (!wallFace(p[0], p[1], q[0], q[1], 0, 2.8, fn, -1)) wallFace(q[0], q[1], p[0], p[1], 0, 2.8, fn, -1); };
+    const parts = [part(g.ca, g.cb, 0, barn), part(lot.ca, lot.cb, -.2, fence)];
+    for (let k = 0; k < 5; k++){
+      const ha = pa0 + 16 + hash2(seed, k) * (pa1 - pa0 - 20), hb = pb0 + 6 + hash2(k, seed) * (pb1 - pb0 - 10);
+      parts.push(part(ha, hb, .1, (t) => { const a = ha + Math.sin(t * .13 + k * 2) * 3, b = hb + Math.cos(t * .11 + k) * 2; drawSheep(a, b, t, k); }));
+    }
+    return { parts, decals: [() => { CUR = M.FIELD; drawFace([pa0, pb0, 0, pa1, pb0, 0, pa1, pb1, 0, pa0, pb1, 0], UP, (x, y) => hash2(x, y) < .12 ? 1 : 0, -1); }], lights: [Lc(g.ca, g.b1 + 5, 8, 1.1)] };
+  } },
+  phare: { name: 'Phare', fem: false, build(lot, seed){
+    const ca = lot.ca, cb = lot.cb, p = part(ca, cb, 0, () => drawLighthouse(ca, cb, lot.side));
+    p.shadow = circ(ca, cb, 7, 0, 10).concat(circ(ca, cb, 5, 46, 10));
+    return { parts: [p], lights: [Lc(ca, cb, 14, 1.2)], beacon: [ca, cb] };
+  } },
+  drapeau: { name: 'Avant-poste', nameCCP: 'Avant-poste du Peuple', fem: false, build(lot, seed){
+    const ca = lot.ca, cb = lot.cb, side = lot.side;
+    const tent = () => {
+      CUR = M.MILITARY;
+      const a0 = ca - 6, a1 = ca + 1, b0 = cb - 4, b1 = cb + 4;
+      wallFace(a0, b1, a1, b1, 0, 1.5, 0, 1, 5); wallFace(a1, b0, a0, b0, 0, 1.5, 0, 1, 5);
+      drawFace([a0, b1, 1.5, a1, b1, 1.5, a1, cb, 5, a0, cb, 5], [0, 1, 1], (x, y) => bz(x, y) < 5 ? 1 : 0, 1);
+      drawFace([a1, b0, 1.5, a0, b0, 1.5, a0, cb, 5, a1, cb, 5], [0, -1, 1], (x, y) => bz(x, y) < 3 ? 1 : 0, 1);
+    };
+    const bags = () => { CUR = M.WHEAT; for (let k = 0; k < 10; k++){ const an = k / 10 * TAU, a = ca + 4 + Math.cos(an) * 4.5, b = cb + Math.sin(an) * 4.5; boxS(a - 1, a + 1, b - 1, b + 1, 0, 1.4, 1, 1); } };
+    return { parts: [part(ca - 2, cb, 0, tent), part(ca + 4, cb, .1, bags), part(ca + 4, cb, .3, (t) => drawFlagPole(ca + 4, cb, 0, 26, side, t))], lights: [Lc(ca, cb + 4, 9, 1.1)] };
+  } },
+  checkpoint: { name: 'Checkpoint Minou', fem: false, build(lot, seed){
+    const ca = lot.ca, cb = lot.cb, side = lot.side, ccp = side === 'ccp';
+    const booth = (t) => {
+      CUR = ccp ? M.CCP : M.USC;
+      boxS(ca - 7, ca - 1, cb - 4, cb + 2, 0, 6.5, (u, h) => { if (h >= 2.5 && h < 4.8 && u > .6 && u < 5) return 3; return (h < .8 || h > 5.8) ? 1 : 0; }, (x, y) => bz(x, y) < 6 ? 1 : 0);
+      const p = prj(ca - 4, cb + 2, 6.5); CUR_SIDE = side; plate(fput, 'CHECKPOINT', Math.round(p[0]), Math.round(p[1]) - 1);
+    };
+    const barrier = (t) => {
+      const up = (Math.sin(t * .4 + seed) > .75) ? 1 : 0, an = up * Math.PI * .45, len = 12;
+      CUR = M.FLAG_RED;
+      const pv = prj(ca + 2, cb - 4, 0); lineS(pv[0], pv[1], pv[0], pv[1] - 4, 1);
+      const p0 = prj(ca + 2, cb - 4, 3.5), p1 = prj(ca + 2, cb - 4 + len * Math.cos(an), 3.5 + len * Math.sin(an));
+      const n = Math.max(1, Math.ceil(Math.hypot(p1[0] - p0[0], p1[1] - p0[1])));
+      for (let s = 0; s <= n; s++){ const x = Math.floor(p0[0] + (p1[0] - p0[0]) * s / n), y = Math.floor(p0[1] + (p1[1] - p0[1]) * s / n), c = ((s >> 1) & 1) ? 1 : 0; fput(x, y, c); fput(x, y - 1, c); fput(x, y + 1, 0); }
+    };
+    return { parts: [part(ca - 4, cb - 1, 0, booth), part(ca + 2, cb, .2, barrier), part(ca + 6, cb + 5, 0, (t) => drawFlagPole(ca + 6, cb + 5, 0, 18, side, t))], lights: [Lc(ca, cb, 12, 1.3)] };
+  } }
+});

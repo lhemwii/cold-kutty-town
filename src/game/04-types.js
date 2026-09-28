@@ -75,7 +75,7 @@ const TYPES = {
       fput(bx, by - 8, 1); fput(bx - 1, by - 7, 1); fput(bx + 1, by - 7, 1); fput(bx, by - 7, Math.sin(t * 2) > .6 ? 1 : 0);
       for (let r = 1; r <= 5; r++) for (let x = bx - 4 + r; x <= bx + 4 - r; x++) fput(x, by - 11 - r, (x === bx - 4 + r || x === bx + 4 - r) ? 1 : 0);
       fput(bx, by - 17, 1); fput(bx, by - 18, 1);
-    }), part(g.ca + 10, g.b1 + 4, 0, (t) => drawFlagPole(g.ca + 10, g.b1 + 4, 0, 20, 'usc', t)),
+    }), part(g.ca + 10, g.b1 + 4, 0, (t) => drawFlagPole(g.ca + 10, g.b1 + 4, 0, 20, lot.side, t)),
       part(g.ca, g.b1, .3, () => { if (!frontVisible(0)) return; const p = prj(g.ca, g.b1, g.hh - 1); plate(fput, 'MAIRIE', Math.round(p[0]), Math.round(p[1])); })];
     return { parts, lights: houseLights(g).concat([Lc(g.ca, g.b1 + 9, 14, 1.3)]) };
   } },

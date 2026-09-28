@@ -15,7 +15,8 @@ const PAL_HEX = [
   ['#4d5a32', '#7e8c55'], ['#c9a13b', '#e9cf73'], ['#b8860b', '#ffd766'], ['#2e8b57', '#f2efe6'], ['#2a5cb8', '#f2efe6'],
   ['#b9b6ad', '#d9d6cd'], ['#d9a21e', '#fff0b3'], ['#3f8f3a', '#5fb152'], ['#b87a4b', '#d9a577'],
   ['#574d44', '#cfcac2'], ['#9db3c7', '#dbe8f3'], ['#dde5ee', '#ffffff'], ['#3d5a4b', '#8fb39d'], ['#9e2a2b', '#efe3c8'],
-  ['#2a5cb8', '#8fb8ff'], ['#2e8b57', '#8dffa0'], ['#2a2622', '#fffaf0'], ['#8a1c1c', '#ff4a5a'], ['#8a6a10', '#ffd23f'], ['#1d3f66', '#ffcf6b'], ['#2b2d33', '#9aa0aa']
+  ['#2a5cb8', '#8fb8ff'], ['#2e8b57', '#8dffa0'], ['#2a2622', '#fffaf0'], ['#8a1c1c', '#ff4a5a'], ['#8a6a10', '#ffd23f'], ['#1d3f66', '#ffcf6b'], ['#2b2d33', '#9aa0aa'],
+  ['#467f38', '#5e9a48'], ['#e2ddd0', '#ffffff'], ['#7f98a8', '#dfe8ee']
 ];
 // la nuit, les lumieres gardent leur eclat
 const NIGHT_LIGHT = { [M.RAIN]: '#6f86a3', [M.SNOW]: '#c9d4e2', [M.WIN]: '#ffd46b', [M.SIGN]: '#ff6fae', [M.SIGN_CCP]: '#ffd23f', [M.GLOW]: '#ffbe55', [M.BEAM]: '#fff1a8', [M.LAMP]: '#ffe7a3', [M.REDLIGHT]: '#ff3b3b', [M.FW_BLUE]: '#8fb8ff', [M.FW_GREEN]: '#8dffa0', [M.BUBBLE]: '#fff3d9', [M.ICON_R]: '#ff5a64', [M.ICON_Y]: '#ffd23f', [M.REFLECT]: '#e9b35a' };
@@ -31,7 +32,7 @@ let palKey = '';
 let SEAS = {}, SEAS_KEY = '';
 // meteo sur la palette : ciel couvert, brouillard, neige qui recouvre le sol et les toits
 const WX = { over: 0, fog: 0, snow: 0 };
-const SNOWY = {}; [[M.GRASS, .9], [M.TREE, .55], [M.BEACH, .6], [M.FIELD, .85], [M.WHEAT, .8], [M.DIRT, .8], [M.GRAVEL, .7], [M.ROOF_USC, .85], [M.ROOF_CCP, .85], [M.ROOF_USC2, .85], [M.ROOF_USC3, .85], [M.ROCK, .5], [M.RAIL, .45], [M.ROAD, .22], [M.WALK, .6], [M.CONCRETE, .5], [M.STRIP, .6]].forEach(([m, k]) => { if (m != null) SNOWY[m] = k; });
+const SNOWY = {}; [[M.FOREST, .8], [M.GRASS, .9], [M.TREE, .55], [M.BEACH, .6], [M.FIELD, .85], [M.WHEAT, .8], [M.DIRT, .8], [M.GRAVEL, .7], [M.ROOF_USC, .85], [M.ROOF_CCP, .85], [M.ROOF_USC2, .85], [M.ROOF_USC3, .85], [M.ROCK, .5], [M.RAIL, .45], [M.ROAD, .22], [M.WALK, .6], [M.CONCRETE, .5], [M.STRIP, .6]].forEach(([m, k]) => { if (m != null) SNOWY[m] = k; });
 function makeColors(n, warm){
   if (typeof n === 'boolean') n = n ? 1 : 0;
   warm = warm || 0;
@@ -56,6 +57,23 @@ function makeColors(n, warm){
       PALL[(m * 2 + bit) * 5 + lv] = rgb32(R, G, B);
     }
     PAL32[m * 2 + bit] = PALL[(m * 2 + bit) * 5];
+  }
+  tintPalettes(n);
+}
+// territoires : le sol prend une teinte bleue ou rouge, la frontiere est tracee en couleur franche
+// PALX[k * PL + i] : k = 0 neutre, 1 USC, 2 CCR, 3 frontiere USC, 4 frontiere CCR
+const PL = PAL_HEX.length * 2 * 5, PALX = new Uint32Array(PL * 5);
+const TINT_MATS = [M.GRASS, M.FOREST, M.BEACH, M.ROCK, M.DIRT, M.FIELD, M.WHEAT, M.GRAVEL, M.SNOW];
+const TINT = [null, [52, 104, 236, .24], [226, 52, 52, .22], [64, 132, 255, .82], [255, 70, 64, .82]];
+function tintPalettes(n){
+  PALX.set(PALL, 0);
+  for (let k = 1; k < 5; k++){
+    PALX.set(PALL, k * PL);
+    const [tr, tg, tb, f0] = TINT[k], f = k >= 3 ? f0 * (1 - n * .25) : f0 * (1 - n * .35), lift = k >= 3 ? 1 + n * .9 : 1;
+    for (const m of TINT_MATS) for (let j = 0; j < 10; j++){
+      const i = m * 10 + j, c = PALL[i], r = c & 255, g = (c >> 8) & 255, b = (c >> 16) & 255;
+      PALX[k * PL + i] = rgb32(r + (tr * lift - r) * f, g + (tg * lift - g) * f, b + (tb * lift - b) * f);
+    }
   }
 }
 makeColors(0, 0);
@@ -125,17 +143,19 @@ function drawWeather(t){
 /* ================= ecran, zoom ================= */
 const scene = document.getElementById('scene');
 ctx = scene.getContext('2d', { alpha: false });
-let devW = 0, devH = 0;
+let devW = 0, devH = 0, ob = null;
 // Z : zoom affiche (pixels de l'ecran par pixel du jeu), continu et anime.
-// K : echelle entiere de rendu. En dessous de KMIN, on affiche une vue d'ensemble mise en cache.
-let Z = 2, ZT = 2, ZANCH = null, ZLEVELS = [], OV_ON = false, OV_RENDERING = false;
+// K : echelle entiere de rendu. En dessous de KMIN, on passe sur la carte strategique (OV_ON).
+let Z = 2, ZT = 2, ZANCH = null, ZLEVELS = [], OV_ON = false;
+// budget de pixels du rendu detaille : au-dela, tout ralentit ; la carte prend le relais
+const PIX_BUDGET = 430000;
 const renderK = (z) => Math.max(KMIN, Math.floor(z + 1e-6));
 function applyK(){
   W = Math.ceil(devW / K); H = Math.ceil(devH / K);
   N = W * H;
   img = ctx.createImageData(W, H);
   px32 = new Uint32Array(img.data.buffer);
-  fb = new Uint8Array(N); mb = new Uint8Array(N); lb = new Uint8Array(N);
+  fb = new Uint8Array(N); mb = new Uint8Array(N); lb = new Uint8Array(N); ob = new Uint8Array(N);
   setProj();
   applyView(true);
 }
@@ -147,6 +167,7 @@ function applyView(force){
     if (ov){ scene.width = devW; scene.height = devH; }
     else { scene.width = W; scene.height = H; }
     scene.classList.toggle('overview', ov);
+    document.body.classList.toggle('map-view', ov);
   }
   if (OV_ON){ scene.style.width = window.innerWidth + 'px'; scene.style.height = window.innerHeight + 'px'; scene.style.left = '0px'; scene.style.top = '0px'; }
   else {
@@ -161,23 +182,27 @@ function layout(){
   devW = Math.max(1, Math.round(window.innerWidth * DPR)); devH = Math.max(1, Math.round(window.innerHeight * DPR));
   const rel = Z && KDEF ? Z / KDEF : 1;
   KDEF = Math.max(2, Math.round(Math.min(devW, devH) / 290));
-  KMIN = Math.min(KDEF, Math.max(1, Math.ceil(Math.sqrt(devW * devH / 1.4e6))));
+  KMIN = Math.min(KDEF, Math.max(1, Math.ceil(Math.sqrt(devW * devH / PIX_BUDGET))));
   KMAX = KDEF * 4;
-  ZLEVELS = [KMIN * .25, KMIN * .35, KMIN * .5, KMIN * .7];
+  ZLEVELS = [KMIN * .16, KMIN * .24, KMIN * .36, KMIN * .52, KMIN * .74];
   for (let k = KMIN; k <= KMAX; k = Math.max(k + 1, Math.round(k * 1.2))) ZLEVELS.push(k);
   if (ZLEVELS[ZLEVELS.length - 1] !== KMAX) ZLEVELS.push(KMAX);
   if (!ZLEVELS.includes(KDEF)){ ZLEVELS.push(KDEF); ZLEVELS.sort((x, y) => x - y); }
   Z = ZT = clamp(KDEF * rel, ZLEVELS[0], KMAX);
   K = renderK(Z);
   applyK();
-  OV.key = '';
 }
 const ZMIN = () => ZLEVELS[0];
-function clampCam(){ cam.a = clamp(cam.a, IS.ca - IS.ra - 60, IS.ca + IS.ra + 60); cam.b = clamp(cam.b, LH.b - 30, IS.cb + IS.rb + 50); }
+function clampCam(){ cam.a = clamp(cam.a, GA0 + 40, GA0 + GW / GSC - 40); cam.b = clamp(cam.b, GB0 + 30, GB0 + GH / GSC - 30); }
 // point du sol sous un point de l'ecran (coordonnees CSS)
 function screenToWorld(cx, cy, z){
   const dx = (cx - window.innerWidth / 2) * DPR / (z || Z), dy = (cy - window.innerHeight / 2) * DPR / (z || Z);
   const g = groundDelta(dx, dy); return [cam.a + g[0], cam.b + g[1]];
+}
+// et l'inverse : point de l'ecran (CSS) d'un point du sol
+function worldToScreen(a, b, z){
+  const zz = z || Z, ar = (a - cam.a) * PC - (b - cam.b) * PS, br = (a - cam.a) * PS + (b - cam.b) * PC;
+  return [window.innerWidth / 2 + (ar - br) * zz / DPR, window.innerHeight / 2 + (ar + br) * .5 * zz / DPR];
 }
 function setZNow(nz){
   const ax = ZANCH ? ZANCH[0] : window.innerWidth / 2, ay = ZANCH ? ZANCH[1] : window.innerHeight / 2;
@@ -214,57 +239,100 @@ function setZoom(nz, ax, ay, instant){
 function snapZoom(){ let best = ZLEVELS[0]; for (const l of ZLEVELS) if (Math.abs(Math.log(l / ZT)) < Math.abs(Math.log(best / ZT))) best = l; setZoom(best, ZANCH ? ZANCH[0] : null, ZANCH ? ZANCH[1] : null); }
 function centerOn(a, b){ cam.a = a; cam.b = b; clampCam(); setProj(); }
 
-/* ================= vue d'ensemble : toute l'ile rendue une fois, puis reduite ================= */
-const OV = { canvas: null, ctx: null, img: null, px: null, fb: null, mb: null, lb: null, W: 0, H: 0, key: '', TX: 0, TY: 0, busy: 0 };
-function overviewKey(t){ return [cam.phi.toFixed(3), TOWN_VER, Math.round(NIGHT * 10), Math.round(WX.over * 5), Math.round(WX.fog * 5), Math.round(WX.snow * 5), Math.floor(t / 8)].join('|'); }
-function renderOverview(t){
-  PC = Math.cos(cam.phi); PS = Math.sin(cam.phi);
-  const A0 = IS.ca - IS.ra * 1.12, A1 = IS.ca + IS.ra * 1.12, B0 = LH.b - 30, B1 = IS.cb + IS.rb * 1.14;
-  let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
-  for (const [a, b] of [[A0, B0], [A1, B0], [A1, B1], [A0, B1]]){ const ar = a * PC - b * PS, br = a * PS + b * PC, x = ar - br, y = (ar + br) * .5; x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
-  const w = Math.ceil(x1 - x0) + 4, h = Math.ceil(y1 - y0) + 176;
-  if (w !== OV.W || h !== OV.H || !OV.canvas){
-    OV.canvas = OV.canvas || document.createElement('canvas');
-    OV.canvas.width = w; OV.canvas.height = h; OV.ctx = OV.canvas.getContext('2d', { alpha: false });
-    OV.img = OV.ctx.createImageData(w, h); OV.px = new Uint32Array(OV.img.data.buffer);
-    OV.fb = new Uint8Array(w * h); OV.mb = new Uint8Array(w * h); OV.lb = new Uint8Array(w * h);
-    OV.W = w; OV.H = h;
+/* ================= carte strategique : l'ile a plat, une case de couleur pour 2 unites ================= */
+// on ne la redessine que par morceaux (cases de territoire gagnees, routes, batiments) : plus de gros calcul au dezoom
+const MS = 2, MAPV = { W: GW / GSC / MS, H: GH / GSC / MS, cv: null, g: null, img: null, px: null, dirty: [], all: true };
+function mapInit(){
+  MAPV.cv = document.createElement('canvas'); MAPV.cv.width = MAPV.W; MAPV.cv.height = MAPV.H;
+  MAPV.g = MAPV.cv.getContext('2d'); MAPV.img = MAPV.g.createImageData(MAPV.W, MAPV.H); MAPV.px = new Uint32Array(MAPV.img.data.buffer);
+  MAPV.all = true;
+}
+function mapDirtyAll(){ MAPV.all = true; }
+function mapDirtyRect(a0, a1, b0, b1){
+  if (MAPV.all) return;
+  MAPV.dirty.push([Math.max(0, Math.floor((a0 - GA0) / MS)), Math.min(MAPV.W - 1, Math.ceil((a1 - GA0) / MS)), Math.max(0, Math.floor((b0 - GB0) / MS)), Math.min(MAPV.H - 1, Math.ceil((b1 - GB0) / MS))]);
+  if (MAPV.dirty.length > 400) MAPV.all = true;
+}
+function mapDirtyCell(i){ const x = i % TER.W, y = (i / TER.W) | 0; mapDirtyRect(GA0 + x * TC - 2, GA0 + (x + 1) * TC + 2, GB0 + y * TC - 2, GB0 + (y + 1) * TC + 2); }
+const MCOL = {};
+[[T_SEA, '#1d5c96'], [T_GRASS, '#6aa44a'], [T_BEACH, '#e8d49c'], [T_ROAD, '#5f6166'], [T_WALK, '#b9b5aa'], [T_ROCK, '#8b8780'], [T_FOREST, '#3f7a33'], [T_DIRT, '#a8845a'], [T_PIER, '#7b5231'], [T_QUAY, '#bdbab2']].forEach(([t, h]) => MCOL[t] = hexRGB3(h));
+function hexRGB3(h){ const v = parseInt(h.slice(1), 16); return [v >> 16, (v >> 8) & 255, v & 255]; }
+const MTER = [null, [40, 92, 238], [236, 40, 44]];
+function mapPaint(x0, x1, y0, y1){
+  const px = MAPV.px, Wm = MAPV.W, own = TER.own;
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++){
+    const a = GA0 + (x + .5) * MS, b = GB0 + (y + .5) * MS, ci = cellOf(a, b), t = ci < 0 ? T_SEA : gType[ci];
+    let c = MCOL[t] || MCOL[T_GRASS], r = c[0], g = c[1], bl = c[2];
+    if (t === T_SEA){ const sd = ci < 0 ? 99 : gSea[ci]; if (sd < 16){ r = 63; g = 169; bl = 204; } else if (sd < 50){ r = 38; g = 119; bl = 181; } }
+    else {
+      if (t === T_FOREST && hash2(x, y) < .35){ r -= 18; g -= 18; bl -= 10; }
+      if (t === T_GRASS && hash2(x * 3, y) < .08){ r += 10; g += 10; }
+      const ti = own ? terIdx(a, b) : -1, o = ti >= 0 ? own[ti] : 0;
+      if (o){
+        const tc = MTER[o];
+        let border = false;
+        if (ti >= 0){ const tx = ti % TER.W; for (const j of [ti - 1, ti + 1, ti - TER.W, ti + TER.W]) if (j >= 0 && j < TER.N && Math.abs((j % TER.W) - tx) <= 1 && TER.land[j] && own[j] !== o){ border = true; break; } }
+        const f = border ? .9 : .4;
+        r += (tc[0] - r) * f; g += (tc[1] - g) * f; bl += (tc[2] - bl) * f;
+      }
+    }
+    px[y * Wm + x] = rgb32(r, g, bl);
   }
-  const sv = [W, H, N, fb, mb, lb, img, px32, ctx];
-  W = w; H = h; N = w * h; fb = OV.fb; mb = OV.mb; lb = OV.lb; img = OV.img; px32 = OV.px; ctx = OV.ctx;
-  PROJ_FIX = [Math.round(-x0 + 2), Math.round(-y0 + 172)];
-  OV_RENDERING = true;
-  try { render(t); } finally {
-    OV_RENDERING = false;
-    OV.TX = PROJ_FIX[0]; OV.TY = PROJ_FIX[1]; PROJ_FIX = null;
-    [W, H, N, fb, mb, lb, img, px32, ctx] = sv;
-    setProj();
+  // batiments et murs par-dessus
+  const A0 = GA0 + x0 * MS, A1 = GA0 + (x1 + 1) * MS, B0 = GB0 + y0 * MS, B1 = GB0 + (y1 + 1) * MS;
+  for (const l of BLD){
+    if (l.a1 < A0 || l.a0 > A1 || l.b1 < B0 || l.b0 > B1) continue;
+    const col = !l.done ? [200, 190, 160] : l.side === 'usc' ? [36, 58, 150] : [150, 30, 36], rim = [250, 246, 236];
+    const xa = Math.max(x0, Math.floor((l.a0 - GA0) / MS)), xb = Math.min(x1, Math.ceil((l.a1 - GA0) / MS) - 1);
+    const ya = Math.max(y0, Math.floor((l.b0 - GB0) / MS)), yb = Math.min(y1, Math.ceil((l.b1 - GB0) / MS) - 1);
+    for (let y = ya; y <= yb; y++) for (let x = xa; x <= xb; x++){
+      const e = x === Math.floor((l.a0 - GA0) / MS) || y === Math.floor((l.b0 - GB0) / MS) || x === Math.ceil((l.a1 - GA0) / MS) - 1 || y === Math.ceil((l.b1 - GB0) / MS) - 1;
+      const c = e ? rim : col; px[y * Wm + x] = rgb32(c[0], c[1], c[2]);
+    }
+  }
+  for (const w of WALLS){
+    if (Math.max(w.pa, w.qa) < A0 - 2 || Math.min(w.pa, w.qa) > A1 + 2 || Math.max(w.pb, w.qb) < B0 - 2 || Math.min(w.pb, w.qb) > B1 + 2) continue;
+    const L = Math.hypot(w.qa - w.pa, w.qb - w.pb);
+    for (let s = 0; s <= L; s += 1){ const x = Math.floor((w.pa + (w.qa - w.pa) * s / L - GA0) / MS), y = Math.floor((w.pb + (w.qb - w.pb) * s / L - GB0) / MS); if (x >= x0 && x <= x1 && y >= y0 && y <= y1) px[y * Wm + x] = rgb32(38, 34, 40); }
   }
 }
+// met a jour les morceaux sales, avec un budget par image
+function mapUpdate(){
+  if (!MAPV.cv) mapInit();
+  if (MAPV.all){ MAPV.all = false; MAPV.dirty.length = 0; mapPaint(0, MAPV.W - 1, 0, MAPV.H - 1); MAPV.g.putImageData(MAPV.img, 0, 0); return; }
+  if (!MAPV.dirty.length) return;
+  let x0 = 1e9, x1 = -1, y0 = 1e9, y1 = -1, budget = 60000;
+  while (MAPV.dirty.length && budget > 0){
+    const [a, b, c, d] = MAPV.dirty.shift();
+    mapPaint(a, b, c, d); budget -= (b - a + 1) * (d - c + 1);
+    x0 = Math.min(x0, a); x1 = Math.max(x1, b); y0 = Math.min(y0, c); y1 = Math.max(y1, d);
+  }
+  if (x1 >= x0) MAPV.g.putImageData(MAPV.img, 0, 0, x0, y0, x1 - x0 + 1, y1 - y0 + 1);
+}
+// transformation carte -> ecran (pixels de l'appareil)
+function mapMatrix(){
+  const s = Z * MS, ca = cam.a, cb = cam.b;
+  const X = (a, b) => (a * PC - b * PS) - (a * PS + b * PC), Y = (a, b) => ((a * PC - b * PS) + (a * PS + b * PC)) * .5;
+  return [s * (PC - PS), s * (PC + PS) * .5, s * (-PS - PC), s * (PC - PS) * .5, devW / 2 + Z * (X(GA0, GB0) - X(ca, cb)), devH / 2 + Z * (Y(GA0, GB0) - Y(ca, cb))];
+}
+function worldToDev(a, b){ const X = (a - cam.a) * PC - (b - cam.b) * PS, Y = (a - cam.a) * PS + (b - cam.b) * PC; return [devW / 2 + Z * (X - Y), devH / 2 + Z * (X + Y) * .5]; }
 function drawOverview(t){
-  const nowMs = performance.now();
-  if (cam.phi !== OV.lastPhi){ OV.lastPhi = cam.phi; OV.phiMs = nowMs; }
-  // pendant une rotation, on deforme l'image en cache au lieu de tout recalculer
-  const rotating = OV.canvas && nowMs - (OV.phiMs || 0) < 260;
-  const key = overviewKey(t);
-  if (!rotating && key !== OV.key){ renderOverview(t); OV.key = key; OV.phi = cam.phi; }
+  PC = Math.cos(cam.phi); PS = Math.sin(cam.phi);
+  mapUpdate();
   const c = ctx;
   c.setTransform(1, 0, 0, 1, 0, 0);
-  c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high';
-  const sea = PALL[(M.SEA * 2) * 5];
-  c.fillStyle = 'rgb(' + (sea & 255) + ',' + ((sea >> 8) & 255) + ',' + ((sea >> 16) & 255) + ')';
+  c.fillStyle = '#1d5c96';
   c.fillRect(0, 0, devW, devH);
-  const po = OV.phi == null ? cam.phi : OV.phi, pc = Math.cos(po), ps = Math.sin(po);
-  const car = cam.a * pc - cam.b * ps, cbr = cam.a * ps + cam.b * pc;
-  const cx = OV.TX + (car - cbr), cy = OV.TY + (car + cbr) * .5, s = Z;
-  const d = cam.phi - po, dc = Math.cos(d), ds = Math.sin(d);
-  const A11 = dc * s, A12 = -2 * ds * s, A21 = .5 * ds * s, A22 = dc * s;
-  c.setTransform(A11, A21, A12, A22, devW / 2 - (A11 * cx + A12 * cy), devH / 2 - (A21 * cx + A22 * cy));
-  c.drawImage(OV.canvas, 0, 0);
+  c.imageSmoothingEnabled = Z * MS < 3;
+  c.setTransform(...mapMatrix());
+  c.drawImage(MAPV.cv, 0, 0);
   c.setTransform(1, 0, 0, 1, 0, 0);
+  // la nuit tombe aussi sur la carte
+  if (NIGHT > .02){ c.fillStyle = 'rgba(10,18,48,' + (NIGHT * .55).toFixed(3) + ')'; c.fillRect(0, 0, devW, devH); }
+  for (const f of HOOKS.map) f(c, t);
 }
 
-/* ================= sol, mer, faisceau du phare ================= */
+/* ================= sol, mer, faisceau des phares, teinte des territoires ================= */
 function beamTan(){
   const e = state.spread;
   if (e <= 0) return .082;
@@ -272,6 +340,7 @@ function beamTan(){
   return hw >= Math.PI / 2 - 1e-4 ? Infinity : Math.tan(hw);
 }
 const PTAB = new Uint8Array(16);
+let OROW = new Uint8Array(1);
 function renderGround(t){
   const I = state.intensity, pat = state.pattern, noise = pat === 'noise';
   for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) PTAB[y * 4 + x] = litAt(x, y, pat, I) ? 1 : 0;
@@ -279,21 +348,33 @@ function renderGround(t){
   const tick = Math.floor(t * 5), ring = (t * 1.1);
   const dax = .5 * PC - .5 * PS, dbx = -.5 * PS - .5 * PC, day = PC + PS, dby = PC - PS;
   const o = unprj(.5, .5);
-  const F = fb, MB = mb, LBF = lb, GV = gVar, GS = gSea, GT = gTone, GTY = gType, GP = gPh, TM = TYPE_MAT, BY = BAYER, PT = PTAB;
-  const w = W, h = H, tx = TX, ty = TY, gw = GW, gh = GH, ga0 = GA0, gb0 = GB0;
-  const LA = LH.a, LB = LH.b, MF = M.FOAM, MBm = M.BEAM, MS = M.SEA, beamOn = !COLOR || NIGHT > .55;
-  const shF = GAME.mode === 'deb' && !DEB.wall, fU = (DEB.front.usc - GA0) * 2, fC = (DEB.front.ccp - GA0) * 2;
-  // faisceau : on travaille directement en coordonnees de cellules
+  const F = fb, MB = mb, LBF = lb, OB = ob, GV = gVar, GS = gSea, GT = gTone, GTY = gType, GP = gPh, TM = TYPE_MAT, BY = BAYER, PT = PTAB;
+  const w = W, h = H, tx = TX, ty = TY, gw = GW, gh = GH, ga0 = GA0, gb0 = GB0, qw = GQW;
+  // faisceau du phare le plus proche du centre de la vue, la nuit seulement
+  let bm = null;
+  if (COLOR && NIGHT > .55 && BEACONS.length){ let bd = 1e9; for (const bk of BEACONS){ const d = Math.hypot(bk[0] - cam.a, bk[1] - cam.b); if (d < bd){ bd = d; bm = bk; } } }
+  const LA = bm ? bm[0] : 0, LB = bm ? bm[1] : 0, MF = M.FOAM, MBm = M.BEAM, MS2 = M.SEA, MSS = M.SEA_SHALLOW, MSM = M.SEA_MID;
+  const TO = TER.own, TW = TER.W, TFR = TER.fresh, gt = GAME.t, hasT = !!TO;
+  if (OROW.length !== w) OROW = new Uint8Array(w);
+  const UP = OROW; UP.fill(0);
   let i = 0;
   for (let y = 0; y < h; y++){
-    let a = o[0] + y * day, b = o[1] + y * dby;
+    const a = o[0] + y * day, b = o[1] + y * dby;
     const ry = ((y - ty) & 3) << 2;
     let fa = (a - ga0) * 2, fbb = (b - gb0) * 2;
     const dfa = dax * 2, dfb = dbx * 2;
-    let la = a - LA, lb = b - LB;
+    let la = a - LA, lbb = b - LB, left = 0;
     for (let x = 0; x < w; x++, i++){
-      let tone = 0, ci = -1, m = MS, lv = 0;
-      if (fa >= 0 && fbb >= 0 && fa < gw && fbb < gh){ ci = (fbb | 0) * gw + (fa | 0); tone = GT[ci]; if (COLOR){ const ty2 = GTY[ci]; m = ty2 === 0 ? (GS[ci] < 16 ? M.SEA_SHALLOW : GS[ci] < 50 ? M.SEA_MID : MS) : TM[ty2]; if (ty2 === 1) lv = GV[((fbb | 0) >> 2) * GQW + ((fa | 0) >> 2)]; if (shF && ty2 !== 0 && fa > fU && fa < fC) lv = 2; } }
+      let tone = 0, m = MS2, lv = 0, own = 0;
+      if (fa >= 0 && fbb >= 0 && fa < gw && fbb < gh){
+        const ia = fa | 0, ib = fbb | 0, ci = ib * gw + ia; tone = GT[ci];
+        const ty2 = GTY[ci];
+        if (ty2 === 0) m = GS[ci] < 16 ? MSS : GS[ci] < 50 ? MSM : MS2;
+        else {
+          m = TM[ty2]; if (ty2 === 1) lv = GV[(ib >> 2) * qw + (ia >> 2)];
+          if (hasT){ const ti = (ib >> 3) * TW + (ia >> 3); own = TO[ti]; if (own && gt - TFR[ti] < 1.1) own += 2; }
+        }
+      }
       let v = 0;
       if (tone !== 0){
         if (tone >= 32){
@@ -301,67 +382,25 @@ function renderGround(t){
           const d = tone - 32, ia = fa | 0, ib = fbb | 0;
           if (d <= 2) v = hash2((ia >> 2) + tick * 3, ib >> 1) < .6 ? 1 : 0;
           else if (d <= 4) v = hash2(ia * 5 + tick, ib * 3) < .12 ? 1 : 0;
-          else { const r = 5.2 - ((ring + GP[(ib >> 2) * GQW + (ia >> 2)] / 15) % 3.6), q = d * .5 - r; v = (q < .35 && q > -.35 && hash2((ia >> 1) + tick, ib * 7) < .45) ? 1 : 0; }
+          else { const r = 5.2 - ((ring + GP[(ib >> 2) * qw + (ia >> 2)] / 15) % 3.6), q = d * .5 - r; v = (q < .35 && q > -.35 && hash2((ia >> 1) + tick, ib * 7) < .45) ? 1 : 0; }
         } else if (tone >= 16) v = 1;
         else v = BY[ry | ((x - tx) & 3)] < tone ? 1 : 0;
       }
-      if (v === 0 && beamOn){
-        const al = la * bc + lb * bs, pe = lb * bc - la * bs;
+      if (v === 0 && bm){
+        const al = la * bc + lbb * bs, pe = lbb * bc - la * bs;
         if (all || (pe < 0 ? -pe : pe) <= (al < 0 ? -al : al) * tn + 1.2){
           v = noise ? (hash2((x - tx) * 7 + 1013, (y - ty) * 13 + 7) < I ? 1 : 0) : PT[ry | ((x - tx) & 3)];
           if (v) m = MBm;
         }
       }
-      F[i] = v; if (COLOR){ MB[i] = m; LBF[i] = lv; }
-      fa += dfa; fbb += dfb; la += dax; lb += dbx;
-    }
-  }
-}
-// vue tres dezoomee : un echantillon de sol pour 2 x 2 pixels, le tramage reste au pixel pres
-function renderGroundFast(t){
-  const I = state.intensity, pat = state.pattern, noise = pat === 'noise';
-  for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) PTAB[y * 4 + x] = litAt(x, y, pat, I) ? 1 : 0;
-  const bc = Math.cos(state.theta), bs = Math.sin(state.theta), tn = beamTan(), all = tn === Infinity;
-  const tick = Math.floor(t * 5), ring = (t * 1.1);
-  const dax = .5 * PC - .5 * PS, dbx = -.5 * PS - .5 * PC, day = PC + PS, dby = PC - PS;
-  const o = unprj(1, 1);
-  const F = fb, MB = mb, LBUF = lb, GT = gTone, GTY = gType, GP = gPh, TM = TYPE_MAT, BY = BAYER, PT = PTAB;
-  const w = W, h = H, tx = TX, ty = TY, gw = GW, gh = GH, ga0 = GA0, gb0 = GB0;
-  const shF = GAME.mode === 'deb' && !DEB.wall, fU = (DEB.front.usc - GA0) * 2, fC = (DEB.front.ccp - GA0) * 2;
-  const LA = LH.a, LB = LH.b, beamOn = !COLOR || NIGHT > .55, gV = gVar, gS = gSea, qw = GQW, MSS = M.SEA_SHALLOW, MSM = M.SEA_MID, MSE = M.SEA, MFO = M.FOAM;
-  for (let y = 0; y < h; y += 2){
-    let a = o[0] + y * day, b = o[1] + y * dby;
-    for (let x = 0; x < w; x += 2, a += dax * 2, b += dbx * 2){
-      const fa = (a - ga0) * 2, fbb = (b - gb0) * 2;
-      let tone = 0, m = MSE, fo = -1, lv = 0;
-      if (fa >= 0 && fbb >= 0 && fa < gw && fbb < gh){
-        const ci = (fbb | 0) * gw + (fa | 0); tone = GT[ci];
-        if (COLOR){ const ty2 = GTY[ci]; if (ty2 === 0){ const sd = gS[ci]; m = sd < 16 ? MSS : sd < 50 ? MSM : MSE; } else { m = TM[ty2]; if (ty2 === 1) lv = gV[((fbb | 0) >> 2) * qw + ((fa | 0) >> 2)]; if (shF && fa > fU && fa < fC) lv = 2; } }
-        if (tone >= 32){
-          m = MFO; const d = tone - 32, ia = fa | 0, ib = fbb | 0;
-          if (d <= 2) fo = hash2((ia >> 2) + tick * 3, ib >> 1) < .6 ? 1 : 0;
-          else if (d <= 4) fo = hash2(ia * 5 + tick, ib * 3) < .12 ? 1 : 0;
-          else { const r = 5.2 - ((ring + GP[(ib >> 2) * GQW + (ia >> 2)] / 15) % 3.6), q = d * .5 - r; fo = (q < .35 && q > -.35 && hash2((ia >> 1) + tick, ib * 7) < .45) ? 1 : 0; }
-        }
-      }
-      let lit = false;
-      if (beamOn){ const la = a - LA, lb = b - LB, al = la * bc + lb * bs, pe = lb * bc - la * bs; lit = all || (pe < 0 ? -pe : pe) <= (al < 0 ? -al : al) * tn + 1.2; }
-      // cas simples (le plus frequent) : bloc uni sans tramage
-      if (!lit && fo < 0 && (tone === 0 || tone >= 16) && x + 1 < w && y + 1 < h){
-        const v = tone === 0 ? 0 : 1, i0 = y * w + x, i1 = i0 + w;
-        F[i0] = v; F[i0 + 1] = v; F[i1] = v; F[i1 + 1] = v;
-        if (COLOR){ MB[i0] = m; MB[i0 + 1] = m; MB[i1] = m; MB[i1 + 1] = m; LBUF[i0] = lv; LBUF[i0 + 1] = lv; LBUF[i1] = lv; LBUF[i1 + 1] = lv; }
-        continue;
-      }
-      for (let dy = 0; dy < 2 && y + dy < h; dy++){
-        const ry = ((y + dy - ty) & 3) << 2, row = (y + dy) * w;
-        for (let dx = 0; dx < 2 && x + dx < w; dx++){
-          const i = row + x + dx, rx = (x + dx - tx) & 3;
-          let v = fo >= 0 ? fo : (tone >= 16 ? 1 : (tone > 0 && BY[ry | rx] < tone ? 1 : 0)), mm = m;
-          if (!v && lit){ v = noise ? (hash2((x + dx - tx) * 7 + 1013, (y + dy - ty) * 13 + 7) < I ? 1 : 0) : PT[ry | rx]; if (v) mm = M.BEAM; }
-          F[i] = v; if (COLOR){ MB[i] = mm; LBUF[i] = lv; }
-        }
-      }
+      F[i] = v; MB[i] = m; LBF[i] = lv;
+      // frontiere : un pixel de couleur franche de chaque cote du changement de camp
+      const base = own > 2 ? own - 2 : own;
+      let ov = own;
+      if (x > 0 && base !== left){ if (base) ov = base + 2; if (left) OB[i - 1] = left + 2; }
+      if (y > 0 && base !== UP[x]){ if (base) ov = base + 2; if (UP[x]) OB[i - w] = UP[x] + 2; }
+      OB[i] = ov; left = base; UP[x] = base;
+      fa += dfa; fbb += dfb; la += dax; lbb += dbx;
     }
   }
 }
@@ -390,8 +429,8 @@ function drawWaves(t){
 let LIGHTS = [];
 function gatherLights(t){
   LIGHTS = LIGHTS_STATIC.slice();
-  for (const c of CARS) LIGHTS.push(c.light);
-  for (const tw of TOWERS){ const sp = towerSpot(tw, t); LIGHTS.push({ kind: 'circle', a: sp[0], b: sp[1], r: 7, k: 1.6, att: .5, m: M.BEAM }); }
+  for (const c of CARS) if (c.pos) LIGHTS.push(c.light);
+  for (const tw of WALL_TOWERS){ const sp = towerSpot(tw, t); LIGHTS.push({ kind: 'circle', a: sp[0], b: sp[1], r: 7, k: 1.6, att: .5, m: M.BEAM }); }
 }
 function applyLights(){
   const I = state.intensity, pat = state.pattern;
@@ -413,7 +452,7 @@ function applyLights(){
         let tt;
         if (Lt.kind === 'circle'){ const da = ga - Lt.a, db = gb - Lt.b, d2 = da * da + db * db; if (d2 > Lt.r * Lt.r) continue; tt = Math.sqrt(d2) / Lt.r; }
         else {
-          const la = ga - Lt.a, lb = gb - Lt.b, al = la * Lt.da + lb * Lt.db, pe = lb * Lt.da - la * Lt.db;
+          const la = ga - Lt.a, lbb = gb - Lt.b, al = la * Lt.da + lbb * Lt.db, pe = lbb * Lt.da - la * Lt.db;
           if (al < 0 || al > Lt.len || Math.abs(pe) > al * Lt.tan + Lt.w0) continue; tt = al / Lt.len;
         }
         if (litAt(sx - TX, sy - TY, pat, Ik * (1 - Lt.att * tt))){ fb[j] = 1; mb[j] = lm; if (COLOR) lb[j] = 0; }
@@ -442,37 +481,13 @@ function drawCat(c, t){
     for (let k = 0; k < 3; k++) for (let x = -2 + k; x <= 2 - k; x++) fput(bx + x, my + k, 1);
   }
 }
-
-/* ================= fantome de construction ================= */
-let hoverLot = null, hoverCat = null, ghostKey = '', ghostParts = null;
-function updateGhost(){
-  const key = hoverLot && state.mode === 'build' && !hoverLot.type && !hoverLot.blocked ? hoverLot.id + state.buildType : '';
-  if (key === ghostKey) return;
-  ghostKey = key; ghostParts = key ? TYPES[state.buildType].build(hoverLot, 7).parts : null;
-}
-function drawLotGhost(t){
-  if (!hoverLot || state.mode === 'walk') return;
-  const l = hoverLot, free = !l.type && !l.blocked, ok = state.mode === 'build' ? free : !free;
-  GHOST_T = Math.floor(t * 8);
-  const C = [[l.a0, l.b0], [l.a1, l.b0], [l.a1, l.b1], [l.a0, l.b1]];
-  CUR = M.BEAM;
-  for (let k = 0; k < 4; k++){
-    const p = prj(C[k][0], C[k][1], 0), q = prj(C[(k + 1) % 4][0], C[(k + 1) % 4][1], 0);
-    if (ok) lineS(p[0], p[1], q[0], q[1], 1, true);
-    else { const n = Math.ceil(Math.hypot(q[0] - p[0], q[1] - p[1])); for (let s = 0; s <= n; s += 4) fput(Math.floor(p[0] + (q[0] - p[0]) * s / n), Math.floor(p[1] + (q[1] - p[1]) * s / n), 1); }
-  }
-  if (state.mode === 'build' && free && ghostParts){
-    GHOST = true;
-    const list = ghostParts.slice().sort((u, v) => (dep(u.a, u.b) + u.zb) - (dep(v.a, v.b) + v.zb));
-    for (const p of list) p.draw(t);
-    GHOST = false;
-  }
-}
+let hoverCat = null;
 
 /* ================= Spoutchat ================= */
 const SAT_PERIOD = 46, SAT_SHOW = 14;
-const satVisible = (t) => (t % SAT_PERIOD) < SAT_SHOW;
+const satVisible = (t) => (t % SAT_PERIOD) < SAT_SHOW && (SPACE.usc.stage > 0 || SPACE.ccp.stage > 0);
 function drawSatellite(t){
+  if (!satVisible(t)) return;
   const p = (t % SAT_PERIOD) / SAT_SHOW; if (p >= 1) return;
   const x = Math.round(-8 + (W + 16) * p), y = Math.round(H * .1 + Math.sin(p * Math.PI) * -H * .04 + 14);
   const on = Math.floor(t * 3) % 2 === 0;
@@ -483,44 +498,40 @@ function drawSatellite(t){
 }
 
 /* ================= rendu complet ================= */
+let DYN_SHADOWS = [];
+function dynamicDrawables(t){ const out = []; DYN_SHADOWS = []; for (const f of HOOKS.dyn) f(t, out); return out; }
 function render(t){
-  const PF = window.__prof, T = [performance.now()];
   setProj();
-  if (N > 700000) renderGroundFast(t); else renderGround(t);
-  T.push(performance.now());
-  if (!OV_RENDERING) drawWaves(t); T.push(performance.now());
+  renderGround(t);
+  drawWaves(t);
   for (const d of DECALS) d(t);
-  const dyn = COLOR ? dynamicDrawables(t) : [];
+  const dyn = dynamicDrawables(t);
   siteDrawables(t, dyn);
-  if (COLOR && NIGHT < .6) drawShadows();
+  const shadowsOn = COLOR && NIGHT < .6;
+  if (shadowsOn) drawShadows();
   if (!COLOR || NIGHT > .25){ gatherLights(t); applyLights(); }
-  T.push(performance.now());
   const list = [];
-  const M = 110;
+  const Mg = 110;
   for (const p of STATIC_PARTS){
-    if (p.lot && p.lot.buildT && t < p.lot.buildT + BUILD_DUR) continue;
     const q = prj(p.a, p.b, 0);
-    if (q[0] < -M || q[0] > W + M || q[1] < -30 || q[1] > H + M + 60) continue;
+    if (q[0] < -Mg || q[0] > W + Mg || q[1] < -30 || q[1] > H + Mg + 60) continue;
     list.push({ d: dep(p.a, p.b) + p.zb, f: p.draw, m: p.m, side: p.side });
   }
-  for (const c of CARS){ const p = c.pos; if (!inFront(p.a)) continue; list.push({ d: dep(p.a, p.b), f: () => drawCar(p.a, p.b, p.axis, p.dir, c.side) }); }
-  for (const c of CATS){ if (!catVisible(c)){ c.screen = null; continue; } const p = catPos(c, t); list.push({ d: dep(p.a, p.b) + .2, f: () => drawCat(c, t) }); }
+  treeDrawables(list, t, shadowsOn);
+  for (const c of CARS){ const p = c.pos; if (!p) continue; const q = prj(p.a, p.b, 0); if (q[0] < -20 || q[0] > W + 20 || q[1] < -20 || q[1] > H + 20) continue; list.push({ d: dep(p.a, p.b), f: () => drawCarAng(p.a, p.b, p.ang, c.side) }); }
+  for (const c of CATS){ const p = catPos(c, t), q = prj(p.a, p.b, 0); if (q[0] < -20 || q[0] > W + 20 || q[1] < -20 || q[1] > H + 20){ c.screen = null; continue; } list.push({ d: dep(p.a, p.b) + .2, f: () => drawCat(c, t) }); }
   const sp = sailPos(t); list.push({ d: dep(sp[0], sp[1]), f: drawSailboat });
   for (const o of dyn) list.push(o);
   list.sort((u, v) => u.d - v.d);
   for (const it of list){ CUR = it.m == null ? M.METAL : it.m; CUR_SIDE = it.side || 'usc'; it.f(t); }
-  if (!OV_RENDERING) for (const f of HOOKS.top) f(t);
-  if (typeof drawRoadPreview === 'function') drawRoadPreview(t);
-  T.push(performance.now());
-  drawLantern();
-  if (!COLOR || NIGHT > .35){ drawLampHeads(); drawGlow(t); }
-  drawLotGhost(t);
-  if (!OV_RENDERING){ drawSatellite(t); drawWeather(t); }
-  T.push(performance.now());
-  if (PF){ window.__profAcc = window.__profAcc || [0,0,0,0,0,0]; window.__profN = (window.__profN||0)+1; for (let k = 1; k < T.length; k++) window.__profAcc[k-1] += T[k]-T[k-1]; window.__profOut = { n: window.__profN, parts: list.length, split: window.__profAcc.map(v => +(v / window.__profN).toFixed(2)) }; }
-  if (COLOR && !OV_RENDERING) for (const f of HOOKS.post) f(t);
-  if (COLOR) for (let i = 0; i < N; i++) px32[i] = PALL[((mb[i] << 1) | fb[i]) * 5 + lb[i]];
-  else for (let i = 0; i < N; i++) px32[i] = fb[i] ? WHITE : BLACK;
+  for (const f of HOOKS.top) f(t);
+  if (typeof drawToolPreview === 'function') drawToolPreview(t);
+  if (!COLOR || NIGHT > .35){ for (const bk of BEACONS){ drawLantern(bk[0], bk[1]); drawGlow(bk[0], bk[1], t); } drawLampHeads(); }
+  else for (const bk of BEACONS) drawLantern(bk[0], bk[1]);
+  drawSatellite(t); drawWeather(t);
+  if (COLOR) for (const f of HOOKS.post) f(t);
+  const P = PALX, pl = PL;
+  for (let i = 0; i < N; i++){ const m = mb[i]; px32[i] = P[ob[i] * pl + (((m << 1) | fb[i]) * 5 + lb[i])]; }
   ctx.putImageData(img, 0, 0);
 }
 

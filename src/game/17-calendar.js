@@ -1,11 +1,11 @@
 /* ================= calendrier : un jour de jeu = un mois ================= */
 const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
-const CAL = { m: 9, y: 1961 };
+const CAL = { m: 8 };
 function seasonOf(m){ return m === 11 || m <= 1 ? 'hiver' : m <= 4 ? 'printemps' : m <= 7 ? 'été' : 'automne'; }
 function feteOf(m){
   if (m === 11) return { id: 'nouvel', name: 'les fêtes de fin d’année', side: 'both' };
-  if (m === 6) return { id: 'reve', name: 'le Jour du Rêve', side: 'usc' };
-  if (m === 4) return { id: 'plan', name: 'la Fête du Grand Plan', side: 'ccp' };
+  if (m === 6) return { id: 'reve', name: 'le Jour de l’USC', side: 'usc' };
+  if (m === 4) return { id: 'plan', name: 'la Fête de la CCR', side: 'ccp' };
   return null;
 }
 const feteSide = (side) => { const f = feteOf(CAL.m); return !!f && (f.side === 'both' || f.side === side); };
@@ -22,23 +22,23 @@ function applySeason(){
   SEAS_KEY = ':' + se; palKey = '';
 }
 function updateCalUI(){
-  const el = document.querySelector('.brand-sub');
-  if (el) el.textContent = 'ÎLE DE KUTTY · ' + MONTHS[CAL.m].toUpperCase() + ' ' + CAL.y + ' · ' + seasonOf(CAL.m).toUpperCase();
+  const el = $('calLabel');
+  if (el) el.textContent = MONTHS[CAL.m] + ' · ' + seasonOf(CAL.m);
 }
 function newMonth(){
-  CAL.m++; if (CAL.m > 11){ CAL.m = 0; CAL.y++; fwSalvo('both', 16); radioQueue.unshift(['neutre', 'Radio du port', 'Bonne année ' + CAL.y + ' ! Les deux camps tirent leur feu d’artifice en même temps. Pour une fois.']); }
+  CAL.m++; if (CAL.m > 11){ CAL.m = 0; fwSalvo('both', 16); radioQueue.unshift(['neutre', 'Radio du port', 'Bonne année ! Les deux camps tirent leur feu d’artifice en même temps. Pour une fois.']); }
   applySeason(); updateCalUI();
   const se = seasonOf(CAL.m), f = feteOf(CAL.m);
-  const SE_MSG = { printemps: 'Le printemps arrive sur Kutty : les arbres fleurissent des deux côtés du mur.', 'été': 'L’été est là : plage, glaces à la sardine et orages le soir.', automne: 'L’automne roussit les arbres de l’île. Les kolkhozes rentrent la récolte.', hiver: 'L’hiver tombe sur l’île. Sortez les écharpes, la neige n’est pas loin.' };
+  const SE_MSG = { printemps: 'Le printemps arrive sur Kutty : les arbres fleurissent des deux côtés du mur.', 'été': 'L’été est là : plage, glaces à la sardine et orages le soir.', automne: 'L’automne roussit les forêts de l’île. Les kolkhozes rentrent la récolte.', hiver: 'L’hiver tombe sur l’île. Sortez les écharpes, la neige n’est pas loin.' };
   if ([2, 5, 8, 11].includes(CAL.m)) radioQueue.unshift(['neutre', 'Météo marine', SE_MSG[se]]);
   if (f){
-    const msg = f.id === 'nouvel' ? ['neutre', 'Radio du port', 'Décembre sur Kutty : sapins illuminés des deux côtés du mur et feu d’artifice chaque nuit jusqu’au Nouvel An.']
-      : f.id === 'reve' ? ['usc', 'Radio Kutty Libre', 'Juillet, c’est le Jour du Rêve ! Voitures chromées, barbecue au thon et feu d’artifice tous les soirs.']
-      : ['ccp', 'Radio Miaou-Scou', 'Mai, Fête du Grand Plan ! Drapeaux rouges, fanfare et feu d’artifice du peuple chaque nuit.'];
+    const msg = f.id === 'nouvel' ? ['neutre', 'Radio du port', 'Décembre sur Kutty : sapins illuminés dans les deux camps et feu d’artifice chaque nuit jusqu’au Nouvel An.']
+      : f.id === 'reve' ? ['usc', 'Radio Kutty Libre', 'Juillet, c’est le Jour de l’USC ! Voitures chromées, barbecue au thon et feu d’artifice tous les soirs.']
+      : ['ccp', 'Radio Miaou-Scou', 'Mai, Fête de la CCR ! Drapeaux rouges, fanfare et feu d’artifice du peuple chaque nuit.'];
     radioQueue.unshift(msg);
     logDay(f.side, 'fete', f.name);
   }
-  logDay('both', 'month', MONTHS[CAL.m] + ' ' + CAL.y);
+  logDay('both', 'month', MONTHS[CAL.m]);
   saveSoon();
 }
 let calH = null;
@@ -46,7 +46,7 @@ function stepCal(dt, t){
   const h = CLOCK.h;
   if (calH != null){
     if (calH > 20 && h < 4) newMonth();
-    if (calH < 7 && h >= 7 && h - calH < 3) deliverPaper(false);
+    if (calH < 7 && h >= 7 && h - calH < 3 && GAME.mode === 'play') deliverPaper(false);
   }
   calH = h;
 }
@@ -61,12 +61,12 @@ const PAPER = { n: 1, issue: null, side: 'usc' };
 const PAPER_NAME = { usc: 'Gazette de Kutty', ccp: 'Pravdachat' };
 function campStats(){
   const o = {};
-  for (const s of ['usc', 'ccp']){ const R = RES[s], C = CAMPS[s]; o[s] = { pct: C.pct, want: C.want ? wantLabel(s) : '', done: C.done, croq: Math.floor(R.croq), laine: Math.floor(R.laine), moral: R.moral, short: !!R.short, space: SPACE[s].stage }; }
-  o.tension = CAMPS.level; o.weather = WEATHER.shown === 'clair' || WEATHER.k < .4 ? 'clair' : WEATHER.shown; o.season = seasonOf(CAL.m); o.fete = feteOf(CAL.m); o.wall = wallUp();
+  for (const s2 of SIDES){ const R = RES[s2]; o[s2] = { pct: Math.round(terPct(s2) * 100), croq: Math.floor(R.croq), laine: Math.floor(R.laine), ron: Math.floor(R.ron), pop: R.pop, short: !!R.short, space: SPACE[s2].stage }; }
+  o.weather = WEATHER.shown === 'clair' || WEATHER.k < .4 ? 'clair' : WEATHER.shown; o.season = seasonOf(CAL.m); o.fete = feteOf(CAL.m); o.wall = WALLS.length > 0;
   return o;
 }
 function deliverPaper(first){
-  PAPER.issue = { n: PAPER.n++, m: CAL.m, y: CAL.y, log: DAYLOG.splice(0), stats: campStats(), ed: null, busy: false, note: '', photo: {} };
+  PAPER.issue = { n: PAPER.n++, m: CAL.m, log: DAYLOG.splice(0), stats: campStats(), ed: null, busy: false, note: '', photo: {} };
   const b = $('btnPaper'); if (b){ b.hidden = false; b.classList.toggle('fresh', !first); }
   if (!first){
     toast('Le journal du matin est arrivé : clique sur Journal pour le lire.');
@@ -77,7 +77,7 @@ function deliverPaper(first){
 function reporter(side, n){ const L = CATS.filter(c => c.side === side); return L.length ? L[n % L.length] : { name: 'la rédaction', job: '' }; }
 function topOf(log, side){
   const mine = log.filter(e => e.side === side || e.side === 'both');
-  for (const k of ['space', 'wall', 'want', 'unlock', 'fete', 'event', 'upgrade', 'build', 'short', 'weather']){ for (let i = mine.length - 1; i >= 0; i--) if (mine[i].kind === k) return mine[i]; }
+  for (const k of ['space', 'wall', 'barge', 'fete', 'event', 'upgrade', 'build', 'short', 'weather']){ for (let i = mine.length - 1; i >= 0; i--) if (mine[i].kind === k) return mine[i]; }
   return null;
 }
 const WX_WORD = { clair: 'grand soleil', pluie: 'averses', neige: 'neige', brouillard: 'brouillard' };
@@ -86,77 +86,40 @@ function paperTemplate(iss, side){
   const e = topOf(iss.log, side), fem = e && e.data.type && TYPES[e.data.type] && TYPES[e.data.type].fem;
   let titre, chapeau, legende;
   if (!e){
-    titre = us ? 'Une journée tranquille au pays du Rêve' : 'Le Plan avance exactement comme prévu';
+    titre = us ? 'Une journée tranquille chez les United Sands' : 'Le Plan avance exactement comme prévu';
     chapeau = us ? 'Rien à signaler, sinon des milkshakes, du soleil et des voitures qui brillent.' : 'Les usines tournent, les kolkhozes récoltent, les statistiques sont excellentes.';
   } else switch (e.kind){
     case 'space': titre = (us ? 'Historique : le Rêve envoie ' : 'Victoire de la science du peuple : ') + e.txt;
       chapeau = e.data.first ? (us ? 'L’Ouest devance l’Est, et les caméras étaient là.' : 'Le peuple arrive le premier, comme le Plan l’avait annoncé.') : (us ? 'L’Est serait passé avant ? Détail. Le nôtre brille davantage.' : 'L’Ouest prétend être passé avant. La Pravdachat vérifie encore.'); break;
     case 'wall': titre = us ? 'Le Rideau de Laine tricoté en une nuit' : 'Le Rempart de Laine protège le peuple';
-      chapeau = us ? 'Au réveil, un mur coupe l’île en deux. Nos jumelles restent braquées sur l’Est.' : 'Grâce au rempart, les travailleurs dorment tranquilles, loin des juke-box.'; break;
-    case 'want': titre = us ? 'Rêve exaucé : ' + (fem ? 'une ' : 'un ') + e.txt.toLowerCase() + ' pour le quartier' : 'Le peuple a obtenu ' + (fem ? 'sa ' : 'son ') + e.txt.toLowerCase();
-      chapeau = us ? 'Les habitants le réclamaient, le voilà. Ruban coupé, fanfare et photos.' : 'La demande des travailleurs est satisfaite avec 300 % d’avance sur le Plan.'; break;
-    case 'unlock': titre = e.txt; chapeau = us ? 'Le progrès arrive dans notre camp, et vite.' : 'Une nouvelle étape du Grand Plan est franchie.'; break;
+      chapeau = us ? 'Au réveil, un mur coupe la frontière. Nos jumelles restent braquées sur l’autre camp.' : 'Grâce au rempart, les travailleurs dorment tranquilles, loin des juke-box.'; break;
+    case 'barge': titre = us ? 'Nos barges accostent sur une nouvelle côte' : 'Une brigade du peuple débarque sur une nouvelle côte';
+      chapeau = us ? 'Un drapeau de plus sur la carte, et des milkshakes pour l’équipage.' : 'L’avant-poste a été planté avec 200 % d’avance sur le Plan.'; break;
     case 'fete': titre = us ? 'C’est ' + e.txt + ' !' : 'Le peuple célèbre ' + e.txt; chapeau = us ? 'Feu d’artifice ce soir, venez tôt pour les bonnes places.' : 'Feu d’artifice réglementaire chaque nuit, présence recommandée.'; break;
     case 'event': titre = e.txt; chapeau = 'Décision prise : ' + String(e.data.choice || '').toLowerCase() + '. ' + (us ? 'Nos lecteurs approuvent massivement.' : 'Le Parti approuve à l’unanimité.'); break;
-    case 'upgrade': titre = us ? 'Le quartier monte en gamme : place à la ' + e.txt.toLowerCase() : 'Promotion du logement : ' + e.txt.toLowerCase() + ' pour les méritants';
-      chapeau = us ? 'Un bon voisinage, et la maison s’agrandit. C’est ça, le Rêve.' : 'Le logement du peuple s’élève, comme le moral des travailleurs.'; break;
+    case 'upgrade': titre = us ? 'Le quartier monte en gamme : ' + e.txt.toLowerCase() : 'Promotion du peuple : ' + e.txt.toLowerCase() + ' pour les méritants';
+      chapeau = us ? 'On agrandit, on repeint, on inaugure. C’est ça, l’USC.' : 'Le Plan s’élève, comme le moral des travailleurs.'; break;
     case 'build': titre = us ? (fem ? 'Nouvelle ' : 'Nouveau ') + e.txt.toLowerCase() + ' : le quartier fait la fête' : (fem ? 'Une nouvelle ' : 'Un nouveau ') + e.txt.toLowerCase() + ' pour le peuple';
       chapeau = us ? 'Inauguration en grande pompe, cocktail à la sardine offert.' : 'Construit en avance sur le Plan, par des travailleurs médaillés.'; break;
     case 'short': titre = us ? 'Pénurie de croquettes : les épiciers sur le pont' : 'Pause technique dans la distribution de croquettes';
       chapeau = us ? 'Rayons vides ce matin. Les supermarchés promettent un arrivage demain.' : 'La file du Gastronom s’allonge, par pure discipline.'; break;
-    default: titre = us ? 'Météo : ' + WX_WORD[S.weather] + ' sur le Rêve' : 'Météo : ' + WX_WORD[S.weather] + ', comme prévu par le Plan'; chapeau = us ? 'Sortez les lunettes ou le parapluie, selon votre humeur.' : 'Le temps obéit aux prévisions du Comité.';
+    default: titre = us ? 'Météo : ' + WX_WORD[S.weather] + ' sur l’USC' : 'Météo : ' + WX_WORD[S.weather] + ', comme prévu par le Plan'; chapeau = us ? 'Sortez les lunettes ou le parapluie, selon votre humeur.' : 'Le temps obéit aux prévisions du Comité.';
   }
   const a1 = us
-    ? { titre: 'Le Rêve à ' + me.pct + ' %', texte: (me.pct >= ot.pct ? 'Selon nos sondages, le Rêve des Nations Libres devance l’Est (' + ot.pct + ' %). Les voisins d’en face regardent nos néons avec envie.' : 'L’Est annonce ' + ot.pct + ' %. Nos experts rappellent que leurs chiffres sont tricotés main.') + (me.want ? ' Prochaine envie du quartier : ' + me.want + '.' : '') }
-    : { titre: 'Le Grand Plan à ' + me.pct + ' %', texte: (me.pct >= ot.pct ? 'Le Grand Plan du Peuple dépasse l’Ouest (' + ot.pct + ' %). Gloire aux travailleurs !' : 'L’Ouest revendique ' + ot.pct + ' %, chiffre obtenu en comptant deux fois chaque voiture.') + (me.want ? ' Le peuple réclame désormais ' + me.want + '.' : '') };
+    ? { titre: 'L’USC tient ' + me.pct + ' % de l’île', texte: (me.pct >= ot.pct ? 'Selon nos géomètres, nous devançons la CCR (' + ot.pct + ' %). Leurs cartes sont coloriées au crayon rouge, les nôtres au stylo plume.' : 'La CCR annonce ' + ot.pct + ' %. Nos experts rappellent que leurs cartes sont tricotées main.') + ' ' + me.pop + ' habitants ronronnent sous notre drapeau.' }
+    : { titre: 'La CCR étend ' + me.pct + ' % de l’île', texte: (me.pct >= ot.pct ? 'Le territoire du peuple dépasse celui de l’USC (' + ot.pct + ' %). Gloire aux géomètres !' : 'L’USC revendique ' + ot.pct + ' %, chiffre obtenu en comptant deux fois chaque plage.') + ' ' + me.pop + ' travailleurs au service du Plan.' };
   const a2 = us
-    ? { titre: 'Le panier de la ménagère', texte: me.croq + ' croquettes en rayon et ' + me.laine + ' pelotes de laine en stock. Moral des habitants : ' + me.moral + ' %' + (me.short ? ', malgré les rayons vides.' : ', le frigo est plein.') }
-    : { titre: 'Bilan des brigades', texte: 'Le Plan annonce ' + me.laine + ' pelotes et ' + me.croq + ' rations de croquettes. Moral des travailleurs : ' + me.moral + ' %' + (me.short ? ', la file du Gastronom est un honneur.' : ', officiellement excellent.') };
+    ? { titre: 'Le panier de la ménagère', texte: me.croq + ' croquettes en rayon, ' + me.laine + ' pelotes de laine en stock et ' + me.ron + ' ronrons comptés par nos sondeurs' + (me.short ? ', malgré les rayons vides.' : '. Le frigo est plein.') }
+    : { titre: 'Bilan des brigades', texte: 'Le Plan annonce ' + me.laine + ' pelotes, ' + me.croq + ' rations de croquettes et ' + me.ron + ' ronrons réglementaires' + (me.short ? '. La file du Gastronom est un honneur.' : '. Tout est officiellement excellent.') };
   legende = us ? 'Notre photographe sur place, ce matin.' : 'Photo officielle, retouchée pour plus d’exactitude.';
-  const breve = (us ? 'Tension avec l’Est : ' : 'Relations avec l’Ouest : ') + String(S.tension).toLowerCase() + '. Météo : ' + WX_WORD[S.weather] + '.';
+  const breve = (us ? 'L’île est à ' : 'Le territoire est à ') + (me.pct + ot.pct) + ' % occupé. Météo : ' + WX_WORD[S.weather] + '.';
   return { titre, chapeau, articles: [a1, a2], legende, breve };
 }
-const LOG_KIND = { build: 'construction', want: 'demande exaucée', space: 'course à l’espace', wall: 'mur', unlock: 'nouveau service', event: 'événement', upgrade: 'logement agrandi', short: 'pénurie', weather: 'météo', fete: 'fête', month: 'nouveau mois' };
-function paperPrompt(iss){
-  const S = iss.stats;
-  const lines = iss.log.filter(e => e.kind !== 'month').slice(-24).map(e => '- [' + (e.side === 'usc' ? 'USC' : e.side === 'ccp' ? 'CCR' : 'les deux camps') + '] ' + (LOG_KIND[e.kind] || e.kind) + ' : ' + e.txt + (e.data.choice ? ' (décision : ' + e.data.choice + ')' : '') + (e.data.first ? ' (avant l’autre camp)' : '')).join('\n') || '- Journée calme, rien de notable.';
-  const camp = (s) => { const c = S[s]; return 'jauge ' + c.pct + ' %, moral ' + c.moral + ' %, croquettes ' + c.croq + (c.short ? ' (pénurie !)' : '') + ', laine ' + c.laine + ', les habitants réclament ' + (c.want || 'rien de spécial'); };
-  const ru = reporter('usc', iss.n), rc = reporter('ccp', iss.n);
-  return 'Tu écris les deux journaux du matin de Cold Kutty Town, un jeu vidéo tout public : une île peuplée de chats, en ' + MONTHS[iss.m] + ' ' + iss.y + ', pendant une guerre froide comique. ' +
-    (S.wall ? 'L’île est coupée en deux par un mur appelé le Rideau de Laine. ' : 'Les deux camps ont débarqué chacun à un bout de l’île et avancent l’un vers l’autre ; il n’y a pas encore de mur. ') +
-    'À l’ouest, les United Sands of Cats (USC), leur idéal : le Rêve des Nations Libres (diners, voitures à ailerons, publicité, drive-in). Leur journal : la Gazette de Kutty. ' +
-    'À l’est, la Cats Communist Republik (CCR), leur idéal : le Grand Plan du Peuple (plans quinquennaux, usines, kolkhozes, défilés). Leur journal : la Pravdachat.\n\n' +
-    'Situation ce matin. USC : ' + camp('usc') + '. CCR : ' + camp('ccp') + '. Tension entre les camps : ' + S.tension + '. Météo : ' + WX_WORD[S.weather] + '. Saison : ' + S.season + (S.fete ? ', c’est ' + S.fete.name : '') + '.\n\n' +
-    'Événements d’hier :\n' + lines + '\n\n' +
-    'Écris la une de chaque journal. Les deux racontent les mêmes faits chacun à sa façon, en propagande gentille et drôle : chacun se vante de son camp, minimise ses problèmes et se moque tendrement de l’autre. La Gazette a le ton d’un quotidien populaire des années 50 ; la Pravdachat celui d’un organe officiel, pompeux et plein de chiffres. ' +
-    'Tu peux citer ' + ru.name + ' (' + ru.job + ') dans la Gazette et ' + rc.name + ' (' + rc.job + ') dans la Pravdachat. ' +
-    'Ne nomme jamais de pays réel ni de personne réelle. N’utilise jamais de tiret long ni de tiret moyen. Tout en français.\n\n' +
-    'Réponds uniquement avec ce JSON : {"usc":{"titre":"...","chapeau":"...","articles":[{"titre":"...","texte":"..."},{"titre":"...","texte":"..."}],"legende":"...","breve":"..."},"ccp":{même forme}}. ' +
-    'Longueurs maximales : titre 70 caractères, chapeau 160, titre d’article 50, texte d’article 300, légende 90, brève 120.';
-}
-const cleanTxt = (v, n) => { let s = String(v == null ? '' : v).replace(DASHES, ',').replace(/\s+/g, ' ').trim(); if (s.length > n) s = s.slice(0, n - 1).replace(/\s+\S*$/, '') + '…'; return s; };
-function cleanEd(o, fb){
-  if (!o || typeof o !== 'object') return fb;
-  const arts = (Array.isArray(o.articles) ? o.articles : []).slice(0, 2).map((a, k) => ({ titre: cleanTxt(a && a.titre, 70) || fb.articles[k].titre, texte: cleanTxt(a && a.texte, 380) || fb.articles[k].texte }));
-  while (arts.length < 2) arts.push(fb.articles[arts.length]);
-  return { titre: cleanTxt(o.titre, 90) || fb.titre, chapeau: cleanTxt(o.chapeau, 200) || fb.chapeau, articles: arts, legende: cleanTxt(o.legende, 110) || fb.legende, breve: cleanTxt(o.breve, 150) || fb.breve };
-}
-async function generatePaper(iss){
-  if (!iss || iss.ed || iss.busy) return;
-  const tpl = { usc: paperTemplate(iss, 'usc'), ccp: paperTemplate(iss, 'ccp') };
-  if (sampleOff || !sampleFn || typeof sampleFn.json !== 'function'){ iss.ed = tpl; iss.note = 'Édition de secours : Claude n’est pas disponible ici, les articles sont tout faits.'; renderPaper(); return; }
-  iss.busy = true; renderPaper();
-  try {
-    const r = await sampleFn.json(paperPrompt(iss), { modelTier: 'quick' });
-    iss.ed = { usc: cleanEd(r && r.usc, tpl.usc), ccp: cleanEd(r && r.ccp, tpl.ccp) };
-    iss.note = 'Édition rédigée par Claude à partir des événements de la veille.';
-  } catch (err){
-    const code = (err && err.code) || '';
-    iss.ed = tpl;
-    if (['not_granted', 'sampling_disabled', 'not_declared', 'capability_disabled', 'capability_removed'].includes(code)){ sampleOff = true; if (code === 'not_granted') sampleState = 'denied'; }
-    iss.note = code === 'not_granted' ? 'Claude est refusé pour cette page : édition de secours.' : code === 'rate_limited' ? 'Claude est très sollicité : édition de secours.' : 'Claude n’a pas pu écrire le journal : édition de secours.';
-  }
-  iss.busy = false; if (PAPER.issue === iss) renderPaper();
+// textes tout faits, tires des evenements de la veille
+function generatePaper(iss){
+  if (!iss || iss.ed) return;
+  iss.ed = { usc: paperTemplate(iss, 'usc'), ccp: paperTemplate(iss, 'ccp') };
+  renderPaper();
 }
 // la photo de une : on photographie l'endroit de l'evenement, puis on la tramee comme un vieux journal
 function snapScene(a, b){
@@ -168,11 +131,10 @@ function snapScene(a, b){
   return out;
 }
 function photoSpot(iss, side){
-  const e = topOf(iss.log, side), l = e && e.data.id ? LOTS.find(o => o.id === e.data.id && o.type) : null;
+  const e = topOf(iss.log, side), l = e && e.data.id ? BLD.find(o => o.id === e.data.id && o.done) : null;
   if (l) return [l.ca, l.cb];
-  const pref = side === 'usc' ? ['mairie', 'stade', 'artdeco', 'diner'] : ['peuple', 'tribune', 'stalinien', 'usine'];
-  for (const t of pref){ const o = LOTS.find(x => x.side === side && x.type === t); if (o) return [o.ca, o.cb]; }
-  const o = LOTS.find(x => x.side === side && x.type); return o ? [o.ca, o.cb] : [side === 'usc' ? -300 : 280, 60];
+  const o = BLD.find(x => x.side === side && x.type === 'qg') || BLD.find(x => x.side === side);
+  return o ? [o.ca, o.cb] : [cam.a, cam.b];
 }
 function halftone(src, dst, ink){
   const g = dst.getContext('2d'), w = dst.width, h = dst.height, cell = 5;
@@ -197,11 +159,11 @@ function renderPaper(){
   np.dataset.side = side;
   for (const b of document.querySelectorAll('[data-np]')) b.setAttribute('aria-pressed', b.dataset.np === side ? 'true' : 'false');
   $('npName').textContent = PAPER_NAME[side];
-  $('npLine').textContent = 'N° ' + iss.n + ' · ' + MONTHS[iss.m] + ' ' + iss.y + ' · ' + (side === 'usc' ? 'Édition du matin · 5 cents' : 'Organe officiel du Grand Plan · 3 kopecks');
+  $('npLine').textContent = 'N° ' + iss.n + ' · ' + MONTHS[iss.m] + ' · ' + (side === 'usc' ? 'Édition du matin · 5 cents' : 'Organe officiel de la CCR · 3 kopecks');
   const ed = iss.ed && iss.ed[side];
   np.classList.toggle('loading', !ed);
   $('npHead').textContent = ed ? ed.titre : 'Les rotatives tournent…';
-  $('npLede').textContent = ed ? ed.chapeau : 'Claude écrit la une, encore un instant.';
+  $('npLede').textContent = ed ? ed.chapeau : '';
   const cols = $('npCols'); cols.textContent = '';
   const arts = ed ? ed.articles : [{ titre: '', texte: '' }, { titre: '', texte: '' }];
   for (const a of arts){ const s = document.createElement('section'), h3 = document.createElement('h3'), p = document.createElement('p'); h3.textContent = a.titre; p.textContent = a.texte; s.append(h3, p); cols.append(s); }
@@ -209,7 +171,6 @@ function renderPaper(){
   $('npBreve').textContent = ed ? ed.breve : '';
   const rep = reporter(side, iss.n);
   $('npBy').textContent = side === 'usc' ? 'Reportage : ' + rep.name : 'Correspondant du peuple : ' + rep.name;
-  $('npNote').textContent = iss.note || '';
   if (!iss.photo[side]){ const [a, b] = photoSpot(iss, side); iss.photo[side] = snapScene(a, b); }
   halftone(iss.photo[side], $('npPhoto'), side === 'usc' ? '#241c14' : '#4a1712');
 }
@@ -238,16 +199,11 @@ function memMerge(list){
 }
 const memList = () => Object.keys(MEM).map(name => Object.assign({ name }, MEM[name]));
 try { const s = localStorage.getItem(MEM_LS); if (s) memMerge(JSON.parse(s)); } catch (_) {}
-async function loadMemories(){
-  if (!DBH.db || !DBH.uid) return;
-  try { const snap = await DBH.db.doc('data/users/' + DBH.uid + '/memoire').get(); if (snap.exists) memMerge((snap.data() || {}).cats); } catch (_) {}
-}
 function memSave(){
   clearTimeout(memTimer);
   memTimer = setTimeout(async () => {
     const list = memList();
     try { localStorage.setItem(MEM_LS, JSON.stringify(list)); } catch (_) {}
-    if (DBH.db && DBH.uid){ try { await DBH.db.doc('data/users/' + DBH.uid + '/memoire').set({ cats: list }); } catch (_) {} }
   }, 1500);
 }
 function memRemember(c, turns){
@@ -265,11 +221,6 @@ function memGreeting(c){
   let s = lastU.s.replace(/\s+/g, ' ').trim(); if (s.length > 42) s = s.slice(0, 40).replace(/\s+\S*$/, '') + '…';
   return hi + ' La dernière fois, tu m’as dit « ' + s + ' ». Je m’en souviens très bien.';
 }
-function memContext(c){
-  const m = MEM[c.name]; if (!m || !m.n || !m.last.length) return '';
-  return ' Tu as déjà discuté ' + (m.n > 1 ? m.n + ' fois' : 'une fois') + ' avec ce visiteur et tu t’en souviens. Fin de votre dernière conversation : ' + m.last.slice(-6).map(x => (x.r === 'u' ? 'Visiteur : ' : 'Toi : ') + x.s).join(' / ') + '. Fais-y allusion si ça vient naturellement.';
-}
-
 /* ================= les chats se parlent entre eux ================= */
 const CHATTER = {
   usc: [
@@ -278,13 +229,14 @@ const CHATTER = {
     ['Le juke-box du diner est cassé.', 'Tant mieux, j’avais la chanson dans la tête depuis mardi.'],
     ['Mon frigo fait de la glace tout seul.', 'Le progrès, mon vieux, le progrès.'],
     ['Tu crois qu’ils nous regardent, de l’autre côté ?', 'Avec des jumelles grandes comme des bouteilles de lait.'],
+    ['Il paraît qu’on a débarqué sur une nouvelle plage.', 'Encore ? Je commence à avoir le mal de mer.'],
     ['J’ai gagné au bowling !', 'Tu as fait tomber des quilles ou le voisin ?'],
     ['Encore une pub pour le Kutty Cola.', 'On ronronne rien qu’à la voir.'],
-    ['Le métro aérien est passé pile à l’heure.', 'Note-le, ça n’arrivera plus.']
+    ['La route du port est enfin goudronnée.', 'Et en courbe, s’il vous plaît. Le progrès.']
   ],
   ccp: [
     ['Camarade, tu as rempli ton quota ?', 'Trois cents pour cent, avant le petit déjeuner.'],
-    ['Il paraît qu’il y a des sardines au Gastronom.', 'Vite, je prends la file pour 1963.'],
+    ['Il paraît qu’il y a des sardines au Gastronom.', 'Vite, je prends la file pour le prochain plan quinquennal.'],
     ['Le défilé était magnifique.', 'Le même que la semaine dernière. Donc parfait.'],
     ['Mon immeuble ressemble au tien.', 'C’est normal, c’est le tien.'],
     ['Le kolkhoze a battu son record.', 'Il le bat tous les lundis.'],
@@ -294,6 +246,7 @@ const CHATTER = {
   ],
   cross: [
     ['Psst, du chewing-gum contre du caviar de sardine ?', 'Parle moins fort, le Sergent écoute.'],
+    ['Votre frontière avance, dis donc.', 'C’est la vôtre qui recule. Question de point de vue.'],
     ['Chez nous, les voitures ont des ailerons.', 'Chez nous, les tracteurs ont des médailles.'],
     ['Vous avez de la musique, là-bas ?', 'Une fanfare. Très disciplinée.']
   ],
@@ -305,16 +258,16 @@ const CHATTER = {
 function dynChatter(side){
   const out = [];
   if (side === 'usc' || side === 'ccp'){
-    if (CAMPS[side].want) out.push([side === 'ccp' ? 'Le peuple réclame ' + wantLabel(side) + '.' : 'Il nous faudrait ' + wantLabel(side) + '.', side === 'ccp' ? 'Le Plan y pense déjà, camarade.' : 'Écris au maire, il construit vite.']);
-    if (RES[side].short) out.push(['Plus une croquette à la maison…', side === 'ccp' ? 'La file du Gastronom avance. Un peu.' : 'L’épicier promet un arrivage demain.']);
-    if (RES[side].moral >= 68) out.push(['Qu’est-ce qu’on est bien, ici.', 'Même la pluie est plus douce de ce côté.']);
-    if (RES[side].moral < 38) out.push(['Le moral est dans les chaussettes.', side === 'ccp' ? 'Chut. Officiellement, il est excellent.' : 'Il faudrait un cinéma, ou un parc.']);
+    const R = RES[side];
+    if (R.short) out.push(['Plus une croquette à la maison…', side === 'ccp' ? 'La file du Gastronom avance. Un peu.' : 'Il nous faudrait une pêcherie, vite.']);
+    if (R.funRatio > .9) out.push(['Qu’est-ce qu’on est bien, ici.', 'On ronronne du matin au soir.']);
+    if (R.pop > 8 && R.funRatio < .3) out.push(['On s’ennuie un peu, non ?', side === 'ccp' ? 'Un cirque du peuple, voilà ce qu’il faut.' : 'Il faudrait un cinéma, ou un parc.']);
+    if (terPct(side) > terPct(other(side)) + .05) out.push(['Notre drapeau flotte loin, maintenant.', 'Jusqu’aux forêts de l’autre versant.']);
     if (feteSide(side)) out.push(side === 'ccp' ? ['Tu viens au feu d’artifice du peuple ?', 'Présence obligatoire, et joyeuse.'] : ['Tu viens voir le feu d’artifice ?', 'J’apporte le pop-corn au thon.']);
   }
   if (WEATHER.shown === 'neige' && WEATHER.k > .5) out.push(['Il neige !', 'Parfait pour une bataille de boules de neige.']);
   if (WEATHER.shown === 'pluie' && WEATHER.k > .5) out.push(['Encore de la pluie.', 'Les chats détestent l’eau, c’est connu.']);
-  if (CAMPS.tension > .75) out.push(['Tu as entendu ? La tension monte.', 'Ne faisons pas de bruit, alors.']);
-  if (GAME.mode === 'deb' && !DEB.wall) out.push(['On a débarqué hier et déjà une rue !', 'Demain une ville, après-demain l’île entière.']);
+  if (WALLS.length) out.push(['Tu as vu le Rideau de Laine ?', 'Il gratte, mais il tient chaud.']);
   return out;
 }
 const BUB = { els: [], next: 5, cur: [] };
@@ -379,17 +332,16 @@ function thoughtOf(c, seed){
   if (s === 'usc' || s === 'ccp'){
     const R = RES[s];
     if (R.short) opts.push('faim', 'faim');
-    if (CAMPS.tension > .74) opts.push('alerte');
     if (feteSide(s)) opts.push('fete', 'fete');
-    if (CAMPS[s].want) opts.push('envie');
-    if (R.moral >= 64) opts.push('coeur');
-    if (R.moral < 40) opts.push('grogne');
+    if (R.pop > 8 && R.funRatio < .35) opts.push('envie', 'grogne');
+    if (R.funRatio >= .7) opts.push('coeur');
+    if (terPct(other(s)) > terPct(s) + .08) opts.push('alerte');
   }
   if (WEATHER.shown === 'pluie' && WEATHER.k > .5) opts.push('pluie');
   return opts.length ? opts[Math.floor(seed * opts.length)] : null;
 }
 function drawThoughts(t){
-  if (OV_ON || Z < KDEF * .9 || document.body.classList.contains('photo')) return;
+  if (Z < KDEF * .9 || document.body.classList.contains('photo')) return;
   LV = 0;
   for (const c of CATS){
     if (!c.screen || c === state.chatCat || BUB.cur.some(b => b.c === c && t >= b.t0 && t <= b.t1)) continue;

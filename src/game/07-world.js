@@ -1,7 +1,76 @@
-/* ================= le Rideau de Laine ================= */
-let WALL_SEGS = [], TOWERS = [], TRAPS = [];
-const BARRIERS = [{ a: WALL_A - 7, lift: 0 }, { a: WALL_A + 7, lift: 0 }];
-const BOOTHS = [{ side: 'usc', a0: WALL_A - 8, a1: WALL_A - 4, b0: CHECK_B - 14, b1: CHECK_B - 9 }, { side: 'ccp', a0: WALL_A + 4, a1: WALL_A + 8, b0: CHECK_B + 9, b1: CHECK_B + 14 }];
+/* ================= forets : des milliers d'arbres, ranges par cases pour ne dessiner que ceux a l'ecran ================= */
+const TB = 64;                     // taille d'une case d'arbres, en unites
+const TREES = { list: [], grid: new Map(), ver: 0 };
+const treeKey = (i, j) => i * 4096 + j;
+function treeCell(a, b){ return treeKey(Math.floor(a / TB), Math.floor(b / TB)); }
+function addTree(a, b, r){
+  const t = { a, b, r, alive: true };
+  TREES.list.push(t);
+  const k = treeCell(a, b); let L = TREES.grid.get(k); if (!L){ L = []; TREES.grid.set(k, L); } L.push(t);
+}
+function buildForests(seed){
+  TREES.list = []; TREES.grid = new Map(); TREES.ver++;
+  // foret dense sur le sol de foret, arbres isoles ailleurs
+  for (let b = GB0 + 4; b < GB0 + GH / GSC - 4; b += 6.5){
+    for (let a = GA0 + 4; a < GA0 + GW / GSC - 4; a += 7.5){
+      const ja = a + (hash2(a * 3 + seed, b) - .5) * 6, jb = b + (hash2(a, b * 3 + seed) - .5) * 5;
+      const i = cellOf(ja, jb); if (i < 0) continue;
+      const t = gBase[i];
+      if (t === T_FOREST){ if (hash2(ja + 11, jb - seed) < .82) addTree(Math.round(ja), Math.round(jb), 3 + Math.floor(hash2(ja, jb + 5) * 3)); }
+      else if (t === T_GRASS && gLand[i] > 16 && hash2(ja - 7, jb + seed * 3) < .018) addTree(Math.round(ja), Math.round(jb), 3 + Math.floor(hash2(ja, jb + 9) * 2));
+    }
+  }
+}
+// arbres dans un rectangle (vivants seulement)
+function treesIn(a0, a1, b0, b1, fn){
+  for (let i = Math.floor(a0 / TB); i <= Math.floor(a1 / TB); i++) for (let j = Math.floor(b0 / TB); j <= Math.floor(b1 / TB); j++){
+    const L = TREES.grid.get(treeKey(i, j)); if (!L) continue;
+    for (const t of L) if (t.alive && t.a >= a0 && t.a <= a1 && t.b >= b0 && t.b <= b1) fn(t);
+  }
+}
+function cutTrees(a0, a1, b0, b1){ let n = 0; treesIn(a0 - 3, a1 + 3, b0 - 3, b1 + 3, (t) => { t.alive = false; n++; }); if (n) TREES.ver++; clearForest(a0, a1, b0, b1); return n; }
+// arbres le long d'un trait (routes, mur)
+function cutTreesAlong(pts, w){
+  let n = 0;
+  for (let k = 0; k + 1 < pts.length; k++){
+    const [pa, pb] = pts[k], [qa, qb] = pts[k + 1], L = Math.hypot(qa - pa, qb - pb) || 1;
+    treesIn(Math.min(pa, qa) - w - 3, Math.max(pa, qa) + w + 3, Math.min(pb, qb) - w - 3, Math.max(pb, qb) + w + 3, (t) => {
+      const s = clamp(((t.a - pa) * (qa - pa) + (t.b - pb) * (qb - pb)) / (L * L), 0, 1);
+      if (Math.hypot(pa + (qa - pa) * s - t.a, pb + (qb - pb) * s - t.b) < w + 3){ t.alive = false; n++; }
+    });
+    clearForest(Math.min(pa, qa) - w, Math.max(pa, qa) + w, Math.min(pb, qb) - w, Math.max(pb, qb) + w);
+  }
+  if (n) TREES.ver++;
+  return n;
+}
+// arbres visibles, ajoutes a la liste de dessin ; leurs ombres sont posees directement au sol
+function treeDrawables(out, t, withShadows){
+  const cs = [unprj(-20, -20), unprj(W + 20, -20), unprj(-20, H + 60), unprj(W + 20, H + 60)];
+  let a0 = 1e9, a1 = -1e9, b0 = 1e9, b1 = -1e9;
+  for (const [a, b] of cs){ a0 = Math.min(a0, a); a1 = Math.max(a1, a); b0 = Math.min(b0, b); b1 = Math.max(b1, b); }
+  const xmas = XMAS_ON;
+  treesIn(a0, a1, b0, b1, (tr) => {
+    const q = prj(tr.a, tr.b, 0);
+    if (q[0] < -14 || q[0] > W + 14 || q[1] < -4 || q[1] > H + 26) return;
+    if (withShadows) treeShadow(tr, q);
+    const deco = xmas && hash2(tr.a, tr.b) < .3;
+    out.push({ d: dep(tr.a, tr.b), m: M.TREE, f: (tt) => { CUR = M.TREE; blitAt(treeSpr(tr.r), tr.a, tr.b, 0); if (deco) drawTreeLights(tr.a, tr.b, tr.r, tt); } });
+  });
+}
+// ombre d'arbre : un ovale decale selon le soleil, seulement sur le sol
+function treeShadow(tr, q){
+  const h = tr.r * 2 + 3, sa = tr.a + h * SHADOW_V[0] * .5, sb = tr.b + h * SHADOW_V[1] * .5, p = prj(sa, sb, 0);
+  const cx = Math.round(p[0]), cy = Math.round(p[1]), rx = tr.r + 2, ry = Math.max(2, tr.r * .6);
+  for (let dy = -Math.ceil(ry); dy <= Math.ceil(ry); dy++){
+    const y = cy + dy; if (y < 0 || y >= H) continue;
+    const w = Math.floor(rx * Math.sqrt(Math.max(0, 1 - (dy / (ry + .5)) ** 2)));
+    for (let dx = -w; dx <= w; dx++){ const x = cx + dx; if (x >= 0 && x < W) lb[y * W + x] = 4; }
+  }
+}
+
+/* ================= le Rideau de Laine : segments que chaque camp tricote lui-meme ================= */
+// WALLS : pans de 10 unites au plus { side, pa, pb, qa, qb, g, line } ; WALL_TOWERS : miradors le long des lignes
+let WALLS = [], WALL_TOWERS = [];
 const GRAFFITI = ['PAIX', 'MIAOU', 'LIBRE', 'LOVE', 'ELVIS'];
 function glyphAt(str, u, h, u0, h0, s){
   const col = Math.floor((u - u0) / s), row = Math.floor((h0 - h) / s);
@@ -10,76 +79,24 @@ function glyphAt(str, u, h, u0, h0, s){
   if (ch >= str.length || cc === 3) return false;
   const g = FONT[str[ch]]; return !!g && g[row * 3 + cc] === '1';
 }
-function buildBorder(){
-  let bs = null, be = null;
-  for (let b = GB0; b < GB0 + GH / GSC; b += .5){ const t = typeAt(WALL_A, b); if (t === T_STRIP || t === T_ROAD){ if (bs === null) bs = b; be = b; } }
-  WALL_SEGS = [];
-  if (bs === null) return;
-  for (let b = Math.ceil(bs) + 1; b < be - 2; b += 10){
-    const s0 = b, s1 = Math.min(b + 10, be - 2);
-    if (s1 > CHECK_B - 8 && s0 < CHECK_B + 8){
-      if (s0 < CHECK_B - 8) WALL_SEGS.push({ s0, s1: CHECK_B - 8, g: -1 });
-      if (s1 > CHECK_B + 8) WALL_SEGS.push({ s0: CHECK_B + 8, s1, g: -1 });
-      continue;
-    }
-    WALL_SEGS.push({ s0, s1, g: -1 });
-  }
-  WALL_SEGS.forEach((w, k) => { if (w.s1 - w.s0 >= 9 && k % 3 === 1) w.g = (k / 3 | 0) % GRAFFITI.length; });
-  TOWERS = [-470, -350, -250, -110, 130, 265, 400].filter(b => b > bs + 12 && b < be - 12).map((b, k) => ({ a: WALL_A + 5, b, ph: k * 2.1 }));
-  TRAPS = [];
-  for (let b = Math.ceil(bs) + 6; b < be - 4; b += 13){
-    if (Math.abs(b - CHECK_B) < 16 || TOWERS.some(t => Math.abs(t.b - b) < 8)) continue;
-    TRAPS.push([WALL_A + 3.5, b]);
-  }
-}
-function drawWallSeg(w){
-  const g = w.g >= 0 ? GRAFFITI[w.g] : '';
+// un pan de mur entre deux points : laine grise tricotee, barbeles, graffiti cote USC
+function drawWallPiece(pa, pb, qa, qb, g, side){
+  const L = Math.hypot(qa - pa, qb - pb) || 1, na = -(qb - pb) / L * .8, nb = (qa - pa) / L * .8;
   CUR = M.WALL;
-  boxS(WALL_A - .8, WALL_A + .8, w.s0, w.s1, 0, 7, (u, h, x, y, k) => {
+  const fn = (u, h, x, y) => {
     if (h > 6.2) return 1;
     if ((u % 2.5) < .3) return 0;
-    if (g && k === 3){ const s = Math.min(.55, (w.s1 - w.s0 - 1) / (textW(g) + 1)); if (glyphAt(g, u, h, .8, 5.2, s)) return (bz(x, y) < 12) ? 1 : 0; }
-    return bz(x, y) < (k === 3 ? 4 : 3) ? 1 : 0;
-  }, 1);
-  // barbeles
+    if (g){ const s = Math.min(.55, (L - 1) / (textW(g) + 1)); if (glyphAt(g, u, h, .8, 5.2, s)) return (bz(x, y) < 12) ? 1 : 0; }
+    return bz(x, y) < 3 ? 1 : 0;
+  };
+  wallFace(pa + na, pb + nb, qa + na, qb + nb, 0, 7, fn, 1);
+  wallFace(qa - na, qb - nb, pa - na, pb - nb, 0, 7, fn, 1);
+  drawFace([pa - na, pb - nb, 7, qa - na, qb - nb, 7, qa + na, qb + nb, 7, pa + na, pb + nb, 7], UP, 1, 1);
   CUR = M.METAL;
-  for (let b = w.s0; b <= w.s1; b += .8){ const p = prj(WALL_A, b, 8.2 + ((Math.round(b / .8) & 1) ? .6 : 0)); fput(Math.round(p[0]), Math.round(p[1]), 1); }
+  const n = Math.ceil(L / .8);
+  for (let k = 0; k <= n; k++){ const f = k / n, p = prj(pa + (qa - pa) * f, pb + (qb - pb) * f, 8.2 + ((k & 1) ? .6 : 0)); fput(Math.round(p[0]), Math.round(p[1]), 1); }
 }
-const TRAP_SPR = artSprite(['#   #', ' # # ', '  #  ', ' # # ', '#   #']);
-function drawBarrier(br, t){
-  const up = br.lift, ang = up * Math.PI * .45, len = 12;
-  CUR = M.FLAG_RED;
-  const pv = prj(br.a, CHECK_B - 6.5, 0);
-  lineS(pv[0], pv[1], pv[0], pv[1] - 4, 1);
-  const p0 = prj(br.a, CHECK_B - 6.5, 3.5);
-  const p1 = prj(br.a, CHECK_B - 6.5 + len * Math.cos(ang), 3.5 + len * Math.sin(ang));
-  const n = Math.max(1, Math.ceil(Math.hypot(p1[0] - p0[0], p1[1] - p0[1])));
-  for (let s = 0; s <= n; s++){
-    const x = Math.floor(p0[0] + (p1[0] - p0[0]) * s / n), y = Math.floor(p0[1] + (p1[1] - p0[1]) * s / n);
-    const c = ((s >> 1) & 1) ? 1 : 0;
-    fput(x, y, c); fput(x, y - 1, c ? 1 : 0); fput(x, y + 1, 0); fput(x, y - 2, 0);
-  }
-}
-function drawBooth(bo, t){
-  CUR = bo.side === 'ccp' ? M.CCP : M.USC;
-  boxS(bo.a0, bo.a1, bo.b0, bo.b1, 0, 6, (u, h, x, y, k) => { if (h >= 2.5 && h < 4.8 && u > .6 && u < 3.4) return 1; return (h < .8 || h > 5.4) ? 1 : 0; }, (x, y) => bz(x, y) < 6 ? 1 : 0);
-  drawFlagPole(bo.side === 'usc' ? bo.a1 + 1.5 : bo.a0 - 1.5, bo.side === 'usc' ? bo.b0 - 1 : bo.b1 + 1, 0, 18, bo.side, t);
-}
-function plateLines(lines, cx, by, inv){
-  const w = Math.max(...lines.map(textW)) + 4, h = lines.length * 6 + 3, x0 = cx - (w >> 1), y0 = by - h;
-  for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++){ const e = x === x0 || x === x0 + w - 1 || y === y0 || y === y0 + h - 1; fput(x, y, inv ? (e ? 0 : 1) : (e ? 1 : 0)); }
-  lines.forEach((s, i) => drawText(fput, s, cx - (textW(s) >> 1), y0 + 2 + i * 6, inv ? 0 : 1));
-}
-const SECTOR_SIGNS = { usc: [WALL_A - 38, CHECK_B + 8], ccp: [WALL_A + 34, CHECK_B - 8] };
-function drawSectorSign(side){
-  const [a, b] = SECTOR_SIGNS[side];
-  const p = prj(a, b, 0), x = Math.round(p[0]), y = Math.round(p[1]);
-  CUR = M.METAL;
-  for (let k = 0; k < 8; k++){ fput(x - 8, y - k, 1); fput(x + 8, y - k, 1); }
-  CUR = side === 'ccp' ? M.SIGN_CCP : M.SIGN;
-  plateLines(side === 'usc' ? ['VOUS QUITTEZ', 'LE SECTEUR USC'] : ['VOUS ENTREZ', 'EN CCR'], x, y - 7, side === 'ccp');
-}
-function towerSpot(tw, t){ return [tw.a + 1 + Math.sin(t * .7 + tw.ph) * 3, tw.b + Math.sin(t * .35 + tw.ph) * 24]; }
+function towerSpot(tw, t){ return [tw.a + Math.sin(t * .7 + tw.ph) * 14, tw.b + Math.cos(t * .35 + tw.ph) * 14]; }
 function drawTower(tw, t){
   const { a, b } = tw;
   CUR = M.METAL;
@@ -87,19 +104,21 @@ function drawTower(tw, t){
   line3(a - 2.2, b + 2.2, 5, a + 2.2, b + 2.2, 11, 1); line3(a + 2.2, b - 2.2, 5, a + 2.2, b + 2.2, 11, 1);
   boxS(a - 3, a + 3, b - 3, b + 3, 16, 21, (u, h, x, y) => (h > 1.8 && h < 3.6) ? ((Math.floor(u * 1.5) % 3 === 0) ? 0 : 1) : (bz(x, y) < 2 ? 1 : 0), 0);
   boxS(a - 3.6, a + 3.6, b - 3.6, b + 3.6, 21, 22, 1, (x, y) => bz(x, y) < 4 ? 1 : 0);
-  const top = prj(a, b, 23), sp = towerSpot(tw, t), gp = prj(sp[0], sp[1], 0);
+  const top = prj(a, b, 23);
+  pennant(Math.round(top[0]), Math.round(top[1]) - 4, tw.side, t, a);
   if (COLOR && DAY) return;
+  const sp = towerSpot(tw, t), gp = prj(sp[0], sp[1], 0);
   CUR = M.BEAM;
   fput(Math.round(top[0]), Math.round(top[1]), 1); fput(Math.round(top[0]) + 1, Math.round(top[1]), 1);
   const n = Math.ceil(Math.hypot(gp[0] - top[0], gp[1] - top[1]));
   for (let s = 3; s < n; s++){ const x = Math.floor(top[0] + (gp[0] - top[0]) * s / n), y = Math.floor(top[1] + (gp[1] - top[1]) * s / n); if (bz(x, y) < 5) fput(x, y, 1); }
 }
 
-/* ================= le phare ================= */
+/* ================= le phare : une tour a rayures, a poser sur la cote ================= */
 const PL_H = 3, TOWER_H = 40, GYO = -PL_H - TOWER_H;
-function lhBase(){ const p = prj(LH.a, LH.b, 0); return [Math.round(p[0]), Math.round(p[1])]; }
-function drawLighthouse(){
-  const [ox, oy] = lhBase();
+function lhBase(a, b){ const p = prj(a, b, 0); return [Math.round(p[0]), Math.round(p[1])]; }
+function drawLighthouse(a, b, side){
+  const [ox, oy] = lhBase(a, b);
   const P = (x, y, c) => fput(ox + x, oy + y, c);
   const PRX = 10, PRY = 4.5;
   CUR = M.ROCK;
@@ -110,7 +129,7 @@ function drawLighthouse(){
     for (let r = 1; r <= PL_H; r++){ const y = yf + r; let c; if (r === PL_H || Math.abs(x) === PRX) c = 0; else if (((x + r * 2) & 3) === 0) c = 0; else c = x < 3 ? 1 : (bay(x, y) < 6 ? 1 : 0); P(x, y, c); }
   }
   const R0 = 7, R1 = 4.5, rot = cam.phi / Math.PI * 0.8;
-  CUR = M.FLAG_RED;
+  CUR = side === 'usc' ? M.FLAG_BLUE : M.FLAG_RED;
   for (let x = -R0; x <= R0; x++) for (let y = GYO - 3; y <= -PL_H + 4; y++){
     const z0 = -PL_H - y, r = R0 + (R1 - R0) * clamp(z0 / TOWER_H, 0, 1);
     if (Math.abs(x) > r + .5) continue;
@@ -124,16 +143,13 @@ function drawLighthouse(){
       const bp = ((z / 12 + ang / Math.PI * 0.8 + rot + 0.15) % 1 + 1) % 1, band = bp < 0.34;
       const light = clamp(1.05 - 0.62 * (xn + 0.25), 0.3, 1);
       c = band ? ((bp < 0.05 && xn < 0.2) ? 1 : 0) : (bay(x, y) < light * 16 ? 1 : 0);
-      if (z < 6.5 && x >= -2 && x <= 1){
-        const doorA = Math.cos(cam.phi + .8) > .2;
-        if (doorA) c = (z > 5.6 && (x === -2 || x === 1)) ? c : 0;
-      }
+      if (z < 6.5 && x >= -2 && x <= 1 && Math.cos(cam.phi + .8) > .2) c = (z > 5.6 && (x === -2 || x === 1)) ? c : 0;
     }
     P(x, y, c);
   }
 }
-function drawLantern(){
-  const [ox, oy] = lhBase(), g = GYO;
+function drawLantern(a, b){
+  const [ox, oy] = lhBase(a, b), g = GYO;
   CUR = M.LAMP;
   const P = (x, y, c) => fput(ox + x, oy + y, c);
   for (let x = -7; x <= 7; x++) P(x, g, 1);
@@ -147,8 +163,8 @@ function drawLantern(){
   [4, 3, 2, 1].forEach((hw, r) => { const y = g - 9 - r; for (let x = -hw; x <= hw; x++) P(x, y, x === -hw ? 1 : x === hw ? 0 : (bay(x, y) < 5 ? 1 : 0)); });
   P(0, g - 13, 1); P(0, g - 14, 1); P(-1, g - 15, 1); P(0, g - 15, 1); P(1, g - 15, 1);
 }
-function drawGlow(t){
-  const [ox, oy] = lhBase(), lx = ox, ly = oy + GYO - 5;
+function drawGlow(a, b, t){
+  const [ox, oy] = lhBase(a, b), lx = ox, ly = oy + GYO - 5;
   CUR = M.LAMP;
   const va = (PC + PS) / Math.SQRT2, vb = (PC - PS) / Math.SQRT2;
   const flash = Math.pow(Math.abs(Math.cos(state.theta) * va + Math.sin(state.theta) * vb), 10);
@@ -160,18 +176,8 @@ function drawGlow(t){
   }
 }
 
-/* ================= lampadaires, bateaux ================= */
-let LAMP_POS = [];
-function buildLamps(){
-  LAMP_POS = [];
-  A_LINES.forEach((A, i) => { if (A === WALL_A) return; B_LINES.forEach((B, j) => {
-    if ((i + j) % 2 !== 0 || B === RAIL_B) return;
-    const t = typeAt(A + 8, B + 8), t2 = typeAt(A, B);
-    if ((t === T_WALK || t === T_GRASS) && t2 === T_ROAD) LAMP_POS.push([A + 8, B + 8]);
-  }); });
-  LAMP_POS.push([WALL_A + 11, CHECK_B + 8], [WALL_A - 11, CHECK_B - 8], [LH.a + 5.5, LH.b + 97], [LH.a + 5.5, LH.b + 20]);
-  for (const P of PORTS) LAMP_POS.push([P.ca - 62, P.top + 3], [P.ca + 20, P.top + 3], [P.ca - 50, P.bot + 26], [P.ca + 48, P.bot + 26], [P.ca - 50, P.bot + 54], [P.ca + 48, P.bot + 54]);
-}
+/* ================= lampadaires le long des routes ================= */
+const LAMP_POS = [];
 function drawLampHeads(){
   CUR = M.LAMP;
   for (const [a, b] of LAMP_POS){
@@ -183,16 +189,9 @@ function drawLampHeads(){
     }
   }
 }
-const MOORED = [[LH.a - 14, LH.b + 44], [LH.a + 16, LH.b + 37], [LH.a - 14, LH.b + 24]];
-function drawMoored(k, t){
-  CUR = M.PIER;
-  const [a, b] = MOORED[k], p = prj(a, b, 0), ex = Math.round(p[0]), ey = Math.round(p[1]) + (Math.sin(t * 1.7 + k * 2) > 0.2 ? -1 : 0);
-  for (let x = -4; x <= 4; x++) fput(ex + x, ey - 1, 1);
-  for (let x = -4; x <= 4; x++) fput(ex + x, ey, (x === -4 || x === 4 || x === 0) ? 1 : 0);
-  for (let x = -3; x <= 3; x++) fput(ex + x, ey + 1, 1);
-}
-// le voilier suit la forme de la cote (super-ellipse), pour ne jamais couper par les coins de l'ile
-function sailPos(t){ const ph = t * 0.012 + 1.2, c = Math.cos(ph), s = Math.sin(ph); return [IS.ca + (IS.ra + 90) * Math.sign(c) * Math.sqrt(Math.abs(c)), IS.cb + (IS.rb + 110) * Math.sign(s) * Math.sqrt(Math.abs(s))]; }
+
+/* ================= le voilier qui fait le tour de l'ile, au large ================= */
+function sailPos(t){ const ph = t * 0.01 + 1.2, c = Math.cos(ph), s = Math.sin(ph); return [IS.ca + (IS.ra + 190) * Math.sign(c) * Math.sqrt(Math.abs(c)), IS.cb + (IS.rb + 150) * Math.sign(s) * Math.sqrt(Math.abs(s))]; }
 function drawSailboat(t){
   const [a, b] = sailPos(t), [a2, b2] = sailPos(t + 1);
   const p = prj(a, b, 0), q = prj(a2, b2, 0);
@@ -208,56 +207,4 @@ function drawSailboat(t){
   for (let y = -17; y <= -3; y++) P(0, y, 1);
   for (let y = -16; y <= -4; y++){ const w = Math.floor((y + 17) * 0.52); for (let x = 1; x <= w; x++){ const e = x === w || y === -4; P(x, y, e ? 0 : (x > w - 2 && bay(x, y) > 8 ? 0 : 1)); } }
   for (let y = -14; y <= -4; y++){ const w = Math.floor((y + 15) * 0.4); for (let x = 1; x <= w; x++){ const e = x === w || y === -4; P(-x, y, e ? 0 : (bay(x, y) < 11 ? 1 : 0)); } }
-}
-
-/* ================= decor : arbres, bouches a incendie, cabines, haut-parleurs ================= */
-let TREES = [], PROPS = [];
-function buildScatter(){
-  TREES = [];
-  for (let k = 0; k < 11000 && TREES.length < 1150; k++){
-    const a = IS.ca + (hash2(k, 11) * 2 - 1) * IS.ra, b = IS.cb + (hash2(k, 23) * 2 - 1) * IS.rb;
-    if (typeAt(a, b) !== T_GRASS || landDAt(a, b) < 12 || lotAt(a, b)) continue;
-    if (Math.abs(a - WALL_A) < STRIP + 6 || nearAirport(a, b, 10) || Math.abs(b - RAIL_B) < RAIL_W + 5) continue;
-    // bosquets : on garde surtout les points ou le bruit est haut
-    if (vnoise(a * .03 + 3, b * .03 + 7) < .45) continue;
-    TREES.push([Math.round(a), Math.round(b), 3 + Math.floor(hash2(k, 5) * 3)]);
-  }
-  PROPS = [];
-  A_LINES.forEach((A, i) => { if (A === WALL_A) return; B_LINES.forEach((B, j) => {
-    if ((i + j) % 2 !== 1 || B === RAIL_B) return;
-    const pa = A - 8, pb = B + 8, t = typeAt(pa, pb);
-    if (t !== T_WALK || typeAt(A, B) !== T_ROAD) return;
-    const side = sideOf(pa), r = hash2(i * 7, j * 13);
-    PROPS.push({ a: pa, b: pb, side, kind: side === 'usc' ? (r < .5 ? 'hydrant' : 'cabine') : (r < .4 ? 'hautparleur' : r < .7 ? 'kvas' : 'journaux') });
-  }); });
-}
-const HYDRANT = artSprite(['.#.', '###', '#+#', '###']);
-function drawProp(p, t){
-  const q = prj(p.a, p.b, 0), x = Math.round(q[0]), y = Math.round(q[1]);
-  if (p.kind === 'hydrant'){ CUR = M.FLAG_RED; blit(HYDRANT, x, y); return; }
-  if (p.kind === 'cabine'){
-    CUR = M.FLAG_RED;
-    boxS(p.a - 1.2, p.a + 1.2, p.b - 1.2, p.b + 1.2, 0, 6.5, (u, h) => (h > 1.2 && h < 5.2 && u > .5 && u < 1.9) ? 3 : ((h > 5.6) ? 1 : 0), 1);
-    return;
-  }
-  if (p.kind === 'kvas'){
-    CUR = M.KVAS;
-    boxS(p.a - 2.2, p.a + 2.2, p.b - 1.2, p.b + 1.2, .9, 3.2, (u, h) => (h > 1.9 && h < 2.3) ? 0 : 1, 1);
-    CUR = M.METAL; const w = prj(p.a - 1.4, p.b + 1.2, .5), w2 = prj(p.a + 1.4, p.b + 1.2, .5);
-    fput(Math.round(w[0]), Math.round(w[1]), 0); fput(Math.round(w2[0]), Math.round(w2[1]), 0);
-    return;
-  }
-  if (p.kind === 'journaux'){
-    CUR = M.CCP;
-    boxS(p.a - 2, p.a + 2, p.b - 1.5, p.b + 1.5, 0, 4, (u, h) => (h > 1.5 && h < 3.2) ? ((Math.floor(u * 2) & 1) ? 1 : 3) : 0, 1);
-    return;
-  }
-  // haut-parleur de propagande, qui vibre quand Radio Miaou-Scou parle
-  CUR = M.METAL;
-  for (let k = 0; k < 15; k++) fput(x, y - k, 1);
-  for (const s of [-1, 1]){ fput(x + s, y - 15, 1); fput(x + s * 2, y - 16, 1); fput(x + s * 2, y - 15, 1); fput(x + s * 3, y - 17, 1); fput(x + s * 3, y - 14, 1); fput(x + s * 3, y - 16, 0); fput(x + s * 3, y - 15, 0); }
-  if (radioSide === 'ccp' && Math.floor(t * 3) % 2 === 0){
-    CUR = M.SIGN_CCP;
-    for (const s of [-1, 1]) for (let k = 0; k < 3; k++){ fput(x + s * 5, y - 17 + k, 1); fput(x + s * 7, y - 18 + k * 2, 1); }
-  }
 }

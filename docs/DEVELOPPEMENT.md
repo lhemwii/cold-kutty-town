@@ -15,19 +15,15 @@ Aucune dépendance : pas de `npm install` obligatoire, il suffit de Node.js 20+.
 - `main` = production. Chaque push part en ligne tout seul sur Vercel.
 - Pour tester une idée : une branche (`git switch -c drapeau-usc`), des commits, un push. Vercel donne une adresse de préversion pour cette branche. On fusionne dans `main` quand c’est bon.
 
-## Claude en local et en ligne
+## Claude
 
-1. Copie `.env.example` en `.env.local` (ce fichier n’est jamais commité).
-2. Mets ta clé : `ANTHROPIC_API_KEY=...`
-3. En ligne : Vercel, projet Cold Kutty Town, Settings, Environment Variables, ajoute la même variable, puis redéploie.
-
-La fonction `api/claude.js` limite chaque adresse à 20 demandes par minute et coupe les réponses longues. Garde un œil sur la consommation dans la console Anthropic si le lien circule.
+Pour l’instant, les chats et le journal utilisent des textes tout faits. `api/claude.js` reste en place pour les rebrancher plus tard (voir [PLAN.md](PLAN.md)).
 
 ## Ajouter un bâtiment
 
-1. Dans `src/game/04-types.js` (ou `05`, `06`), ajoute une entrée à `TYPES` avec `name`, `nameCCP` si le nom change à l’est, `fem`, et une fonction `build(lot, seed)` qui renvoie ses `parts` (pièces dessinées), ses `decals` (dessins au sol) et ses `lights`.
-2. Ajoute-le à la palette (liste en bas de `06-types-more.js`).
-3. Donne-lui sa valeur pour chaque camp dans `CAMP_VAL` (`14-camps.js`) et son économie dans `ECO` (`15-economy.js`) : croquettes et laine par minute, loisirs, habitants, coût en laine.
+1. Dans `src/game/04-types.js` (ou `05`, `06`), ajoute une entrée à `TYPES` avec `name`, `nameCCP` si le nom change côté CCR, `fem`, et une fonction `build(lot, seed)` qui renvoie ses `parts`, `decals` et `lights`. `lot` porte l’emprise (`a0..a1`, `b0..b1`, `ca`, `cb`), le camp, le niveau et, pour la côte, la direction de la mer (`dir`).
+2. Donne-lui sa ligne dans `ECO` (`15-economy.js`) : catégorie du menu, coût, production et fonctionnement par minute, habitants, emplois, loisirs, rayon d’influence, `up` s’il s’améliore, `coast` s’il se pose face à l’eau, `noRoad` s’il n’a pas besoin de route. Il apparaît alors tout seul dans le menu.
+3. Si son emprise n’est pas 36 x 31, ajoute-la dans `FOOT` (`10-town.js`).
 
 ## Ajouter un effet ou un système
 
@@ -40,11 +36,11 @@ HOOKS.top.push((t) => { CUR = M.LAMP; fput(10, 10, 1); });
 
 ## Tester
 
-- Dans la console du navigateur, `__okt` donne accès à tout : `__okt.CLOCK.h = 22` pour passer la nuit, `__okt.CAL.m = 11; __okt.applySeason()` pour décembre, `__okt.forceEvent()` pour un événement.
-- Avant de pousser : `npm run build` doit passer, et un tour rapide dans le jeu (jour, nuit, zoom, construire, annuler).
+- Dans la console du navigateur, `__okt` donne accès à tout : `__okt.CLOCK.h = 22` pour passer la nuit, `__okt.CAL.m = 11; __okt.applySeason()` pour décembre, `__okt.forceEvent()` pour un événement, `__okt.GAME.speed = 8` pour accélérer, `__okt.autoBoth()` pour laisser l’IA jouer les deux camps.
+- Avant de pousser : `npm run build` doit passer, et un tour rapide dans le jeu (débarquer, construire, tracer une route, dézoomer, annuler).
 
 ## Conventions
 
 - Tout le texte du jeu est en français. Jamais de tiret long ni de tiret moyen : virgule, point ou deux-points.
-- Aucun pays réel, aucune personne réelle.
+- Aucun pays réel, aucune personne réelle, aucune année.
 - Commentaires en français, courts, qui expliquent le pourquoi.

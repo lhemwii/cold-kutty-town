@@ -2,7 +2,7 @@
    Dans claude.ai, la page reçoit window.claude (Claude, base partagée, salles, téléchargements).
    Ailleurs (Vercel, en local), on fournit la même interface avec ce qu'on a :
    Claude passe par /api/claude, les téléchargements par le navigateur,
-   la base partagée et la partie à deux ne sont pas disponibles (voir docs/ROADMAP.md). */
+   la base partagée n'est pas disponible (voir docs/PLAN.md). */
 (() => {
   if (window.claude && typeof window.claude.use === 'function') return;
 

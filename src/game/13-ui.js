@@ -1,121 +1,213 @@
-/* ================= inspecteur ================= */
+/* ================= outils du joueur : observer, construire, routes, Rideau de Laine, demolir ================= */
 const $ = (id) => document.getElementById(id);
-const insp = $('insp'), ictx = insp.getContext('2d');
-const INSP_N = 13; let inspCell = 11, pointer = null;
-function sizeInspector(){ const css = INSP_N * inspCell + 1; insp.style.width = css + 'px'; insp.style.height = css + 'px'; insp.width = Math.round(css * DPR); insp.height = Math.round(css * DPR); }
-function drawInspector(){
-  if (!state.inspOn || state.uiHidden || state.chatCat) return;
-  const [px, py] = pointer || [Math.round(W / 2), Math.round(H / 2)];
-  const cs = inspCell * DPR, half = (INSP_N - 1) / 2;
-  ictx.fillStyle = '#000'; ictx.fillRect(0, 0, insp.width, insp.height); ictx.fillStyle = '#fff';
-  for (let r = 0; r < INSP_N; r++) for (let q = 0; q < INSP_N; q++){
-    const x = px + q - half, y = py + r - half;
-    if (x >= 0 && y >= 0 && x < W && y < H && fb[y * W + x]) ictx.fillRect(Math.round(q * cs), Math.round(r * cs), Math.round((q + 1) * cs) - Math.round(q * cs), Math.round((r + 1) * cs) - Math.round(r * cs));
-  }
-  ictx.fillStyle = 'rgba(128,128,128,.55)'; const lw = Math.max(1, Math.round(DPR));
-  for (let k = 0; k <= INSP_N; k++){ const p = Math.min(insp.width - lw, Math.round(k * cs)); ictx.fillRect(p, 0, lw, insp.height); ictx.fillRect(0, p, insp.width, lw); }
-  const x0 = Math.round(half * cs), w0 = Math.round(cs);
-  ictx.lineWidth = 2 * DPR; ictx.strokeStyle = '#fff'; ictx.strokeRect(x0 - DPR, x0 - DPR, w0 + 2 * DPR + lw, w0 + 2 * DPR + lw);
+// state.tool : walk, build, road, curve, wall, demolish, barge (choix d'une cote), landing (choix de la plage)
+state.tool = 'walk'; state.buildType = 'maison'; state.sel = null;
+const HINTS = {
+  walk: 'Glisse pour te déplacer, molette pour zoomer, clic droit glissé pour tourner. Clique sur un bâtiment ou un chat.',
+  build: 'Choisis un bâtiment puis clique dans ton territoire. Les bâtiments de la mer se posent face à l’eau.',
+  road: 'Clique le départ, puis l’arrivée. La route continue depuis son bout : clic droit ou Échap pour arrêter.',
+  curve: 'Clique le départ, puis le point qui tire la courbe, puis l’arrivée.',
+  wall: 'Clique le début du Rideau de Laine puis sa fin. Il fige ta frontière. 3 laine tous les 10 pas.',
+  demolish: 'Clique sur un bâtiment, une route ou un pan de mur pour le démolir. La moitié de la laine revient.',
+  barge: 'Clique sur une côte : la barge part du port et y plante un avant-poste.',
+  landing: 'Clique sur une côte de l’île pour y débarquer.'
+};
+let toolPts = [], hoverW = null, hoverB = null, ghost = null;
+function setTool(m){
+  state.tool = m; toolPts = [];
+  for (const b of document.querySelectorAll('[data-tool]')) b.setAttribute('aria-pressed', String(b.dataset.tool === m));
+  $('buildMenu').hidden = m !== 'build';
+  $('modeHint').textContent = HINTS[m] || '';
+  scene.classList.toggle('build', m === 'build' || m === 'road' || m === 'curve' || m === 'wall' || m === 'barge' || m === 'landing');
+  scene.classList.toggle('demolish', m === 'demolish');
+  ghost = null;
+}
+for (const b of document.querySelectorAll('[data-tool]')) b.addEventListener('click', () => { setTool(state.tool === b.dataset.tool && b.dataset.tool !== 'walk' ? 'walk' : b.dataset.tool); sfx('click'); });
+
+let toastTimer = 0;
+function toast(msg){ const el = $('toast'); el.textContent = msg; el.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => el.hidden = true, 2800); }
+
+/* ---- construire ---- */
+// position proposee pour le batiment sous le curseur (arrondie a 2 unites), et sa direction s'il est au bord de l'eau
+function buildSpot(a, b){
+  const type = state.buildType, e = ECO[type], ca = Math.round(a / 2) * 2, cb = Math.round(b / 2) * 2;
+  const dir = e && e.coast ? coastDir(ca, cb) : 0;
+  return { type, ca, cb, dir, why: placeProblem(type, GAME.side, ca, cb, dir, false) };
+}
+function tryBuild(a, b){
+  const s = buildSpot(a, b);
+  if (s.why){ toast(s.why); sfx('click'); return; }
+  const pr = priceOf(s.type, GAME.side);
+  if (!canAfford(GAME.side, pr)){ toast('Il faut ' + costLabel(pr) + '.'); return; }
+  pay(GAME.side, pr.l, pr.r, pr.c);
+  const l = makeBuilding(s.type, GAME.side, s.ca, s.cb, s.dir);
+  startBuilding(l);
+  pushHistory({ kind: 'build', id: l.id, l: pr.l, r: pr.r, c: pr.c });
+  toast(typeName(s.type, GAME.side) + ' : chantier lancé.');
+  sfx('click'); ghost = null; saveSoon(); renderHUD();
 }
 
-/* ================= reglages de lumiere ================= */
-const ibar = $('ibar'); for (let k = 0; k < 16; k++) ibar.appendChild(document.createElement('span'));
-const pbtns = [...document.querySelectorAll('.pbtn')];
-const mbtns = [...document.querySelectorAll('[data-mode]')];
-function drawSwatches(){
-  for (const b of pbtns){
-    const cv = b.querySelector('canvas'), cx = cv.getContext('2d'), im = cx.createImageData(12, 12), d32 = new Uint32Array(im.data.buffer);
-    for (let y = 0; y < 12; y++) for (let x = 0; x < 12; x++) d32[y * 12 + x] = litAt(x, y, b.dataset.p, state.intensity) ? WHITE : BLACK;
-    cx.putImageData(im, 0, 0);
-  }
+/* ---- routes ---- */
+function roadPreviewPts(){
+  if (!hoverW) return null;
+  const end = snapRoadPoint(hoverW[0], hoverW[1], GAME.side);
+  if (state.tool === 'road' && toolPts.length === 1) return sampleLine(toolPts[0], end);
+  if (state.tool === 'curve' && toolPts.length === 1) return sampleLine(toolPts[0], end);
+  if (state.tool === 'curve' && toolPts.length === 2) return sampleCurve(toolPts[0], toolPts[1], end);
+  return null;
 }
-function ruleText(){
-  const I = state.intensity;
-  switch (state.pattern){
-    case 'dots': return 'bayer4(x, y) < ' + (I * 16).toFixed(2);
-    case 'stripes': return '(x + y) mod 4 < ' + (I * 4).toFixed(2);
-    case 'noise': return 'bruit(x, y) < ' + I.toFixed(2);
-    default: return '|dx| + |dy| < ' + (I * 4).toFixed(2);
-  }
+function roadClick(a, b){
+  const p = state.tool === 'curve' && toolPts.length === 1 ? [Math.round(a), Math.round(b)] : snapRoadPoint(a, b, GAME.side);
+  toolPts.push(p);
+  const need = state.tool === 'curve' ? 3 : 2;
+  if (toolPts.length < need){ sfx('click'); return; }
+  const pts = state.tool === 'curve' ? sampleCurve(toolPts[0], toolPts[1], toolPts[2]) : sampleLine(toolPts[0], toolPts[1]);
+  const why = roadProblem(pts, GAME.side);
+  if (why){ toast(why); toolPts.pop(); return; }
+  const cost = roadCost(pts);
+  if (!canPay(GAME.side, cost, 0)){ toast('Il faut ' + cost + ' laine pour cette route.'); toolPts.pop(); return; }
+  pay(GAME.side, cost, 0);
+  const r = addRoad(pts, GAME.side);
+  pushHistory({ kind: 'road', id: r.id, l: cost });
+  sfx('click'); saveSoon(); renderHUD();
+  // on repart du bout pour enchainer
+  toolPts = [pts[pts.length - 1]];
 }
-function updateReadouts(){
-  const I = state.intensity;
-  $('ival').textContent = I.toFixed(2);
-  ibar.setAttribute('aria-valuenow', I.toFixed(2));
-  const on = Math.round(I * 16); [...ibar.children].forEach((s, k) => s.classList.toggle('on', k < on));
-  $('rule').textContent = ruleText();
-  $('inspTitle').textContent = PAT_NAMES[state.pattern];
-  pbtns.forEach(b => b.setAttribute('aria-checked', String(b.dataset.p === state.pattern)));
-  drawSwatches();
-}
-const setPattern = (p) => { state.pattern = p; updateReadouts(); };
-const setIntensity = (v) => { state.intensity = Math.round(clamp(v, 0, 1) * 100) / 100; updateReadouts(); };
-pbtns.forEach(b => b.addEventListener('click', () => setPattern(b.dataset.p)));
-$('btnView').addEventListener('click', () => { state.patternView = !state.patternView; $('btnView').setAttribute('aria-pressed', String(state.patternView)); });
-$('btnRot').addEventListener('click', () => { state.auto = !state.auto; $('btnRot').setAttribute('aria-pressed', String(state.auto)); });
-$('btnInsp').addEventListener('click', () => { state.inspOn = !state.inspOn; $('btnInsp').setAttribute('aria-pressed', String(state.inspOn)); $('inspector').hidden = !state.inspOn || !!state.chatCat; });
-/* ================= horloge jour et nuit ================= */
-const CLOCK_SPEEDS = [1, 4, 12];
-const pad2 = (n) => String(n).padStart(2, '0');
-let clockShown = -1, clockDrag = false;
-function updateClockUI(){
-  if (!COLOR) return;
-  const m = Math.floor(CLOCK.h * 60) % 1440;
-  if (m === clockShown) return;
-  clockShown = m;
-  $('clockTime').textContent = pad2(Math.floor(m / 60)) + ':' + pad2(m % 60);
-  if (!clockDrag) $('clockRange').value = String(m);
-}
-if (COLOR){
-  $('clock').hidden = false;
-  const cp = $('clockPlay');
-  const PAUSE_SVG = cp.innerHTML, PLAY_SVG = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9.5-5.5z" fill="currentColor"/></svg>';
-  cp.addEventListener('click', () => {
-    CLOCK.auto = !CLOCK.auto;
-    cp.innerHTML = CLOCK.auto ? PAUSE_SVG : PLAY_SVG;
-    cp.setAttribute('aria-label', CLOCK.auto ? 'Mettre le temps en pause' : 'Faire avancer le temps');
-    cp.setAttribute('aria-pressed', String(!CLOCK.auto));
-  });
-  const cr = $('clockRange');
-  cr.addEventListener('input', () => { clockDrag = true; CLOCK.h = (+cr.value) / 60; clockShown = -1; });
-  cr.addEventListener('change', () => { clockDrag = false; });
-  cr.addEventListener('pointerup', () => { clockDrag = false; });
-  cr.addEventListener('keydown', e => e.stopPropagation());
-  const cs = $('clockSpeed');
-  cs.addEventListener('click', () => {
-    const k = (CLOCK_SPEEDS.indexOf(CLOCK.speed) + 1) % CLOCK_SPEEDS.length;
-    CLOCK.speed = CLOCK_SPEEDS[k]; cs.textContent = '×' + CLOCK.speed;
-    cs.setAttribute('aria-label', 'Vitesse du temps : fois ' + CLOCK.speed);
-  });
-}
-// meteo : automatique ou forcee
-const WX_MODES = ['auto', 'clair', 'pluie', 'neige', 'brouillard'], WX_LABEL = { auto: 'Météo auto', clair: 'Soleil', pluie: 'Pluie', neige: 'Neige', brouillard: 'Brouillard' };
-if (COLOR){
-  const wb = $('btnWx'); wb.hidden = false;
-  wb.addEventListener('click', () => {
-    WEATHER.mode = WX_MODES[(WX_MODES.indexOf(WEATHER.mode) + 1) % WX_MODES.length];
-    wb.textContent = WX_LABEL[WEATHER.mode];
-    if (WEATHER.mode === 'auto') WEATHER.next = 0;
-  });
-}
-$('btnLight').addEventListener('click', () => { const p = $('lightPanel'); p.hidden = !p.hidden; $('btnLight').setAttribute('aria-pressed', String(!p.hidden)); });
-$('btnHide').addEventListener('click', () => {
-  state.uiHidden = !state.uiHidden; document.body.classList.toggle('ui-off', state.uiHidden);
-  $('btnHide').textContent = state.uiHidden ? 'Afficher l’interface' : 'Masquer'; $('btnHide').setAttribute('aria-pressed', String(state.uiHidden));
-  if (state.uiHidden){ $('lightPanel').hidden = true; $('btnLight').setAttribute('aria-pressed', 'false'); }
-});
-let barDrag = false;
-const barAt = (e) => { const r = ibar.getBoundingClientRect(); setIntensity((e.clientX - r.left) / r.width); };
-ibar.addEventListener('pointerdown', e => { barDrag = true; ibar.setPointerCapture(e.pointerId); barAt(e); });
-ibar.addEventListener('pointermove', e => { if (barDrag) barAt(e); });
-ibar.addEventListener('pointerup', () => barDrag = false);
-ibar.addEventListener('keydown', e => {
-  const step = e.shiftKey ? 1 / 16 : 0.01;
-  if (e.key === 'ArrowRight' || e.key === 'ArrowUp'){ setIntensity(state.intensity + step); e.preventDefault(); e.stopPropagation(); }
-  if (e.key === 'ArrowLeft' || e.key === 'ArrowDown'){ setIntensity(state.intensity - step); e.preventDefault(); e.stopPropagation(); }
-});
 
-/* ================= zoom et rotation : boutons et boussole ================= */
+/* ---- Rideau de Laine ---- */
+const WALL_STEP = 10, WALL_COST = 3;
+function wallPieces(p, q){
+  const L = Math.hypot(q[0] - p[0], q[1] - p[1]), n = Math.max(1, Math.round(L / WALL_STEP)), out = [];
+  for (let k = 0; k < n; k++) out.push([p[0] + (q[0] - p[0]) * k / n, p[1] + (q[1] - p[1]) * k / n, p[0] + (q[0] - p[0]) * (k + 1) / n, p[1] + (q[1] - p[1]) * (k + 1) / n]);
+  return out;
+}
+function wallProblem(pieces, side){
+  if (!pieces.length) return 'Trop court.';
+  for (const [pa, pb, qa, qb] of pieces) for (const f of [0, .5, 1]){
+    const a = pa + (qa - pa) * f, b = pb + (qb - pb) * f;
+    if (baseAt(a, b) === T_SEA || landDAt(a, b) < 2) return 'Pas de mur dans la mer.';
+    if (sideAt(a, b) !== side) return 'Le Rideau se tricote dans ton territoire.';
+    for (const l of BLD) if (a > l.a0 - 1 && a < l.a1 + 1 && b > l.b0 - 1 && b < l.b1 + 1) return 'Un bâtiment est sur le chemin.';
+    if (nearRoad(a, b, RW + 1)) return 'Une route passe ici : pose un Checkpoint plutôt qu’un mur.';
+  }
+  return '';
+}
+function addWall(p, q, side){
+  const pieces = wallPieces(p, q), line = Date.now() % 100000 + Math.floor(Math.random() * 1000);
+  pieces.forEach(([pa, pb, qa, qb], k) => WALLS.push({ side, pa, pb, qa, qb, g: side === 'usc' && k % 4 === 1 ? (k >> 2) % GRAFFITI.length : -1, line }));
+  for (let k = 6; k < pieces.length; k += 12){ const [pa, pb, qa, qb] = pieces[k], L = Math.hypot(qa - pa, qb - pb) || 1; WALL_TOWERS.push({ side, a: (pa + qa) / 2 + (qb - pb) / L * 5 * (side === 'usc' ? -1 : 1), b: (pb + qb) / 2 - (qa - pa) / L * 5 * (side === 'usc' ? -1 : 1), ph: k * 2.1, line }); }
+  cutTreesAlong([p, q], 3);
+  rebuildLocks(); rebuildTown();
+  mapDirtyRect(Math.min(p[0], q[0]) - 4, Math.max(p[0], q[0]) + 4, Math.min(p[1], q[1]) - 4, Math.max(p[1], q[1]) + 4);
+  return line;
+}
+function wallClick(a, b){
+  toolPts.push([Math.round(a), Math.round(b)]);
+  if (toolPts.length < 2){ sfx('click'); return; }
+  const pieces = wallPieces(toolPts[0], toolPts[1]), why = wallProblem(pieces, GAME.side), cost = pieces.length * WALL_COST;
+  if (why){ toast(why); toolPts.pop(); return; }
+  if (!canPay(GAME.side, cost, 0)){ toast('Il faut ' + cost + ' laine pour ce pan de Rideau.'); toolPts.pop(); return; }
+  pay(GAME.side, cost, 0);
+  const line = addWall(toolPts[0], toolPts[1], GAME.side);
+  pushHistory({ kind: 'wall', line, l: cost });
+  logDay(GAME.side, 'wall', 'le Rideau de Laine');
+  sfx('wall'); toast('Rideau de Laine tricoté : cette frontière ne bougera plus.');
+  toolPts = [toolPts[1]]; saveSoon(); renderHUD();
+}
+function removeWallLine(line){
+  WALLS = WALLS.filter(w => w.line !== line); WALL_TOWERS = WALL_TOWERS.filter(w => w.line !== line);
+  rebuildLocks(); rebuildTown(); mapDirtyAll();
+}
+
+/* ---- demolir, annuler ---- */
+const HISTORY = [];
+function pushHistory(h){ h.t = GAME.t; HISTORY.push(h); if (HISTORY.length > 30) HISTORY.shift(); updateUndo(); }
+function updateUndo(){ const b = $('btnUndo'); if (b) b.disabled = !HISTORY.length; }
+function undo(){
+  const h = HISTORY.pop(); updateUndo();
+  if (!h){ toast('Rien à annuler.'); return; }
+  const R = RES[GAME.side];
+  if (h.kind === 'build'){
+    const l = BLD.find(o => o.id === h.id);
+    if (l){ BLD.splice(BLD.indexOf(l), 1); if (!l.done){ R.laine += h.l; R.ron += h.r || 0; R.croq += h.c || 0; } else R.laine += Math.round(h.l / 2); rebuildLocks(); TER.srcVer = -1; rebuildTown(); refreshAccess(); mapDirtyRect(l.a0, l.a1, l.b0, l.b1); }
+    toast('Construction annulée.');
+  } else if (h.kind === 'road'){
+    const r = ROADS.find(o => o.id === h.id); if (r){ removeRoad(r); R.laine += h.l; } toast('Route effacée.');
+  } else if (h.kind === 'wall'){ removeWallLine(h.line); R.laine += h.l; toast('Rideau détricoté.'); }
+  if (state.sel && !BLD.includes(state.sel)) selectBuilding(null);
+  saveSoon(); renderHUD();
+}
+function demolishAt(a, b){
+  const l = bldAt(a, b);
+  if (l){
+    if (l.side !== GAME.side){ toast('Ce bâtiment appartient à l’autre camp.'); return; }
+    if (l.type === 'qg'){ toast('On ne démolit pas son QG.'); return; }
+    const refund = demolishBuilding(l);
+    toast(typeName(l.type, l.side) + (TYPES[l.type].fem ? ' démolie' : ' démoli') + ', ' + refund + ' laine récupérée.');
+    sfx('demolish', l.ca, l.cb); if (state.sel === l) selectBuilding(null); saveSoon(); renderHUD(); return;
+  }
+  const n = nearRoad(a, b, RW + 2, GAME.side);
+  if (n){ removeRoad(n.r); RES[GAME.side].laine += Math.round(roadCost(n.r.pts) / 2); toast('Route démolie.'); sfx('demolish', a, b); saveSoon(); renderHUD(); return; }
+  const w = WALLS.find(o => o.side === GAME.side && segDist(o.pa, o.pb, o.qa, o.qb, a, b)[0] < 4);
+  if (w){ const n2 = WALLS.filter(o => o.line === w.line).length; removeWallLine(w.line); RES[GAME.side].laine += Math.round(n2 * WALL_COST / 2); toast('Rideau détricoté.'); sfx('demolish', a, b); saveSoon(); return; }
+  toast('Rien à démolir ici.');
+}
+
+/* ---- apercu de l'outil : fantome du batiment, trace de la route ou du mur ---- */
+function dashRect(a0, a1, b0, b1, ok){
+  const C = [[a0, b0], [a1, b0], [a1, b1], [a0, b1]];
+  CUR = ok ? M.BEAM : M.ICON_R;
+  for (let k = 0; k < 4; k++){ const p = prj(C[k][0], C[k][1], 0), q = prj(C[(k + 1) % 4][0], C[(k + 1) % 4][1], 0); lineS(p[0], p[1], q[0], q[1], 1, ok); }
+}
+function dashRing(a, b, r, t){
+  CUR = M.BEAM; const n = Math.ceil(r * 1.3);
+  for (let k = 0; k < n; k++){ if (((k + ((t * 6) | 0)) & 3) !== 0) continue; const an = k / n * TAU, p = prj(a + Math.cos(an) * r, b + Math.sin(an) * r, 0); fput(Math.round(p[0]), Math.round(p[1]), 1); }
+}
+function dashPoly(pts, ok, t){
+  GHOST_T = Math.floor(t * 8);
+  CUR = ok ? M.BEAM : M.ICON_R;
+  for (let k = 0; k + 1 < pts.length; k++){
+    const [pa, pb] = pts[k], [qa, qb] = pts[k + 1], L = Math.hypot(qa - pa, qb - pb) || 1, na = -(qb - pb) / L * RW, nb = (qa - pa) / L * RW;
+    for (const s of [-1, 1]){ const p = prj(pa + na * s, pb + nb * s, 0), q = prj(qa + na * s, qb + nb * s, 0); lineS(p[0], p[1], q[0], q[1], 1, ok); }
+  }
+}
+function drawToolPreview(t){
+  GHOST_T = Math.floor(t * 8);
+  if (state.sel && state.sel.side){ const l = state.sel; dashRect(l.a0 - 1, l.a1 + 1, l.b0 - 1, l.b1 + 1, true); const r = influenceOf(l); if (r) dashRing(l.ca, l.cb, r, t); }
+  if (!hoverW || GAME.mode !== 'play') { if (state.tool === 'landing' && hoverW) drawLandingMark(t); return; }
+  const tool = state.tool;
+  if (tool === 'build'){
+    const s = buildSpot(hoverW[0], hoverW[1]), key = s.type + ':' + s.ca + ':' + s.cb + ':' + s.dir;
+    if (!ghost || ghost.key !== key){
+      const l = makeBuilding(s.type, GAME.side, s.ca, s.cb, Math.max(0, s.dir));
+      ghost = { key, l, parts: s.why ? null : TYPES[s.type].build(l, 7).parts.slice().sort((u, v) => (dep(u.a, u.b) + u.zb) - (dep(v.a, v.b) + v.zb)), why: s.why };
+    }
+    const l = ghost.l;
+    dashRect(l.a0, l.a1, l.b0, l.b1, !ghost.why);
+    if (!ghost.why){ dashRing(l.ca, l.cb, influenceOf(l), t); GHOST = true; for (const p of ghost.parts) p.draw(t); GHOST = false; }
+  } else if (tool === 'road' || tool === 'curve'){
+    const cross = (a, b) => { const p = prj(a, b, 0), x = Math.round(p[0]), y = Math.round(p[1]); CUR = M.BEAM; for (let k = -4; k <= 4; k++){ fput(x + k, y, 1); fput(x, y + (k >> 1), 1); } };
+    const pts = roadPreviewPts();
+    if (pts){ dashPoly(pts, !roadProblem(pts, GAME.side), t); }
+    for (const p of toolPts) cross(p[0], p[1]);
+    const e = snapRoadPoint(hoverW[0], hoverW[1], GAME.side); cross(e[0], e[1]);
+  } else if (tool === 'wall'){
+    if (toolPts.length === 1){
+      const pieces = wallPieces(toolPts[0], [Math.round(hoverW[0]), Math.round(hoverW[1])]), ok = !wallProblem(pieces, GAME.side);
+      GHOST = ok; for (const [pa, pb, qa, qb] of pieces){ if (ok) drawWallPiece(pa, pb, qa, qb, '', GAME.side); else { CUR = M.ICON_R; const p = prj(pa, pb, 0), q = prj(qa, qb, 0); lineS(p[0], p[1], q[0], q[1], 1); } } GHOST = false;
+    }
+  } else if (tool === 'demolish'){
+    const l = bldAt(hoverW[0], hoverW[1]); if (l && l.side === GAME.side) dashRect(l.a0, l.a1, l.b0, l.b1, false);
+  } else if (tool === 'barge') drawLandingMark(t);
+}
+function drawLandingMark(t){
+  const s = nearestShore(hoverW[0], hoverW[1], 60); if (!s) return;
+  const p = prj(s[0], s[1], 0), x = Math.round(p[0]), y = Math.round(p[1]), r = 6 + Math.round(Math.sin(t * 4) * 2);
+  CUR = M.BEAM; for (let k = 0; k < 24; k++){ const an = k / 24 * TAU; fput(Math.round(x + Math.cos(an) * r * 1.4), Math.round(y + Math.sin(an) * r * .7), 1); }
+  pennant(x, y - 12, GAME.side, t, 1); CUR = M.METAL; for (let k = 0; k < 12; k++) fput(x, y - k, 1);
+}
+
+/* ---- zoom et rotation : boutons et boussole ---- */
 const compassCv = $('compass').querySelector('canvas');
 function updateZoomUI(){
   $('zoomLabel').textContent = Math.round(ZT / KDEF * 100) + ' %';
@@ -124,7 +216,6 @@ function updateZoomUI(){
 function drawCompass(){
   const g = compassCv.getContext('2d'), im = g.createImageData(11, 11), d = new Uint32Array(im.data.buffer);
   d.fill(BLACK);
-  // nord = vers le phare (b negatif)
   let vx = (0 * PC - (-1) * PS) - (0 * PS + (-1) * PC), vy = ((0 * PC - (-1) * PS) + (0 * PS + (-1) * PC)) * .5;
   const l = Math.hypot(vx, vy) || 1; vx /= l; vy /= l;
   for (let s = -4; s <= 4; s += .25){ const x = Math.round(5 + vx * s), y = Math.round(5 + vy * s); if (x >= 0 && y >= 0 && x < 11 && y < 11) d[y * 11 + x] = WHITE; }
@@ -139,181 +230,45 @@ $('zoomLabel').addEventListener('click', () => setZoom(KDEF));
 $('rotL').addEventListener('click', () => rotateBy(-Math.PI / 4));
 $('rotR').addEventListener('click', () => rotateBy(Math.PI / 4));
 $('compass').addEventListener('click', () => { const k = Math.round(cam.phi / TAU); cam.phiT = k * TAU; });
+const WX_MODES = ['auto', 'clair', 'pluie', 'neige', 'brouillard'], WX_LABEL = { auto: 'Météo auto', clair: 'Soleil', pluie: 'Pluie', neige: 'Neige', brouillard: 'Brouillard' };
+$('btnWx').addEventListener('click', () => { WEATHER.mode = WX_MODES[(WX_MODES.indexOf(WEATHER.mode) + 1) % WX_MODES.length]; $('btnWx').textContent = WX_LABEL[WEATHER.mode]; if (WEATHER.mode === 'auto') WEATHER.next = 0; });
 
-/* ================= modes et palette ================= */
-const HINTS = {
-  walk: 'Glisse pour te déplacer, molette pour zoomer, clic droit glissé ou R pour tourner. Clique sur un chat pour lui parler.',
-  build: 'Choisis un bâtiment puis clique sur un terrain libre. Il prend le style du camp.',
-  road: 'Clique pour le départ de la route, puis clique pour l’arrivée. Elle se raccorde toute seule. Échap pour annuler.',
-  demolish: 'Clique sur un bâtiment, ou sur une route que tu as tracée, pour la démolir.'
-};
-function setMode(m){
-  state.mode = m;
-  mbtns.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === m)));
-  $('palette').hidden = m !== 'build';
-  $('modeHint').textContent = HINTS[m];
-  scene.classList.toggle('build', m === 'build' || m === 'road'); scene.classList.toggle('demolish', m === 'demolish');
-  roadStart = null;
-  ghostKey = ''; updateGhost();
-}
-mbtns.forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
-const palette = $('palette');
-function buildPalette(){
-  const saved = { PC, PS, TX, TY, W, H, fb, mb, lb };
-  for (const key of PALETTE){
-    const b = document.createElement('button');
-    b.className = 'btn bbtn'; b.type = 'button'; b.setAttribute('role', 'radio'); b.dataset.t = key;
-    b.setAttribute('aria-checked', String(key === state.buildType));
-    const cv = document.createElement('canvas'); cv.width = 64; cv.height = 48;
-    const sp = document.createElement('span'); sp.textContent = TYPES[key].name;
-    const ct = document.createElement('i'); ct.className = 'cost'; ct.textContent = costOf(key) + ' laine';
-    b.append(cv, sp, ct); palette.appendChild(b);
-    // rendu miniature avec le meme moteur
-    const side = PREVIEW_SIDE[key] || 'usc';
-    const lot = { a0: -18, a1: 18, b0: -15.5, b1: 15.5, ca: 0, cb: 0, side };
-    W = 64; H = 48; fb = new Uint8Array(W * H); mb = new Uint8Array(W * H); lb = new Uint8Array(W * H); PC = 1; PS = 0;
-    CUR_SIDE = side;
-    const r = TYPES[key].build(lot, 5), probe = { x0: 1e9, y0: 1e9, x1: -1e9, y1: -1e9 };
-    TX = 32; TY = 30;
-    const parts = r.parts.slice().sort((u, v) => (dep(u.a, u.b) + u.zb) - (dep(v.a, v.b) + v.zb));
-    for (const p of parts){ CUR = side === 'ccp' ? M.CCP : M.USC; p.draw(0); }
-    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (fb[y * W + x]){ probe.x0 = Math.min(probe.x0, x); probe.x1 = Math.max(probe.x1, x); probe.y0 = Math.min(probe.y0, y); probe.y1 = Math.max(probe.y1, y); }
-    if (probe.x1 >= 0){
-      TX += Math.round(32 - (probe.x0 + probe.x1) / 2); TY += Math.round(25 - (probe.y0 + probe.y1) / 2);
-      fb.fill(0); mb.fill(0); for (const p of parts){ CUR = side === 'ccp' ? M.CCP : M.USC; p.draw(0); }
-    }
-    const cx = cv.getContext('2d'), im = cx.createImageData(64, 48), d32 = new Uint32Array(im.data.buffer);
-    for (let i = 0; i < 64 * 48; i++) d32[i] = COLOR ? (fb[i] || mb[i] ? PALL[((mb[i] << 1) | fb[i]) * 5 + lb[i]] : 0) : (fb[i] ? WHITE : BLACK);
-    cx.putImageData(im, 0, 0);
-    b.addEventListener('click', () => { state.buildType = key; [...palette.children].forEach(c => c.setAttribute('aria-checked', String(c.dataset.t === key))); ghostKey = ''; updateGhost(); });
-  }
-  ({ PC, PS, TX, TY, W, H, fb, mb, lb } = saved);
+/* ---- temps : pause et vitesse (le temps du jeu, pas seulement l'horloge) ---- */
+const SPEEDS = [1, 2, 4];
+const PAUSE_SVG = $('clockPlay').innerHTML, PLAY_SVG = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9.5-5.5z" fill="currentColor"/></svg>';
+function setPaused(p){ GAME.paused = p; const b = $('clockPlay'); b.innerHTML = p ? PLAY_SVG : PAUSE_SVG; b.setAttribute('aria-pressed', String(p)); b.setAttribute('aria-label', p ? 'Reprendre' : 'Mettre en pause'); document.body.classList.toggle('paused', p); }
+function setSpeed(s){ GAME.speed = s; $('clockSpeed').textContent = '×' + s; }
+$('clockPlay').addEventListener('click', () => setPaused(!GAME.paused));
+$('clockSpeed').addEventListener('click', () => setSpeed(SPEEDS[(SPEEDS.indexOf(GAME.speed) + 1) % SPEEDS.length]));
+const pad2 = (n) => String(n).padStart(2, '0');
+let clockShown = -1;
+function updateClockUI(){
+  const m = Math.floor(CLOCK.h * 60) % 1440; if (m === clockShown) return;
+  clockShown = m; $('clockTime').textContent = pad2(Math.floor(m / 60)) + ':' + pad2(m % 60);
 }
 
-let toastTimer = 0;
-function toast(msg){ const el = $('toast'); el.textContent = msg; el.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => el.hidden = true, 2400); }
-let lastBuilt = '';
-function placeOn(lot, silent){
-  if (lot.type){ toast('Ce terrain est déjà occupé.'); return; }
-  if (lot.blocked){ toast('Une route passe sur ce terrain.'); return; }
-  const why = canBuildHere(lot); if (why){ toast(why); return; }
-  const type = state.buildType;
-  if (!payFor(lot, type)) return;
-  const camp = { bonus: CAMPS[lot.side].bonus, want: CAMPS[lot.side].want, done: CAMPS[lot.side].done };
-  lot.type = type; lot.lvl = 1; lot.buildT = NOW_T; lot.lvlT = NOW_T;
-  refreshNeighbors(); rebuildTown(); shadowsLater(); ghostKey = ''; updateGhost(); saveSoon();
-  const T = TYPES[lot.type], nm = typeName(lot.type, lot.side), nb = neighborOf(lot, type);
-  pushHistory({ kind: 'build', id: lot.id, cost: costOf(type), camp });
-  lastBuilt = nm.toLowerCase() + (lot.side === 'ccp' ? ' côté CCR' : ' côté USC');
-  if (!silent) toast(nm + (T.fem ? ' construite' : ' construit') + (lot.side === 'ccp' ? ' en CCR' : ' en USC') + (nb.s ? ' · voisinage ' + (nb.s > 0 ? '+' : '') + nb.s + ' (' + nb.why.join(', ') + ')' : '') + '.');
-  if (typeof radioFlash === 'function' && !silent) radioFlash(lot);
-  if (!silent) sfx('build', lot.ca, lot.cb);
-  onBuilt(lot);
-  if (typeof mpPush === 'function') mpPush();
-}
-function demolish(lot){
-  if (!lot.type){ toast('Rien à démolir ici.'); return; }
-  const why = canBuildHere(lot, true); if (why){ toast(why); return; }
-  const T = TYPES[lot.type], nm = typeName(lot.type, lot.side), refund = Math.round(costOf(lot.type) / 2);
-  pushHistory({ kind: 'demolish', id: lot.id, type: lot.type, lvl: lot.lvl || 1, refund });
-  RES[lot.side].laine += refund;
-  lot.type = ''; lot.lvl = 1; lot.buildT = 0; lot.demoT = NOW_T;
-  refreshNeighbors(); rebuildTown(); ghostKey = ''; updateGhost(); saveSoon();
-  toast(nm + (T.fem ? ' démolie' : ' démoli') + ', ' + refund + ' laine récupérée.');
-  sfx('demolish', lot.ca, lot.cb);
-  updateCamps(true);
-  if (typeof mpPush === 'function') mpPush();
-}
-
-/* ================= tracer des routes ================= */
-let roadStart = null, roadHover = null;
-function segRect(s, pad){
-  return s.o === 'a' ? [s.s0 - pad, s.s1 + pad, s.c - pad, s.c + pad] : [s.c - pad, s.c + pad, s.s0 - pad, s.s1 + pad];
-}
-function snapRoadPoint(a, b){
-  let sa = Math.round(a / 10) * 10, sb = Math.round(b / 10) * 10;
-  for (const s of allRoads()){
-    if (s.o === 'a'){ if (Math.abs(b - s.c) < 12 && a >= s.s0 - 12 && a <= s.s1 + 12) sb = s.c; }
-    else { if (Math.abs(a - s.c) < 12 && b >= s.s0 - 12 && b <= s.s1 + 12) sa = s.c; }
-  }
-  return [sa, sb];
-}
-function roadFrom(p, a, b){
-  const q = snapRoadPoint(a, b);
-  if (Math.abs(a - p[0]) >= Math.abs(b - p[1])) return { o: 'a', c: p[1], s0: Math.min(p[0], q[0]), s1: Math.max(p[0], q[0]) };
-  return { o: 'b', c: p[0], s0: Math.min(p[1], q[1]), s1: Math.max(p[1], q[1]) };
-}
-function roadProblem(s){
-  if (s.s1 - s.s0 < 15) return 'Trop court : tire la route un peu plus loin.';
-  if (GAME.mp && roadSide(s) !== GAME.mp.seat) return 'Ce côté-là appartient à ton adversaire : trace tes routes chez toi.';
-  for (let t = s.s0 - RW; t <= s.s1 + RW; t += 1) for (const off of [-RW, 0, RW]){
-    const a = s.o === 'a' ? t : s.c + off, b = s.o === 'a' ? s.c + off : t;
-    if (Math.abs(a - WALL_A) < STRIP + 1) return 'Le Rideau de Laine ne se traverse qu’au Checkpoint Minou.';
-    const i = cellOf(a, b);
-    if (i < 0) return 'Pas de route dans la mer.';
-    const bt = gBase[i];
-    if (bt === T_SEA || bt === T_ROCK || bt === T_PIER || bt === T_PATH || gLand[i] < 8) return 'Pas de route dans la mer.';
-    if (bt === T_RAIL && s.o === 'a') return 'La voie ferrée passe ici : trace ta route en travers des rails.';
-    if (bt === T_TARMAC || bt === T_APRON) return 'Pas de route sur l’aéroport.';
-  }
-  const R = segRect(s, RWS);
-  for (const l of LOTS){ if (!l.type) continue; if (R[0] < l.a1 && R[1] > l.a0 && R[2] < l.b1 && R[3] > l.b0) return 'Un bâtiment bloque le passage. Démolis-le d’abord.'; }
-  for (const r of allRoads()) if (r.o === s.o && Math.abs(r.c - s.c) < 1 && s.s0 >= r.s0 - 1 && s.s1 <= r.s1 + 1) return 'Il y a déjà une route ici.';
-  return '';
-}
-function applyRoadsChange(s){
-  const r = segRect(s, RWS + 18);
-  paintRoads(r[0], r[1], r[2], r[3]);
-  refreshBlocked();
-  buildGraph(); reseatCars();
-  rebuildTown(); ghostKey = ''; updateGhost(); saveSoon();
-}
-function addRoad(s){
-  const pb2 = roadProblem(s); if (pb2) return pb2;
-  const seg = { o: s.o, c: s.c, s0: s.s0, s1: s.s1 };
-  USER_ROADS.push(seg);
-  pushHistory({ kind: 'road', seg });
-  applyRoadsChange(s);
-  if (typeof mpPush === 'function') mpPush();
-  return '';
-}
-function userRoadAt(a, b){
-  for (let k = USER_ROADS.length - 1; k >= 0; k--){ const R = segRect(USER_ROADS[k], RWS); if (a >= R[0] && a <= R[1] && b >= R[2] && b <= R[3]) return k; }
-  return -1;
-}
-function removeRoad(k){ if (GAME.mp && roadSide(USER_ROADS[k]) !== GAME.mp.seat){ toast('Cette route appartient à ton adversaire.'); return; } const s = USER_ROADS.splice(k, 1)[0]; pushHistory({ kind: 'unroad', seg: s }); applyRoadsChange(s); if (typeof mpPush === 'function') mpPush(); }
-function drawRoadPreview(t){
-  if (state.mode !== 'road') return;
-  GHOST_T = Math.floor(t * 8);
-  CUR = M.BEAM;
-  const cross = (a, b) => { const p = prj(a, b, 0), x = Math.round(p[0]), y = Math.round(p[1]); for (let k = -4; k <= 4; k++){ fput(x + k, y, 1); fput(x, y + (k >> 1), 1); } };
-  if (!roadStart){ if (roadHover){ const q = snapRoadPoint(roadHover[0], roadHover[1]); cross(q[0], q[1]); } return; }
-  cross(roadStart[0], roadStart[1]);
-  if (!roadHover) return;
-  const s = roadFrom(roadStart, roadHover[0], roadHover[1]);
-  if (s.s1 - s.s0 < 1) return;
-  const ok = !roadProblem(s), R = segRect(s, RW);
-  const C = [[R[0], R[2]], [R[1], R[2]], [R[1], R[3]], [R[0], R[3]]];
-  for (let k = 0; k < 4; k++){
-    const p = prj(C[k][0], C[k][1], 0), q = prj(C[(k + 1) % 4][0], C[(k + 1) % 4][1], 0);
-    if (ok) lineS(p[0], p[1], q[0], q[1], 1, true);
-    else { const n = Math.ceil(Math.hypot(q[0] - p[0], q[1] - p[1])); for (let st = 0; st <= n; st += 4) fput(Math.floor(p[0] + (q[0] - p[0]) * st / n), Math.floor(p[1] + (q[1] - p[1]) * st / n), 1); }
-  }
-  const e = segPt(s, roadStart[s.o === 'a' ? 0 : 1] === s.s0 ? s.s1 : s.s0); cross(e[0], e[1]);
-}
-
-/* ================= pointeur : se balader, zoomer, tourner, choisir ================= */
-let drag = null;
+/* ---- pointeur : se balader, zoomer, tourner, agir ---- */
+let drag = null, pointer = null;
 const touches = new Map();
 let pinch = null;
 const keys = new Set();
-function toLogical(e){ if (OV_ON) return [-9999, -9999]; const r = scene.getBoundingClientRect(); return [Math.floor((e.clientX - r.left) / r.width * W), Math.floor((e.clientY - r.top) / r.height * H)]; }
+function toLogical(e){ const r = scene.getBoundingClientRect(); return [Math.floor((e.clientX - r.left) / r.width * W), Math.floor((e.clientY - r.top) / r.height * H)]; }
+// point du sol sous le curseur, dans les deux vues
+function worldUnder(e){ if (OV_ON) return screenToWorld(e.clientX, e.clientY); const [lx, ly] = toLogical(e); return unprj(lx + .5, ly + .5); }
 function catUnder(lx, ly){
   let best = null, bd = 10;
   for (const c of CATS){ if (!c.screen) continue; const dx = c.screen[0] - lx, dy = c.screen[1] - 3 - ly; const d = Math.hypot(dx, dy * 1.3); if (d < bd){ bd = d; best = c; } }
   return best;
 }
-function lotUnder(lx, ly){ const [a, b] = unprj(lx + .5, ly + .5); return lotAt(a, b); }
+// batiment sous le curseur : on remonte le long de la verticale pour attraper les facades
+const TIP_H = { maison: 13, immeuble: 22, artdeco: 50, stalinien: 50, stade: 8, parc: 3, fontaine: 5, usine: 22, bulbes: 28, fusee: 40, radio: 48, cirque: 16, tribune: 10, statue: 22, panneau: 20, chateau: 32, qg: 24, supermarche: 11, grandmagasin: 20, kolkhoze: 12, kiosque: 10, cinema: 15, bowling: 11, drivein: 12, diner: 9, motel: 12, station: 9, epicerie: 10, port: 12, pecherie: 8, bergerie: 10, phare: 44, drapeau: 26, checkpoint: 8 };
+function bldPick(lx, ly){
+  for (let z = 50; z >= 0; z -= 1){
+    const [a, b] = unprj(lx + .5, ly + .5 + z), l = bldAt(a, b);
+    if (l && z <= (TIP_H[l.type] || 14)) return l;
+  }
+  return null;
+}
 scene.addEventListener('contextmenu', e => e.preventDefault());
 scene.addEventListener('pointerdown', e => {
   if (e.pointerType === 'touch'){
@@ -326,11 +281,11 @@ scene.addEventListener('pointerdown', e => {
   }
   const turn = e.pointerType === 'mouse' && (e.button === 2 || (e.button === 0 && e.shiftKey));
   if (e.pointerType === 'mouse' && e.button !== 0 && e.button !== 2) return;
-  drag = { x: e.clientX, y: e.clientY, a: cam.a, b: cam.b, phi: cam.phi, moved: false, id: e.pointerId, turn };
+  drag = { x: e.clientX, y: e.clientY, a: cam.a, b: cam.b, phi: cam.phi, moved: false, id: e.pointerId, turn, right: e.button === 2 };
   try { scene.setPointerCapture(e.pointerId); } catch (_) {}
 });
 scene.addEventListener('pointermove', e => {
-  const [lx, ly] = toLogical(e);
+  const [lx, ly] = OV_ON ? [-9999, -9999] : toLogical(e);
   if (e.pointerType === 'mouse') pointer = [lx, ly];
   if (e.pointerType === 'touch' && touches.has(e.pointerId)) touches.set(e.pointerId, [e.clientX, e.clientY]);
   if (pinch && touches.size === 2){
@@ -357,44 +312,42 @@ scene.addEventListener('pointermove', e => {
     }
   }
   if (!drag || !drag.moved){
-    hoverCat = state.mode === 'walk' ? catUnder(lx, ly) : null;
-    hoverLot = (state.mode === 'build' || state.mode === 'demolish') ? lotUnder(lx, ly) : null;
-    roadHover = state.mode === 'road' ? unprj(lx + .5, ly + .5) : null;
-    scene.classList.toggle('pick', !!hoverCat);
-    updateGhost();
-    if (state.mode === 'build'){
-      const h = $('modeHint');
-      if (hoverLot && !hoverLot.type && !hoverLot.blocked){ const nb = neighborOf(hoverLot, state.buildType), why = canBuildHere(hoverLot); h.textContent = why || ((TYPES[state.buildType].name) + ' : ' + costOf(state.buildType) + ' laine · voisinage ' + (nb.s > 0 ? '+' : '') + nb.s + (nb.why.length ? ' (' + nb.why.join(', ') + ')' : '')); }
-      else h.textContent = HINTS.build;
+    hoverW = worldUnder(e);
+    hoverCat = !OV_ON && state.tool === 'walk' ? catUnder(lx, ly) : null;
+    hoverB = !OV_ON && state.tool === 'walk' && !hoverCat ? bldPick(lx, ly) : null;
+    scene.classList.toggle('pick', !!hoverCat || !!hoverB);
+    if (state.tool === 'build' && GAME.mode === 'play' && !OV_ON){
+      const s = buildSpot(hoverW[0], hoverW[1]), e2 = ECO[s.type];
+      $('modeHint').textContent = s.why || (typeName(s.type, GAME.side) + ' : ' + costLabel(priceOf(s.type, GAME.side)) + ' · ' + (e2.desc || ''));
     }
-    if (typeof showTip === 'function') showTip(e, lx, ly);
+    if (typeof showTip === 'function') showTip(e, hoverB);
   }
 });
 function endPointer(e){
   if (e.pointerType === 'touch'){ touches.delete(e.pointerId); if (touches.size < 2 && pinch){ pinch = null; drag = null; snapZoom(); return; } }
   const d = drag; drag = null; scene.classList.remove('panning', 'turning');
-  if (!d || d.moved || d.id !== e.pointerId || d.turn || e.type === 'pointercancel') return;
-  if (OV_ON){ if (state.mode !== 'walk') toast('Rapproche-toi pour construire ou démolir.'); return; }
+  if (!d || d.moved || d.id !== e.pointerId || e.type === 'pointercancel') return;
+  if (d.right){ if (toolPts.length){ toolPts = []; toast('Tracé interrompu.'); } else if (state.tool !== 'walk') setTool('walk'); return; }
+  if (d.turn) return;
+  const w = worldUnder(e);
+  if (state.tool === 'landing'){ if (typeof chooseLanding === 'function') chooseLanding(w[0], w[1]); return; }
+  if (GAME.mode !== 'play') return;
+  if (state.tool === 'barge'){ bargeTarget(w[0], w[1]); return; }
+  // sur la carte : un clic rapproche la vue de cet endroit
+  if (OV_ON){ cam.follow = [w[0], w[1]]; setZoom(KDEF, e.clientX, e.clientY); if (state.tool !== 'walk') toast('Rapproche-toi pour construire.'); return; }
   const [lx, ly] = toLogical(e);
-  if (state.mode === 'walk'){ const c = catUnder(lx, ly); if (c) openChat(c); return; }
-  if (state.mode === 'road'){
-    const g = unprj(lx + .5, ly + .5);
-    if (!roadStart){ roadStart = snapRoadPoint(g[0], g[1]); toast('Départ posé. Clique maintenant là où la route doit arriver.'); return; }
-    const s = roadFrom(roadStart, g[0], g[1]), err = addRoad(s);
-    if (err){ toast(err); return; }
-    roadStart = null; toast('Route tracée.' + (s.o === 'a' || s.o === 'b' ? '' : '')); return;
+  if (state.tool === 'walk'){
+    const c = catUnder(lx, ly); if (c){ openChat(c); return; }
+    selectBuilding(bldPick(lx, ly)); return;
   }
-  const lot = lotUnder(lx, ly);
-  if (state.mode === 'demolish' && (!lot || !lot.type)){
-    const g = unprj(lx + .5, ly + .5), k = userRoadAt(g[0], g[1]);
-    if (k >= 0){ removeRoad(k); toast('Route démolie.'); return; }
-  }
-  if (!lot){ toast(state.mode === 'build' ? 'On ne peut construire que sur les terrains libres.' : 'Rien à démolir ici.'); return; }
-  if (state.mode === 'build') placeOn(lot); else demolish(lot);
+  if (state.tool === 'build') tryBuild(w[0], w[1]);
+  else if (state.tool === 'road' || state.tool === 'curve') roadClick(w[0], w[1]);
+  else if (state.tool === 'wall') wallClick(w[0], w[1]);
+  else if (state.tool === 'demolish') demolishAt(w[0], w[1]);
 }
 scene.addEventListener('pointerup', endPointer);
 scene.addEventListener('pointercancel', endPointer);
-scene.addEventListener('pointerleave', () => { pointer = null; hoverCat = null; if (!drag) { hoverLot = null; updateGhost(); } });
+scene.addEventListener('pointerleave', () => { pointer = null; hoverCat = null; hoverB = null; if (!drag) hoverW = null; });
 let wheelAcc = 0, wheelT = 0, wheelSnap = 0;
 scene.addEventListener('wheel', e => {
   e.preventDefault();
@@ -410,10 +363,18 @@ window.addEventListener('keydown', e => {
   if (!typing(e) && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z'){ e.preventDefault(); undo(); return; }
   if (typing(e) || e.metaKey || e.ctrlKey || e.altKey) return;
   const k = e.key.toLowerCase();
-  if (['arrowleft','arrowright','arrowup','arrowdown','q','a','z','w','s','d'].includes(k)){ if (e.target === ibar) return; keys.add(k); cam.target = null; cam.follow = null; e.preventDefault(); }
-  else if (k === 'escape'){ if (state.chatCat) closeChat(); else if (roadStart) roadStart = null; else setMode('walk'); }
-  else if (k === 'b') setMode(state.mode === 'build' ? 'walk' : 'build');
-  else if (k === 'r') rotateBy(e.shiftKey ? -Math.PI / 4 : Math.PI / 4);
+  if (['arrowleft','arrowright','arrowup','arrowdown','q','a','z','w','s','d'].includes(k)){ keys.add(k); cam.target = null; cam.follow = null; e.preventDefault(); return; }
+  if (k === 'escape'){ if (state.chatCat) closeChat(); else if (toolPts.length) toolPts = []; else if (state.sel) selectBuilding(null); else if (state.tool !== 'landing') setTool('walk'); return; }
+  if (GAME.mode !== 'play'){ if (k === '+' || k === '=') zoomStep(1); else if (k === '-' || k === '_') zoomStep(-1); return; }
+  if (k === 'b') setTool(state.tool === 'build' ? 'walk' : 'build');
+  else if (k === 'r') setTool('road');
+  else if (k === 'c') setTool('curve');
+  else if (k === 'm') setTool('wall');
+  else if (k === 'x') setTool('demolish');
+  else if (k === ' ') { e.preventDefault(); setPaused(!GAME.paused); }
+  else if (k === '1' || k === '2' || k === '3') setSpeed(SPEEDS[+k - 1]);
+  else if (k === 'pageup') rotateBy(-Math.PI / 4);
+  else if (k === 'pagedown') rotateBy(Math.PI / 4);
   else if (k === 'n') { const n = Math.round(cam.phi / TAU); cam.phiT = n * TAU; }
   else if (k === '+' || k === '=') zoomStep(1);
   else if (k === '-' || k === '_') zoomStep(-1);
@@ -426,5 +387,5 @@ function stepKeys(dt){
   if (keys.has('arrowright') || keys.has('d')) dx += 1;
   if (keys.has('arrowup') || keys.has('z') || keys.has('w')) dy -= 1;
   if (keys.has('arrowdown') || keys.has('s')) dy += 1;
-  if (dx || dy){ const s = 170 * dt * KDEF / Z; const g = groundDelta(dx * s, dy * s); cam.a += g[0]; cam.b += g[1]; clampCam(); }
+  if (dx || dy){ const s = 700 * dt * DPR / Z; const g = groundDelta(dx * s, dy * s); cam.a += g[0]; cam.b += g[1]; clampCam(); }
 }
