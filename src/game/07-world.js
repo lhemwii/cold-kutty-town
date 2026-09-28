@@ -21,6 +21,47 @@ function buildForests(seed){
     }
   }
 }
+/* ================= montagnes : des sommets en 3D sur les zones rocheuses ================= */
+const PEAKS = { list: [], grid: new Map() };
+function buildMountains(seed){
+  PEAKS.list = []; PEAKS.grid = new Map();
+  for (let b = GB0 + 10; b < GB0 + GH / GSC - 10; b += 30){
+    for (let a = GA0 + 10; a < GA0 + GW / GSC - 10; a += 36){
+      const ja = a + (hash2(a + seed, b * 3) - .5) * 20, jb = b + (hash2(a * 3, b + seed) - .5) * 16;
+      if (baseAt(ja, jb) !== T_ROCK || landDAt(ja, jb) < 40) continue;
+      const m = clamp((mountN(ja, jb) - MOUNT_T) / (1 - MOUNT_T), 0, 1);
+      if (hash2(ja - 3, jb + 9) > .45 + m * 1.5) continue;
+      const H = Math.round(22 + m * 80 + hash2(ja, jb) * 12), R = 14 + H * .5;
+      // base irreguliere a 6 cotes, sommet un peu decale
+      const n = 6, ph = hash2(ja + 1, jb) * TAU, base = [];
+      for (let k = 0; k < n; k++){ const an = ph + k * TAU / n, rr = R * (.78 + hash2(ja + k, jb - k) * .44); base.push([ja + Math.cos(an) * rr, jb + Math.sin(an) * rr]); }
+      const pk = { a: ja, b: jb, H, R, base, apex: [ja + (hash2(ja, jb + 5) - .5) * R * .3, jb + (hash2(ja + 5, jb) - .5) * R * .3], snow: H > 58 };
+      PEAKS.list.push(pk);
+      const key = treeCell(ja, jb); let L = PEAKS.grid.get(key); if (!L){ L = []; PEAKS.grid.set(key, L); } L.push(pk);
+    }
+  }
+}
+function drawPeak(pk){
+  const n = pk.base.length, [ta, tb] = pk.apex, H = pk.H;
+  for (let k = 0; k < n; k++){
+    const [pa, pb] = pk.base[k], [qa, qb] = pk.base[(k + 1) % n];
+    // normale sortante de la face (p, q, sommet)
+    const ux = qa - pa, uy = qb - pb, vx = ta - pa, vy = tb - pb, nx = uy * H - 0 * vy, ny = 0 * vx - ux * H, nz = ux * vy - uy * vx;
+    const sgn = nz < 0 ? -1 : 1, nrm = [nx * sgn, ny * sgn, nz * sgn];
+    CUR = M.ROCK;
+    drawFace([pa, pb, 0, qa, qb, 0, ta, tb, H], nrm, (x, y) => bz(x, y) < 5 ? 1 : 0, 1);
+    if (pk.snow){
+      const f = .68, sa = pa + (ta - pa) * f, sb = pb + (tb - pb) * f, ea = qa + (ta - qa) * f, eb = qb + (tb - qb) * f;
+      CUR = M.NEUTRAL;
+      drawFace([sa, sb, H * f, ea, eb, H * f, ta, tb, H], nrm, (x, y) => bz(x, y) < 14 ? 1 : 0, -1);
+    }
+  }
+}
+function peaksIn(a0, a1, b0, b1, fn){
+  for (let i = Math.floor(a0 / TB); i <= Math.floor(a1 / TB); i++) for (let j = Math.floor(b0 / TB); j <= Math.floor(b1 / TB); j++){
+    const L = PEAKS.grid.get(treeKey(i, j)); if (L) for (const p of L) fn(p);
+  }
+}
 // arbres dans un rectangle (vivants seulement)
 function treesIn(a0, a1, b0, b1, fn){
   for (let i = Math.floor(a0 / TB); i <= Math.floor(a1 / TB); i++) for (let j = Math.floor(b0 / TB); j <= Math.floor(b1 / TB); j++){
@@ -49,6 +90,11 @@ function treeDrawables(out, t, withShadows){
   let a0 = 1e9, a1 = -1e9, b0 = 1e9, b1 = -1e9;
   for (const [a, b] of cs){ a0 = Math.min(a0, a); a1 = Math.max(a1, a); b0 = Math.min(b0, b); b1 = Math.max(b1, b); }
   const xmas = XMAS_ON;
+  peaksIn(a0 - 40, a1 + 40, b0 - 40, b1 + 80, (pk) => {
+    const q = prj(pk.a, pk.b, 0);
+    if (q[0] < -pk.R * 2 || q[0] > W + pk.R * 2 || q[1] < -10 || q[1] > H + pk.H + pk.R) return;
+    out.push({ d: dep(pk.a, pk.b) - pk.R * .5, m: M.ROCK, f: () => drawPeak(pk) });
+  });
   treesIn(a0, a1, b0, b1, (tr) => {
     const q = prj(tr.a, tr.b, 0);
     if (q[0] < -14 || q[0] > W + 14 || q[1] < -4 || q[1] > H + 26) return;

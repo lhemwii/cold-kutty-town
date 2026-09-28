@@ -247,13 +247,14 @@ function mapInit(){
   MAPV.g = MAPV.cv.getContext('2d'); MAPV.img = MAPV.g.createImageData(MAPV.W, MAPV.H); MAPV.px = new Uint32Array(MAPV.img.data.buffer);
   MAPV.all = true;
 }
-function mapDirtyAll(){ MAPV.all = true; }
-function mapDirtyRect(a0, a1, b0, b1){
+function mapDirtyAll(){ MAPV.all = true; ovtDirtyAll(); }
+function mapDirtyRect(a0, a1, b0, b1, terOnly){
+  ovtDirty(a0, a1, b0, b1, terOnly);
   if (MAPV.all) return;
   MAPV.dirty.push([Math.max(0, Math.floor((a0 - GA0) / MS)), Math.min(MAPV.W - 1, Math.ceil((a1 - GA0) / MS)), Math.max(0, Math.floor((b0 - GB0) / MS)), Math.min(MAPV.H - 1, Math.ceil((b1 - GB0) / MS))]);
   if (MAPV.dirty.length > 400) MAPV.all = true;
 }
-function mapDirtyCell(i){ const x = i % TER.W, y = (i / TER.W) | 0; mapDirtyRect(GA0 + x * TC - 2, GA0 + (x + 1) * TC + 2, GB0 + y * TC - 2, GB0 + (y + 1) * TC + 2); }
+function mapDirtyCell(i){ const x = i % TER.W, y = (i / TER.W) | 0; mapDirtyRect(GA0 + x * TC - 2, GA0 + (x + 1) * TC + 2, GB0 + y * TC - 2, GB0 + (y + 1) * TC + 2, true); }
 const MCOL = {};
 [[T_SEA, '#1d5c96'], [T_GRASS, '#6aa44a'], [T_BEACH, '#e8d49c'], [T_ROAD, '#5f6166'], [T_WALK, '#b9b5aa'], [T_ROCK, '#8b8780'], [T_FOREST, '#3f7a33'], [T_DIRT, '#a8845a'], [T_PIER, '#7b5231'], [T_QUAY, '#bdbab2']].forEach(([t, h]) => MCOL[t] = hexRGB3(h));
 function hexRGB3(h){ const v = parseInt(h.slice(1), 16); return [v >> 16, (v >> 8) & 255, v & 255]; }
@@ -318,17 +319,22 @@ function mapMatrix(){
 function worldToDev(a, b){ const X = (a - cam.a) * PC - (b - cam.b) * PS, Y = (a - cam.a) * PS + (b - cam.b) * PC; return [devW / 2 + Z * (X - Y), devH / 2 + Z * (X + Y) * .5]; }
 function drawOverview(t){
   PC = Math.cos(cam.phi); PS = Math.sin(cam.phi);
-  mapUpdate();
   const c = ctx;
   c.setTransform(1, 0, 0, 1, 0, 0);
-  c.fillStyle = '#1d5c96';
+  const sea = PALL[(M.SEA * 2) * 5];
+  c.fillStyle = 'rgb(' + (sea & 255) + ',' + ((sea >> 8) & 255) + ',' + ((sea >> 16) & 255) + ')';
   c.fillRect(0, 0, devW, devH);
-  c.imageSmoothingEnabled = Z * MS < 3;
-  c.setTransform(...mapMatrix());
-  c.drawImage(MAPV.cv, 0, 0);
-  c.setTransform(1, 0, 0, 1, 0, 0);
-  // la nuit tombe aussi sur la carte
-  if (NIGHT > .02){ c.fillStyle = 'rgba(10,18,48,' + (NIGHT * .55).toFixed(3) + ')'; c.fillRect(0, 0, devW, devH); }
+  ovtWork(t);
+  const O = OVT.front;
+  // tant que le cache n'est pas plein, la carte plate sert de fond
+  if (!O || O.pending){
+    mapUpdate();
+    c.imageSmoothingEnabled = Z * MS < 3;
+    c.setTransform(...mapMatrix());
+    c.drawImage(MAPV.cv, 0, 0);
+    c.setTransform(1, 0, 0, 1, 0, 0);
+  }
+  if (O) ovtDraw(O);
   for (const f of HOOKS.map) f(c, t);
 }
 
@@ -372,7 +378,7 @@ function renderGround(t){
         if (ty2 === 0) m = GS[ci] < 16 ? MSS : GS[ci] < 50 ? MSM : MS2;
         else {
           m = TM[ty2]; if (ty2 === 1) lv = GV[(ib >> 2) * qw + (ia >> 2)];
-          if (hasT){ const ti = (ib >> 3) * TW + (ia >> 3); own = TO[ti]; if (own && gt - TFR[ti] < 1.1) own += 2; }
+          if (hasT){ const ti = (ib >> 3) * TW + (ia >> 3); own = TO[ti]; if (own && !NOFRESH && gt - TFR[ti] < 1.1) own += 2; }
         }
       }
       let v = 0;
@@ -404,6 +410,28 @@ function renderGround(t){
     }
   }
 }
+// recalcule seulement les camps par pixel (teinte et frontieres), d'apres la geometrie du sol
+function groundOwners(){
+  const dax = .5 * PC - .5 * PS, dbx = -.5 * PS - .5 * PC, day = PC + PS, dby = PC - PS, o = unprj(.5, .5);
+  const OB = ob, GTY = gType, TO = TER.own, TW = TER.W, TFR = TER.fresh, gt = GAME.t, w = W, h = H, gw = GW, gh = GH;
+  if (OROW.length !== w) OROW = new Uint8Array(w);
+  const UP = OROW; UP.fill(0);
+  let i = 0;
+  for (let y = 0; y < h; y++){
+    let fa = (o[0] + y * day - GA0) * 2, fbb = (o[1] + y * dby - GB0) * 2, left = 0;
+    const dfa = dax * 2, dfb = dbx * 2;
+    for (let x = 0; x < w; x++, i++){
+      let own = 0;
+      if (fa >= 0 && fbb >= 0 && fa < gw && fbb < gh){ const ia = fa | 0, ib = fbb | 0; if (GTY[ib * gw + ia] !== 0){ const ti = (ib >> 3) * TW + (ia >> 3); own = TO[ti]; if (own && !NOFRESH && gt - TFR[ti] < 1.1) own += 2; } }
+      const base = own > 2 ? own - 2 : own;
+      let ov = own;
+      if (x > 0 && base !== left){ if (base) ov = base + 2; if (left) OB[i - 1] = left + 2; }
+      if (y > 0 && base !== UP[x]){ if (base) ov = base + 2; if (UP[x]) OB[i - w] = UP[x] + 2; }
+      OB[i] = ov; left = base; UP[x] = base;
+      fa += dfa; fbb += dfb;
+    }
+  }
+}
 function drawWaves(t){
   const cs = [unprj(0, 0), unprj(W, 0), unprj(0, H), unprj(W, H)];
   let a0 = 1e9, a1 = -1e9, b0 = 1e9, b1 = -1e9;
@@ -427,9 +455,9 @@ function drawWaves(t){
 
 /* ================= lumieres au sol ================= */
 let LIGHTS = [];
-function gatherLights(t){
+function gatherLights(t, stat){
   LIGHTS = LIGHTS_STATIC.slice();
-  for (const c of CARS) if (c.pos) LIGHTS.push(c.light);
+  if (!stat) for (const c of CARS) if (c.pos) LIGHTS.push(c.light);
   for (const tw of WALL_TOWERS){ const sp = towerSpot(tw, t); LIGHTS.push({ kind: 'circle', a: sp[0], b: sp[1], r: 7, k: 1.6, att: .5, m: M.BEAM }); }
 }
 function applyLights(){
@@ -500,16 +528,17 @@ function drawSatellite(t){
 /* ================= rendu complet ================= */
 let DYN_SHADOWS = [];
 function dynamicDrawables(t){ const out = []; DYN_SHADOWS = []; for (const f of HOOKS.dyn) f(t, out); return out; }
-function render(t){
+// stat : rendu d'une tuile du cache, sans rien de ce qui bouge (voitures, chats, bateaux, vagues, meteo)
+function render(t, stat){
   setProj();
   renderGround(t);
-  drawWaves(t);
+  if (!stat) drawWaves(t);
   for (const d of DECALS) d(t);
-  const dyn = dynamicDrawables(t);
+  const dyn = stat ? [] : dynamicDrawables(t);
   siteDrawables(t, dyn);
   const shadowsOn = COLOR && NIGHT < .6;
   if (shadowsOn) drawShadows();
-  if (!COLOR || NIGHT > .25){ gatherLights(t); applyLights(); }
+  if (!COLOR || NIGHT > .25){ gatherLights(t, stat); applyLights(); }
   const list = [];
   const Mg = 110;
   for (const p of STATIC_PARTS){
@@ -518,21 +547,21 @@ function render(t){
     list.push({ d: dep(p.a, p.b) + p.zb, f: p.draw, m: p.m, side: p.side });
   }
   treeDrawables(list, t, shadowsOn);
+  if (!stat){
   for (const c of CARS){ const p = c.pos; if (!p) continue; const q = prj(p.a, p.b, 0); if (q[0] < -20 || q[0] > W + 20 || q[1] < -20 || q[1] > H + 20) continue; list.push({ d: dep(p.a, p.b), f: () => drawCarAng(p.a, p.b, p.ang, c.side) }); }
   for (const c of CATS){ const p = catPos(c, t), q = prj(p.a, p.b, 0); if (q[0] < -20 || q[0] > W + 20 || q[1] < -20 || q[1] > H + 20){ c.screen = null; continue; } list.push({ d: dep(p.a, p.b) + .2, f: () => drawCat(c, t) }); }
   const sp = sailPos(t); list.push({ d: dep(sp[0], sp[1]), f: drawSailboat });
+  }
   for (const o of dyn) list.push(o);
   list.sort((u, v) => u.d - v.d);
   for (const it of list){ CUR = it.m == null ? M.METAL : it.m; CUR_SIDE = it.side || 'usc'; it.f(t); }
-  for (const f of HOOKS.top) f(t);
-  if (typeof drawToolPreview === 'function') drawToolPreview(t);
+  if (!stat){ for (const f of HOOKS.top) f(t); if (typeof drawToolPreview === 'function') drawToolPreview(t); }
   if (!COLOR || NIGHT > .35){ for (const bk of BEACONS){ drawLantern(bk[0], bk[1]); drawGlow(bk[0], bk[1], t); } drawLampHeads(); }
   else for (const bk of BEACONS) drawLantern(bk[0], bk[1]);
-  drawSatellite(t); drawWeather(t);
-  if (COLOR) for (const f of HOOKS.post) f(t);
+  if (!stat){ drawSatellite(t); drawWeather(t); if (COLOR) for (const f of HOOKS.post) f(t); }
   const P = PALX, pl = PL;
   for (let i = 0; i < N; i++){ const m = mb[i]; px32[i] = P[ob[i] * pl + (((m << 1) | fb[i]) * 5 + lb[i])]; }
-  ctx.putImageData(img, 0, 0);
+  if (!stat) ctx.putImageData(img, 0, 0);
 }
 
 /* ================= ombres portees (version couleur, de jour) ================= */
@@ -576,4 +605,105 @@ function drawShadows(){
       for (let x = xa; x <= xb; x++) lb[row + x] = 4;
     }
   }
+}
+
+/* ================= vue d'ensemble detaillee : toute l'ile en pixel art, gardee en tuiles ================= */
+// Au dezoom, on n'essaie plus de tout redessiner a chaque image : l'ile est rendue a l'echelle 1 dans des tuiles,
+// on ne refait que les tuiles salies (batiment, route) ou on les recolore (territoire, nuit), avec un budget de temps.
+// Quand la vue tourne, on construit un nouveau cache a cote et on garde l'ancien, deforme, en attendant.
+const TS = 256, OVT = { front: null, back: null, budget: 7 };
+// dans le cache, pas de lueur sur les cases fraichement prises : elle y resterait figee
+let NOFRESH = false;
+const ISO_X = (a, b) => (a * PC - b * PS) - (a * PS + b * PC), ISO_Y = (a, b) => ((a * PC - b * PS) + (a * PS + b * PC)) * .5;
+function ovtNew(phi){
+  PC = Math.cos(phi); PS = Math.sin(phi);
+  let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+  for (const [a, b] of [[GA0, GB0], [GA0 + GW / GSC, GB0], [GA0, GB0 + GH / GSC], [GA0 + GW / GSC, GB0 + GH / GSC]]){ const x = ISO_X(a, b), y = ISO_Y(a, b); x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+  x0 = Math.floor(x0 - 20); y0 = Math.floor(y0 - 110); x1 = Math.ceil(x1 + 20); y1 = Math.ceil(y1 + 20);
+  const nx = Math.ceil((x1 - x0) / TS), ny = Math.ceil((y1 - y0) / TS), cv = document.createElement('canvas');
+  cv.width = nx * TS; cv.height = ny * TS;
+  const O = { phi, x0, y0, nx, ny, cv, g: cv.getContext('2d'), tiles: [], pending: nx * ny, palKey: '' };
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) O.tiles.push({ i, j, state: 2, pk: '', fb: null, mb: null, lb: null, ob: null, img: null, empty: false });
+  return O;
+}
+// state : 0 a jour, 1 a recolorer (territoire), 2 a redessiner
+function ovtDirtyAll(){ for (const O of [OVT.front, OVT.back]) if (O) for (const T of O.tiles) T.state = 2; }
+function ovtDirty(a0, a1, b0, b1, terOnly){
+  for (const O of [OVT.front, OVT.back]){
+    if (!O) continue;
+    const pc = Math.cos(O.phi), ps = Math.sin(O.phi), X = (a, b) => (a * pc - b * ps) - (a * ps + b * pc), Y = (a, b) => ((a * pc - b * ps) + (a * ps + b * pc)) * .5;
+    let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+    for (const [a, b] of [[a0, b0], [a1, b0], [a0, b1], [a1, b1]]){ const x = X(a, b), y = Y(a, b); x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+    // les objets montent au-dessus du sol : on salit aussi vers le haut
+    const up = terOnly ? 2 : 90;
+    const i0 = Math.max(0, Math.floor((x0 - 4 - O.x0) / TS)), i1 = Math.min(O.nx - 1, Math.floor((x1 + 4 - O.x0) / TS));
+    const j0 = Math.max(0, Math.floor((y0 - up - O.y0) / TS)), j1 = Math.min(O.ny - 1, Math.floor((y1 + 4 - O.y0) / TS));
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++){ const T = O.tiles[j * O.nx + i]; if (T.state < (terOnly ? 1 : 2)) T.state = terOnly ? 1 : 2; }
+  }
+}
+// rendu d'une tuile : on detourne les tampons du rendu vers ceux de la tuile
+function ovtRender(O, T, t, full){
+  const sv = [W, H, N, fb, mb, lb, ob, img, px32, PC, PS, TX, TY];
+  if (!T.img){ T.fb = new Uint8Array(TS * TS); T.mb = new Uint8Array(TS * TS); T.lb = new Uint8Array(TS * TS); T.ob = new Uint8Array(TS * TS); T.img = O.g.createImageData(TS, TS); T.px = new Uint32Array(T.img.data.buffer); }
+  W = TS; H = TS; N = TS * TS; fb = T.fb; mb = T.mb; lb = T.lb; ob = T.ob; img = T.img; px32 = T.px;
+  PROJ_FIX = [-O.x0 - T.i * TS, -O.y0 - T.j * TS];
+  const cp = cam.phi; cam.phi = O.phi; NOFRESH = true;
+  try {
+    if (full){ render(t, true); }
+    else {
+      setProj(); groundOwners();
+      const P = PALX, pl = PL, F = fb, MB = mb, LB = lb, OB = ob, PX = px32;
+      for (let k = 0; k < N; k++) PX[k] = P[OB[k] * pl + (((MB[k] << 1) | F[k]) * 5 + LB[k])];
+    }
+  } finally {
+    cam.phi = cp; PROJ_FIX = null; NOFRESH = false;
+    [W, H, N, fb, mb, lb, ob, img, px32, PC, PS, TX, TY] = sv;
+  }
+  O.g.putImageData(T.img, T.i * TS, T.j * TS);
+  T.state = 0; T.pk = palKey;
+}
+// recolorer une tuile deja rendue (la nuit tombe, la saison change)
+function ovtRecolor(O, T){
+  const P = PALX, pl = PL, F = T.fb, MB = T.mb, LB = T.lb, OB = T.ob, PX = T.px, n = TS * TS;
+  for (let k = 0; k < n; k++) PX[k] = P[OB[k] * pl + (((MB[k] << 1) | F[k]) * 5 + LB[k])];
+  O.g.putImageData(T.img, T.i * TS, T.j * TS);
+  T.pk = palKey;
+}
+// les tuiles a l'ecran d'abord
+function ovtVisible(O){
+  const pc = Math.cos(O.phi), ps = Math.sin(O.phi), cx = (cam.a * pc - cam.b * ps) - (cam.a * ps + cam.b * pc) - O.x0, cy = ((cam.a * pc - cam.b * ps) + (cam.a * ps + cam.b * pc)) * .5 - O.y0;
+  const hw = devW / 2 / Z + TS, hh = devH / 2 / Z + TS;
+  return (T) => Math.abs((T.i + .5) * TS - cx) < hw && Math.abs((T.j + .5) * TS - cy) < hh;
+}
+function ovtWork(t){
+  const t0 = performance.now();
+  // la vue a tourne pour de bon : on prepare un nouveau cache
+  if (!OVT.front) OVT.front = ovtNew(cam.phi);
+  const still = cam.phiT == null && (!drag || !drag.turn);
+  if (Math.abs(OVT.front.phi - cam.phi) > 1e-4 && still){
+    if (!OVT.back || Math.abs(OVT.back.phi - cam.phi) > 1e-4) OVT.back = ovtNew(cam.phi);
+  }
+  const O = OVT.back || OVT.front, vis = ovtVisible(O);
+  const order = O.tiles.slice().sort((u, v) => (vis(v) - vis(u)) || (v.state - u.state));
+  for (const T of order){
+    if (performance.now() - t0 > OVT.budget) break;
+    if (T.state === 2 || !T.img) ovtRender(O, T, t, true);
+    else if (T.state === 1) ovtRender(O, T, t, false);
+    else if (T.pk !== palKey) ovtRecolor(O, T);
+  }
+  O.pending = O.tiles.filter(T => !T.img).length;
+  if (OVT.back && !OVT.back.pending){ OVT.front = OVT.back; OVT.back = null; }
+  // le cache affiche n'est pas refait pendant une construction : on recolore quand meme ce qui est visible
+  if (OVT.back){ const F = OVT.front, v2 = ovtVisible(F); for (const T of F.tiles){ if (performance.now() - t0 > OVT.budget + 2) break; if (T.img && T.pk !== palKey && v2(T)) ovtRecolor(F, T); } }
+}
+// affichage : echelle Z, et si la vue a tourne depuis, une deformation en attendant le nouveau cache
+function ovtDraw(O){
+  const c = ctx, s = Z, po = O.phi, pc = Math.cos(po), ps = Math.sin(po);
+  const cx = (cam.a * pc - cam.b * ps) - (cam.a * ps + cam.b * pc) - O.x0, cy = ((cam.a * pc - cam.b * ps) + (cam.a * ps + cam.b * pc)) * .5 - O.y0;
+  const d = cam.phi - po, dc = Math.cos(d), ds = Math.sin(d);
+  const A11 = dc * s, A12 = -2 * ds * s, A21 = .5 * ds * s, A22 = dc * s;
+  c.imageSmoothingEnabled = Z < 1;
+  c.setTransform(A11, A21, A12, A22, devW / 2 - (A11 * cx + A12 * cy), devH / 2 - (A21 * cx + A22 * cy));
+  c.drawImage(O.cv, 0, 0);
+  c.setTransform(1, 0, 0, 1, 0, 0);
 }

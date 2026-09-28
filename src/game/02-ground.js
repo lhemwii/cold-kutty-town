@@ -24,8 +24,10 @@ function seedIsland(seed){
   ISEED.islets = [];
   const n = 3 + Math.floor(r(3) * 2);
   for (let k = 0; k < n; k++){
-    const ang = (k / n) * TAU + r(10 + k) * 1.2, d = 1.16 + r(20 + k) * .1;
-    ISEED.islets.push({ a: Math.cos(ang) * IS.ra * d, b: Math.sin(ang) * IS.rb * d, r: 34 + r(30 + k) * 34 });
+    const ang = (k / n) * TAU + r(10 + k) * 1.2, d = 1.12 + r(20 + k) * .08, rr = 30 + r(30 + k) * 28;
+    // l'ilot reste entier dans la zone de jeu
+    const a = clamp(Math.cos(ang) * IS.ra * d, GA0 + rr * 1.6 + 30, GA0 + GW / GSC - rr * 1.6 - 30), b = clamp(Math.sin(ang) * IS.rb * d, GB0 + rr * 1.3 + 30, GB0 + GH / GSC - rr * 1.3 - 30);
+    ISEED.islets.push({ a, b, r: rr });
   }
 }
 function islandF(a, b){
@@ -41,11 +43,16 @@ function islandF(a, b){
     const g = (1 - d) * .6 + (vnoise(a * .04 + it.a * .01, b * .04 + it.b * .01) - .5) * .25;
     if (g > f) f = g;
   }
+  // pres des bords de la carte, la terre s'efface toujours dans la mer
+  const edge = Math.min(a - GA0, GA0 + GW / GSC - a, b - GB0, GB0 + GH / GSC - b);
+  if (edge < 60) f -= (60 - edge) / 60 * .8;
   return f;
 }
 // bruits de la nature : forets et rochers
 const forestN = (a, b) => vnoise(a * .011 + ISEED.ox + 30, b * .011 + ISEED.oy + 11) * .75 + vnoise(a * .05 + 3, b * .05 + ISEED.oy) * .25;
-const rockN = (a, b) => vnoise(a * .03 + ISEED.ox + 70, b * .03 + ISEED.oy + 41);
+// montagnes : des chaines larges, avec un peu de relief fin
+const mountN = (a, b) => vnoise(a * .0052 + ISEED.ox + 70, b * .0052 + ISEED.oy + 41) * .82 + vnoise(a * .028 + 3, b * .028 + ISEED.ox) * .18;
+const MOUNT_T = .66;
 
 // distance de chanfrein en entiers (2 en droit, 3 en diagonale)
 function chamfer(dist, w, h){
@@ -86,7 +93,7 @@ function buildGround(seed){
   d = null;
   // 3. plages, rochers, forets (le bruit est lu en basse resolution)
   const RS = 8, rw = Math.ceil(GW / RS) + 1, rh = Math.ceil(GH / RS) + 1, FO = new Float32Array(rw * rh), RO = new Float32Array(rw * rh);
-  for (let y = 0; y < rh; y++) for (let x = 0; x < rw; x++){ const a = GA0 + x * RS / GSC, b = GB0 + y * RS / GSC; FO[y * rw + x] = forestN(a, b); RO[y * rw + x] = rockN(a, b); }
+  for (let y = 0; y < rh; y++) for (let x = 0; x < rw; x++){ const a = GA0 + x * RS / GSC, b = GB0 + y * RS / GSC; FO[y * rw + x] = forestN(a, b); RO[y * rw + x] = mountN(a, b); }
   for (let ib = 0, i = 0; ib < GH; ib++){
     const ry = Math.min(rh - 1, Math.round(ib / RS));
     for (let ia = 0; ia < GW; ia++, i++){
@@ -94,7 +101,7 @@ function buildGround(seed){
       const ld = gLand[i];
       if (ld < 12){ gBase[i] = T_BEACH; continue; }
       const k = ry * rw + Math.min(rw - 1, Math.round(ia / RS));
-      if (RO[k] > .88 && ld > 30) gBase[i] = T_ROCK;
+      if (RO[k] > MOUNT_T && ld > 34) gBase[i] = T_ROCK;
       else if (FO[k] > .56 && ld > 18) gBase[i] = T_FOREST;
     }
   }

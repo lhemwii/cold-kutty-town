@@ -1,11 +1,53 @@
 /* ================= interface : barre du haut, menu de construction, batiment selectionne ================= */
-// drapeau en SVG, a partir du meme dessin que les drapeaux du jeu
-const FLAG_HEX = { b: '#2a45a6', w: '#fbf7ef', r: '#c8283a', y: '#ffd23f', R: '#d42a2a' };
-function flagSVG(side){
-  const art = FLAG_ART[side]; let s = '<svg viewBox="0 0 13 8" shape-rendering="crispEdges" aria-hidden="true">';
-  for (let y = 0; y < 8; y++) for (let x = 0; x < 13; x++) s += '<rect x="' + x + '" y="' + y + '" width="1.05" height="1.05" fill="' + FLAG_HEX[art[y][x]] + '"/>';
+// icones et drapeaux en pixels : un dessin en caracteres, une couleur par lettre, rendu en SVG net
+function pixelSVG(art, pal, cls){
+  const h = art.length, w = Math.max(...art.map(r => r.length));
+  let s = '<svg' + (cls ? ' class="' + cls + '"' : '') + ' viewBox="0 0 ' + w + ' ' + h + '" shape-rendering="crispEdges" aria-hidden="true">';
+  for (let y = 0; y < h; y++){
+    // une ligne = des rectangles qui fusionnent les pixels voisins de meme couleur
+    let x = 0;
+    while (x < art[y].length){
+      const c = art[y][x], col = pal[c]; let n = 1;
+      while (x + n < art[y].length && art[y][x + n] === c) n++;
+      if (col) s += '<rect x="' + x + '" y="' + y + '" width="' + n + '" height="1.02" fill="' + col + '"/>';
+      x += n;
+    }
+  }
   return s + '</svg>';
 }
+const ICONS = {
+  // patte de chat : quatre doigts et le coussinet
+  paw: [['.....kk..kk.....', '....kPPkkPPk....', '....kPpkkPpk....', '.kk..kk..kk..kk.', 'kPPk........kPPk', 'kPpk..kkkk..kPpk', '.kk..kPPPPk..kk.', '....kPpPPPPk....', '...kPPPPPPPPk...', '...kPPPPPPPPk...', '....kPPkkPPk....', '.....kk..kk.....'],
+    { k: '#8a3452', P: '#f28cab', p: '#ffd3df' }],
+  // habitants : un grand chat noir et un petit chat gris a cote
+  pop: [['.k...k..........', '.kk.kk..........', '.kkkkk.....g...g', '.kykyk.....gg.gg', '.kkkkk.....ggggg', '..kpk......gygyg', '.kkkkk.....ggggg', 'kkkkkkk.....ggg.', 'kkkkkkk....ggggg', 'kkkkkkk...ggggggg', 'kkkkkkkk..ggggggg', '.kkkkk.kk..ggggg.'],
+    { k: '#2a2622', y: '#ffe45c', p: '#f28cab', g: '#8e8a93' }]
+};
+for (const el of document.querySelectorAll('[data-ico]')){ const [art, pal] = ICONS[el.dataset.ico]; el.outerHTML = pixelSVG(art, pal, 'ico'); }
+// drapeaux en grand pour l'interface (26 x 16), dessines comme les petits du jeu mais plus fins
+const FLAG_HEX = { b: '#2a45a6', w: '#fbf7ef', r: '#c8283a', y: '#ffd23f', R: '#d42a2a', k: '#1b2a6b' };
+const FLAG_HI = (() => {
+  const make = (bg) => Array.from({ length: 16 }, () => Array(26).fill(bg));
+  const U = make('b');
+  for (let x = 0; x < 26; x++){ U[13][x] = 'w'; U[14][x] = 'r'; U[15][x] = 'r'; }
+  for (let y = 0; y < 13; y++) for (let x = 0; x < 26; x++){ if (((x - 12.5) / 5.8) ** 2 + ((y - 7.4) / 4.4) ** 2 <= 1) U[y][x] = 'w'; }
+  [[1, 7, 8], [2, 7, 9], [3, 7, 10]].forEach(([y, a, b]) => { for (let x = a; x <= b; x++){ U[y][x] = 'w'; U[y][25 - x] = 'w'; } });
+  U[2][8] = 'r'; U[2][17] = 'r'; U[3][8] = 'r'; U[3][9] = 'r'; U[3][16] = 'r'; U[3][17] = 'r';
+  for (const [x, y] of [[9, 6], [10, 6], [9, 7], [10, 7], [15, 6], [16, 6], [15, 7], [16, 7]]) U[y][x] = 'k';
+  U[9][12] = 'r'; U[9][13] = 'r'; U[10][11] = 'k'; U[10][14] = 'k'; U[10][12] = 'k'; U[10][13] = 'k';
+  for (const y of [8, 10]) for (let x = 2; x <= 5; x++){ U[y][x] = 'w'; U[y][25 - x] = 'w'; }
+  for (let x = 9; x <= 16; x++) U[12][x] = 'r';
+  U[12][12] = 'y'; U[12][13] = 'y';
+  const C = make('R');
+  for (let y = 0; y < 16; y++) for (let x = 0; x < 26; x++){ if (((x - 7.5) / 4.8) ** 2 + ((y - 7.2) / 4.1) ** 2 <= 1) C[y][x] = 'y'; }
+  [[1, 3, 4], [2, 3, 5], [3, 3, 6]].forEach(([y, a, b]) => { for (let x = a; x <= b; x++){ C[y][x] = 'y'; C[y][15 - x] = 'y'; } });
+  for (const [x, y] of [[5, 6], [5, 7], [10, 6], [10, 7]]) C[y][x] = 'R';
+  C[9][7] = 'R'; C[9][8] = 'R';
+  // une etoile jaune au-dessus, comme une medaille
+  for (const [x, y] of [[18, 3], [17, 4], [18, 4], [19, 4], [16, 5], [17, 5], [18, 5], [19, 5], [20, 5], [17, 6], [18, 6], [19, 6], [17, 7], [19, 7]]) C[y][x] = 'y';
+  return { usc: U.map(r => r.join('')), ccp: C.map(r => r.join('')) };
+})();
+function flagSVG(side){ return pixelSVG(FLAG_HI[side], FLAG_HEX); }
 for (const el of document.querySelectorAll('[data-flag]')) el.innerHTML = flagSVG(el.dataset.flag);
 const fmt = (v) => { const r = Math.floor(v); return r >= 10000 ? (r / 1000).toFixed(1).replace('.', ',') + ' k' : String(r); };
 const fmtRate = (v) => { const r = Math.round(v * 10) / 10; return (r >= 0 ? '+' : '') + String(Math.round(r)).replace('-', '−') + '/min'; };

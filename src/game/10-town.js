@@ -293,7 +293,6 @@ function rebuildTown(){
   for (const p of STATIC_PARTS){ if (p.m == null) p.m = M.METAL; if (!p.side) p.side = 'usc'; }
   if (COLOR) buildShadows();
   spawnCats();
-  mapDirtyAll();
 }
 function buildShadows(){
   SHADOWS = [];

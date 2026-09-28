@@ -132,11 +132,11 @@ function stepSites(){
   let changed = false;
   for (const l of BLD){
     if (!l.done && GAME.t >= l.buildT + l.bdur){
-      l.done = true; l.doneT = GAME.t; changed = true;
+      l.done = true; l.doneT = GAME.t; changed = true; mapDirtyRect(l.a0 - 4, l.a1 + 4, l.b0 - 4, l.b1 + 4);
       l.active = roadAccess(l);
       onBuilt(l);
     }
-    if (l.upT && GAME.t >= l.upT + l.udur){ l.upT = 0; l.lvl = Math.min(3, (l.lvl || 1) + 1); l.doneT = GAME.t; changed = true; onUpgraded(l); }
+    if (l.upT && GAME.t >= l.upT + l.udur){ mapDirtyRect(l.a0 - 4, l.a1 + 4, l.b0 - 4, l.b1 + 4); l.upT = 0; l.lvl = Math.min(3, (l.lvl || 1) + 1); l.doneT = GAME.t; changed = true; onUpgraded(l); }
   }
   if (changed){ rebuildTown(); refreshAccess(); reseatCars(); }
 }

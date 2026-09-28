@@ -5,6 +5,8 @@ Règle : **l’IA adverse vient en dernier**. Tout le reste d’abord. Tant qu�
 
 Légende : `[x]` fait · `[~]` fait mais à reprendre · `[ ]` à faire
 
+Les demandes qui arrivent en cours de route et ne rentrent dans aucune étape deviennent des **étapes intermédiaires** : 0.1, 0.2, etc., placées juste après l’étape en cours.
+
 ## Étape 0. Le socle de la refonte (fait)
 
 - [x] Île tirée au sort à chaque partie : baies, îlots, plages, rochers, forêts. Aucune route, aucun bâtiment, pas de phare.
@@ -23,6 +25,15 @@ Légende : `[x]` fait · `[~]` fait mais à reprendre · `[ ]` à faire
 - [x] Chats qui arrivent avec leur bâtiment, répliques toutes faites. Journal du matin en textes tout faits.
 - [x] Sauvegarde dans le navigateur (île, bâtiments, routes, murs, territoire).
 - [~] IA adverse : ébauche qui débarque et construit, mais se bloque (voir étape 9).
+
+## Étape 0.1. Premiers retours de jeu (fait)
+
+- [x] Pause totale : quand le jeu est en pause, plus rien ne bouge (bateaux, chats, voitures, vagues, fumées, drapeaux, météo).
+- [x] Vue détaillée à tous les zooms : même dézoomé sur toute l’île, on voit les vrais bâtiments, arbres et bateaux en pixel art, sans ralentir.
+- [x] Îlots coupés au bord de la carte : les garder entiers dans la zone de jeu.
+- [x] Montagnes sur l’île en plus des forêts.
+- [x] HUD : symbole des ronrons en patte de chat, meilleur symbole des habitants.
+- [x] Drapeau de l’USC retravaillé pour que la tête de chat se lise bien.
 
 ## Étape 1. Fiabiliser ce qui existe
 
@@ -72,7 +83,6 @@ Légende : `[x]` fait · `[~]` fait mais à reprendre · `[ ]` à faire
 - [ ] Raccourcis clavier affichés dans les infobulles, et un écran d’aide.
 - [ ] Vraie version téléphone (dock repliable, gestes).
 - [ ] Logo en SVG avec la tête de chat.
-- [ ] Drapeau USC : retravailler la tête de chat pour qu’elle se lise mieux en petit.
 
 ## Étape 7. Vie et contenu
 

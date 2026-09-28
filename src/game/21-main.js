@@ -112,7 +112,7 @@ function fallbackReply(c, msg){
 function openChat(c){
   if (state.chatCat) closeChat(true);
   selectBuilding(null);
-  state.chatCat = c; c.frozen = catPos(c, now() / 1000); c.frozen.moving = false; c.paused = true;
+  state.chatCat = c; c.frozen = catPos(c, NOW_T); c.frozen.moving = false; c.paused = true;
   $('chatName').textContent = c.name; $('chatJob').textContent = c.job;
   $('chatSide').textContent = SIDE_LABEL[c.side];
   drawFlagIcon($('flag'), c.side);
@@ -125,7 +125,7 @@ function openChat(c){
   $('chat').hidden = false; document.body.classList.add('chat-open');
   if (Z < KDEF) setZoom(KDEF);
   cam.target = [c.frozen.a, c.frozen.b];
-  drawPortrait(c, now() / 1000, portraitCv);
+  drawPortrait(c, NOW_T, portraitCv);
   if (window.innerWidth > 640) setTimeout(() => chatInput.focus({ preventScroll: true }), 50);
 }
 function closeChat(silent){
@@ -211,6 +211,7 @@ function loadGame(d){
   repaintAllRoads(); buildGraph(); rebuildLocks(); rebuildTown(); refreshAccess(); reseatCars();
   for (const l of BLD) if (l.done) boatsForBuilding(l);
   setSpeed(clamp(d.speed | 0, 1, 4) || 1);
+  mapDirtyAll();
   enterPlay();
   const hq = BLD.find(l => l.side === GAME.side && l.type === 'qg');
   if (hq) centerOn(hq.ca, hq.cb);
@@ -225,6 +226,7 @@ function newWorld(seed){
   GAME.seed = seed;
   buildGround(seed);
   buildForests(seed);
+  buildMountains(seed);
   initTerritory();
   buildNav();
   BLD = []; ROADS = []; WALLS = []; WALL_TOWERS = []; BOATS = []; CATS = []; CARS.length = 0; LAMP_POS.length = 0; DEMOS.length = 0; CREWS.length = 0; HISTORY.length = 0; updateUndo();
@@ -348,10 +350,13 @@ $('endKeep').addEventListener('click', () => { $('endBox').hidden = true; });
 
 /* ================= boucle ================= */
 const now = () => performance.now();
-let last = now(), compassPhi = null, secAcc = 0;
+// VT : temps des animations ; il s'arrete quand le jeu est en pause, pour que tout se fige
+let last = now(), compassPhi = null, secAcc = 0, VT = 0;
 function frame(tms){
   const dt = Math.min(0.1, (tms - last) / 1000); last = tms;
-  const t = tms / 1000;
+  const frozen = GAME.paused && GAME.mode === 'play', vdt = frozen ? 0 : dt;
+  VT += vdt;
+  const t = VT;
   NOW_T = t;
   // temps du jeu : pause et vitesse
   const sdt = GAME.mode === 'play' && !GAME.paused ? dt * GAME.speed : (GAME.mode === 'landing' ? dt : 0);
@@ -372,10 +377,10 @@ function frame(tms){
       if (!live && Math.hypot(f[0] - cam.a, f[1] - cam.b) < 1.5) cam.follow = null;
     }
   }
-  if (state.auto) state.theta = (state.theta + TAU / state.period * dt) % TAU;
+  if (state.auto) state.theta = (state.theta + TAU / state.period * vdt) % TAU;
   stepZoom(dt);
   stepCars(sdt);
-  stepWeather(dt, t);
+  stepWeather(vdt, t);
   stepClock(sdt);
   stepBoats(sdt);
   stepTerritory(sdt);
@@ -387,7 +392,7 @@ function frame(tms){
   updateClockUI();
   secAcc += dt; if (secAcc > 1){ secAcc = 0; checkVictory(); if (GAME.mode === 'play') renderHUD(); }
   if (OV_ON) drawOverview(t);
-  else render(t);
+  else { render(t); if (GAME.mode === 'play'){ const b = OVT.budget; OVT.budget = 2; ovtWork(t); OVT.budget = b; } }
   for (const f of HOOKS.after) f(t);
   if (compassPhi !== cam.phi){ compassPhi = cam.phi; drawCompass(); }
   if (state.chatCat) drawPortrait(state.chatCat, t, portraitCv);
@@ -405,7 +410,7 @@ function start(){
   centerOn(IS.ca, IS.cb); setZoom(ZLEVELS[1], null, null, true);
   radioNext();
   openIntro();
-  window.__okt = { state, cam, GAME, RES, BLD: () => BLD, ROADS: () => ROADS, WALLS: () => WALLS, BOATS: () => BOATS, CATS: () => CATS, TER, TREES, MAPV, SPACE, EV, RIVAL, CLOCK, CAL, TYPES, ECO,
+  window.__okt = { state, cam, GAME, RES, BLD: () => BLD, ROADS: () => ROADS, WALLS: () => WALLS, BOATS: () => BOATS, CATS: () => CATS, TER, TREES, MAPV, SPACE, EV, RIVAL, CLOCK, CAL, TYPES, ECO, PEAKS,
     setZoom, centerOn, unprj, prj, worldToScreen, screenToWorld, placeProblem, findSpot, makeBuilding, startBuilding, addRoad, roadProblem, sampleLine, sampleCurve, addWall, sendBarge, chooseLanding, terPct, claimDisc,
     render, drawOverview, snapshot, loadGame, newWorld, enterPlay, applySeason, updateCalUI, deliverPaper, forceEvent: () => { EV.next = 0; }, autoBoth: () => { RIVAL.auto = { usc: true, ccp: true }; }, selectBuilding, setTool, upgradeBuilding, rivalStep: stepRival,
     get Z(){ return Z; }, get K(){ return K; }, get KMIN(){ return KMIN; }, get KDEF(){ return KDEF; }, get ZLEVELS(){ return ZLEVELS; }, get OV_ON(){ return OV_ON; }, get view(){ return [W, H]; }, get NIGHT(){ return NIGHT; } };

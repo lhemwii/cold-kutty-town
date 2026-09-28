@@ -5,3 +5,4 @@
 - Les modules de `src/game/` partagent une seule portée et se chargent dans l’ordre de leur numéro. Préférer les crochets `HOOKS` à une modification de la boucle.
 - Avant de pousser : `npm run build` doit passer.
 - Produit : docs/PRD.md. Plan et liste des choses à faire : docs/PLAN.md (l’IA adverse vient en dernier). Architecture : docs/ARCHITECTURE.md.
+- Quand une demande ne rentre dans aucune étape de docs/PLAN.md, l’ajouter au plan comme étape intermédiaire (0.1, 0.2, etc.) avant de la coder, puis cocher au fur et à mesure.
