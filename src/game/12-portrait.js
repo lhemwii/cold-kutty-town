@@ -451,8 +451,8 @@ function drawPortrait(c, t, cv){
 function drawFlagIcon(cv, side){
   const g = cv.getContext('2d'), im = g.createImageData(15, 10), d = new Uint32Array(im.data.buffer);
   d.fill(BLACK);
-  const px = side === 'neutre' ? null : flagPixels(side, 0);
-  if (px) px.forEach(([x, y, v], i) => { if (x + 1 < 15 && y + 1 < 10) d[(y + 1) * 15 + x + 1] = COLOR ? PAL32[(flagMat(side, i % 13, (i / 13) | 0) << 1) | v] : (v ? WHITE : BLACK); });
+  const px = side === 'neutre' ? null : flagSmall(side, 13, 8);
+  if (px) px.forEach(([x, y, m, v]) => { d[(y + 1) * 15 + x + 1] = COLOR ? PAL32[(m << 1) | v] : (v ? WHITE : BLACK); });
   else for (let y = 0; y < 10; y++) for (let x = 0; x < 15; x++) d[y * 15 + x] = (y > 5 && ((x + y) % 3 === 0)) || (x === 7 && y > 1 && y < 7) || (y === 2 && x > 5 && x < 9) ? WHITE : BLACK;
   g.putImageData(im, 0, 0);
 }

@@ -54,6 +54,12 @@ Les demandes qui arrivent en cours de route et ne rentrent dans aucune étape de
 - [x] De loin, plus de gros pixels de pluie ou de neige devant la vue : la météo s’estompe quand on dézoome.
 - [x] Vestiges catzi : ruines d’un ancien régime déchu éparpillées sur l’île (bunkers, canons rouillés, statue renversée de Catdolf). Une fois dans son territoire, on les fouille pour récupérer des ressources. Sauvegardés avec la partie.
 
+## Étape 0.5. Drapeaux redessinés (fait)
+
+- [x] USC : les bandes rouges et blanches, et des têtes de chat blanches à la place des étoiles dans le coin bleu.
+- [x] CCR : tête de chat jaune au centre, tenue par la faucille, le marteau à côté.
+- [x] Drapeaux du jeu agrandis (19 x 11) pour que les dessins se lisent, et ceux de l’interface en 26 x 13.
+
 ## Étape 1. Fiabiliser ce qui existe
 
 - [ ] Jouer une vraie partie à la souris et noter chaque bug d’interface.

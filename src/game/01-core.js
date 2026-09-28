@@ -322,34 +322,46 @@ function plateW(s, a, b, z, opt, dir){
 }
 
 /* ================= drapeaux ================= */
-// USC : fond bleu, tete de chat blanche au nez rouge, liseres blanc et rouge (le collier).
-// CCR : fond rouge, grande tete de chat jaune (oreilles pointues, yeux et nez rouges) du cote du mat.
-// b bleu, w blanc, r rouge, y jaune, R fond rouge de la CCR
+// USC : les bandes rouges et blanches, et dans le coin bleu une tete de chat blanche en guise d'etoile.
+// CCR : fond rouge, au centre une tete de chat jaune tenue par la faucille, le marteau a cote.
+// b bleu, c chat blanc du coin, r rouge, w blanc des bandes ; R rouge et y jaune de la CCR
+const FLAG_W = 19, FLAG_H = 11;
 const FLAG_ART = {
-  usc: ['bbbwbbbbbwbbb', 'bbbwwbbbwwbbb', 'bbbwwwwwwwbbb', 'bbbwbwwwbwbbb', 'bbbwwwrwwwbbb', 'bbbbwwwwwbbbb', 'wwwwwwwwwwwww', 'rrrrrrrrrrrrr'],
-  ccp: ['RyRRRRRyRRRRR', 'RyyRRRyyRRRRR', 'RyyyyyyyRRRRR', 'RyyRyRyyRRRRR', 'RyyyyyyyRRRRR', 'RyyyRyyyRRRRR', 'RRyyyyyRRRRRR', 'RRRRRRRRRRRRR']
+  usc: ['bbbbbbbrrrrrrrrrrrr', 'bcbbbcbwwwwwwwwwwww', 'bcccccbrrrrrrrrrrrr', 'bcbcbcbwwwwwwwwwwww', 'bbcccbbrrrrrrrrrrrr', 'bbbbbbbwwwwwwwwwwww',
+    'rrrrrrrrrrrrrrrrrrr', 'wwwwwwwwwwwwwwwwwww', 'rrrrrrrrrrrrrrrrrrr', 'wwwwwwwwwwwwwwwwwww', 'rrrrrrrrrrrrrrrrrrr'],
+  ccp: ['RRRRRRRRRRRRRRRRRRR', 'RRRRRRRyRRRyRRRRRRR', 'RRRRRyRyyyyyRRyyRRR', 'RRRRyRyyRyRyyRyyRRR', 'RRRRyRyyyyyyyRRRyRR', 'RRRRyRRyyRyyRRRRRyR',
+    'RRRRRyRRyyyRRRRRRRR', 'RRRRRRyRRRRRRRyRRRR', 'RRRRRRRyyyyyyyRRRRR', 'RRRRRRyyRRRRRRRRRRR', 'RRRRRyRRRRRRRRRRRRR']
 };
 function flagPixels(kind, t){
-  const out = [], w = 13, h = 8, art = FLAG_ART[kind];
+  const out = [], w = FLAG_W, h = FLAG_H, art = FLAG_ART[kind];
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++){
-    const wave = Math.round(Math.sin(t * 4 - x * .55) * (x / w) * 1.2);
+    const wave = Math.round(Math.sin(t * 4 - x * .4) * (x / w) * 1.3);
     let v;
-    if (art){ const c = art[y][x]; v = (c === 'w' || c === 'R') ? 1 : 0; }
+    if (art){ const c = art[y][x]; v = (c === 'w' || c === 'c' || c === 'R') ? 1 : 0; }
     else v = ((x >> 1) + (y >> 1)) & 1;
     out.push([x, y + wave, v]);
   }
   return out;
 }
-// bleu et blanc sur FLAG_BLUE (sombre, clair), rouge sur FLAG_RED ; jaune et rouge sur FLAG_CCP
-function flagMat(kind, x, y){ return kind === 'usc' ? (FLAG_ART.usc[y][x] === 'r' ? M.FLAG_RED : M.FLAG_BLUE) : kind === 'ccp' ? M.FLAG_CCP : M.NEUTRAL; }
+// USC : bandes sur FLAG_RED (rouge, blanc), coin sur FLAG_BLUE (bleu, blanc) ; CCR sur FLAG_CCP (jaune, rouge)
+function flagMat(kind, x, y){ if (kind === 'usc'){ const c = FLAG_ART.usc[y][x]; return (c === 'r' || c === 'w') ? M.FLAG_RED : M.FLAG_BLUE; } return kind === 'ccp' ? M.FLAG_CCP : M.NEUTRAL; }
+// le meme drapeau en plus petit (w x h), sans vent : [matiere, 0 ou 1] pour chaque case
+function flagSmall(kind, w, h){
+  const out = [];
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++){
+    const fx = Math.min(FLAG_W - 1, Math.floor((x + .5) * FLAG_W / w)), fy = Math.min(FLAG_H - 1, Math.floor((y + .5) * FLAG_H / h)), c = FLAG_ART[kind][fy][fx];
+    out.push([x, y, flagMat(kind, fx, fy), (c === 'w' || c === 'c' || c === 'R') ? 1 : 0]);
+  }
+  return out;
+}
 function drawFlagPole(a, b, z0, hgt, kind, t){
   const savedM = CUR;
   const p = prj(a, b, z0), bx = Math.round(p[0]), by = Math.round(p[1]);
   CUR = M.METAL;
   for (let k = 0; k <= hgt; k++){ fput(bx, by - k, 1); fput(bx + 1, by - k, 0); }
   fput(bx, by - hgt - 1, 1);
-  for (let x = 0; x <= 14; x++) { fput(bx + 1 + x, by - hgt - 1 + Math.round(Math.sin(t * 4 - x * .55) * (x / 13) * 1.2), 0); }
+  for (let x = 0; x <= FLAG_W + 1; x++) { fput(bx + 1 + x, by - hgt - 1 + Math.round(Math.sin(t * 4 - x * .4) * (x / FLAG_W) * 1.3), 0); }
   const F = flagPixels(kind, t);
-  for (let i = 0; i < F.length; i++){ const [x, y, v] = F[i]; CUR = flagMat(kind, i % 13, (i / 13) | 0); fput(bx + 1 + x, by - hgt + y, v); }
+  for (let i = 0; i < F.length; i++){ const [x, y, v] = F[i]; CUR = flagMat(kind, i % FLAG_W, (i / FLAG_W) | 0); fput(bx + 1 + x, by - hgt + y, v); }
   CUR = savedM;
 }

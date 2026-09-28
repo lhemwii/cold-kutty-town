@@ -175,8 +175,7 @@ Object.assign(TYPES, {
       }
       CUR = M.METAL;
       for (let k = 1; k <= 5; k++) fput(cx, apexY - k, 1);
-      const fl = flagPixels(ccp ? 'ccp' : 'usc', t);
-      for (let i = 0; i < fl.length; i++){ const [x, y, v] = fl[i]; if (x > 8 || y > 5) continue; CUR = flagMat(ccp ? 'ccp' : 'usc', x, y); fput(cx + 1 + x, apexY - 6 + y, v); }
+      for (const [x, y, m, v] of flagSmall(ccp ? 'ccp' : 'usc', 9, 6)){ CUR = m; fput(cx + 1 + x, apexY - 6 + y, v); }
       CUR = M.LAMP;
       for (let k = 0; k < 14; k++){ const a = Math.PI * (k / 13), x = Math.round(cx + Math.cos(a) * rx * .98), y = Math.round(cy - wallH + Math.sin(a) * ry * .98 - 1); if (((k + ((t * 3) | 0)) & 1)) fput(x, y, 1); }
     };

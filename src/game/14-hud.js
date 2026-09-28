@@ -24,30 +24,17 @@ const ICONS = {
     { k: '#2a2622', y: '#ffe45c', p: '#f28cab', g: '#8e8a93' }]
 };
 for (const el of document.querySelectorAll('[data-ico]')){ const [art, pal] = ICONS[el.dataset.ico]; el.outerHTML = pixelSVG(art, pal, 'ico'); }
-// drapeaux en grand pour l'interface (26 x 16), dessines comme les petits du jeu mais plus fins
-const FLAG_HEX = { b: '#2a45a6', w: '#fbf7ef', r: '#c8283a', y: '#ffd23f', R: '#d42a2a', k: '#1b2a6b' };
-const FLAG_HI = (() => {
-  const make = (bg) => Array.from({ length: 16 }, () => Array(26).fill(bg));
-  const U = make('b');
-  for (let x = 0; x < 26; x++){ U[13][x] = 'w'; U[14][x] = 'r'; U[15][x] = 'r'; }
-  for (let y = 0; y < 13; y++) for (let x = 0; x < 26; x++){ if (((x - 12.5) / 5.8) ** 2 + ((y - 7.4) / 4.4) ** 2 <= 1) U[y][x] = 'w'; }
-  [[1, 7, 8], [2, 7, 9], [3, 7, 10]].forEach(([y, a, b]) => { for (let x = a; x <= b; x++){ U[y][x] = 'w'; U[y][25 - x] = 'w'; } });
-  U[2][8] = 'r'; U[2][17] = 'r'; U[3][8] = 'r'; U[3][9] = 'r'; U[3][16] = 'r'; U[3][17] = 'r';
-  for (const [x, y] of [[9, 6], [10, 6], [9, 7], [10, 7], [15, 6], [16, 6], [15, 7], [16, 7]]) U[y][x] = 'k';
-  U[9][12] = 'r'; U[9][13] = 'r'; U[10][11] = 'k'; U[10][14] = 'k'; U[10][12] = 'k'; U[10][13] = 'k';
-  for (const y of [8, 10]) for (let x = 2; x <= 5; x++){ U[y][x] = 'w'; U[y][25 - x] = 'w'; }
-  for (let x = 9; x <= 16; x++) U[12][x] = 'r';
-  U[12][12] = 'y'; U[12][13] = 'y';
-  const C = make('R');
-  // une grande tete de chat jaune : oreilles pointues, yeux et nez rouges, moustaches
-  for (let y = 0; y < 16; y++) for (let x = 0; x < 26; x++){ if (((x - 9.5) / 6.6) ** 2 + ((y - 9) / 5.6) ** 2 <= 1) C[y][x] = 'y'; }
-  [[1, 4, 4], [2, 4, 5], [3, 4, 6], [4, 4, 7], [5, 4, 8]].forEach(([y, a, b]) => { for (let x = a; x <= b; x++){ C[y][x] = 'y'; C[y][19 - x] = 'y'; } });
-  C[3][5] = 'R'; C[4][5] = 'R'; C[3][14] = 'R'; C[4][14] = 'R';
-  for (const [x, y] of [[6, 8], [7, 8], [7, 9], [12, 8], [13, 8], [12, 9]]) C[y][x] = 'R';
-  C[11][9] = 'R'; C[11][10] = 'R'; C[12][8] = 'R'; C[12][11] = 'R';
-  for (const y of [10, 12]){ for (let x = 0; x <= 2; x++) C[y][x] = 'y'; for (let x = 17; x <= 19; x++) C[y][x] = 'y'; }
-  return { usc: U.map(r => r.join('')), ccp: C.map(r => r.join('')) };
-})();
+// drapeaux en grand pour l'interface (26 x 13), dessines comme ceux du jeu mais plus fins
+// USC : 13 bandes rouges et blanches, trois tetes de chat blanches dans le coin bleu. CCR : tete de chat, faucille et marteau au centre.
+const FLAG_HEX = { b: '#2a45a6', c: '#fbf7ef', w: '#fbf7ef', r: '#c8283a', y: '#ffd23f', R: '#d42a2a' };
+const FLAG_HI = {
+  usc: ['bbbbbbbbbbbbbbrrrrrrrrrrrr', 'bcbbbcbbcbbbcbwwwwwwwwwwww', 'bcccccbbcccccbrrrrrrrrrrrr', 'bcbcbcbbcbcbcbwwwwwwwwwwww', 'bbcccbbbbcccbbrrrrrrrrrrrr',
+    'bbbbbbbbbbbbbbwwwwwwwwwwww', 'bbbbbcbbbcbbbbrrrrrrrrrrrr', 'bbbbbcccccbbbbwwwwwwwwwwww', 'bbbbbcbcbcbbbbrrrrrrrrrrrr', 'bbbbbbcccbbbbbwwwwwwwwwwww',
+    'rrrrrrrrrrrrrrrrrrrrrrrrrr', 'wwwwwwwwwwwwwwwwwwwwwwwwww', 'rrrrrrrrrrrrrrrrrrrrrrrrrr'],
+  ccp: ['RRRRRRRRRRRRRRRRRRRRRRRRRR', 'RRRRRRRRRRyRRRRRyRRRRRRRRR', 'RRRRRRRyRRyyRRRyyRRyyyRRRR', 'RRRRRRyRRRyyyyyyyRRyyyRRRR', 'RRRRRyRRRyyRyyyRyyRRyRRRRR',
+    'RRRRRyRRRyyyyyyyyyRRRyRRRR', 'RRRRRyRRRyyyyRyyyyRRRRyRRR', 'RRRRRRyRRRyyyyyyyRRRRRRyRR', 'RRRRRRRyRRRRyyyRRRRRRRRRyR', 'RRRRRRRRyRRRRRRRRRyRRRRRRR',
+    'RRRRRRRRRyyyyyyyyyRRRRRRRR', 'RRRRRRRRyyRRRRRRRRRRRRRRRR', 'RRRRRRyyRRRRRRRRRRRRRRRRRR']
+};
 function flagSVG(side){ return pixelSVG(FLAG_HI[side], FLAG_HEX); }
 for (const el of document.querySelectorAll('[data-flag]')) el.innerHTML = flagSVG(el.dataset.flag);
 const fmt = (v) => { const r = Math.floor(v); return r >= 10000 ? (r / 1000).toFixed(1).replace('.', ',') + ' k' : String(r); };
