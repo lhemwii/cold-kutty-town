@@ -75,8 +75,8 @@ function sndAmbience(t){
   const here = sideAt(cam.a, cam.b) || GAME.side;
   SND.us = (SND.us == null ? (here === 'usc' ? 1 : 0) : SND.us) + ((here === 'usc' ? 1 : 0) - (SND.us || 0)) * .15;
   set(SND.musU.gain, SND.us); set(SND.musC.gain, 1 - SND.us);
-  set(SND.mus.gain, (state.chatCat ? .22 : .42) * (1 - night * .35) * (OV_ON ? .6 : 1));
-  set(SND.master.gain, SND.on ? .7 : 0);
+  set(SND.mus.gain, (state.chatCat ? .22 : .42) * (1 - night * .35) * (OV_ON ? .6 : 1) * OPT.mus / 100);
+  set(SND.master.gain, SND.on ? OPT.vol / 100 : 0);
 }
 function stepSound(dt, t){
   if (!SND.on || !SND.ctx) return;
@@ -112,7 +112,7 @@ function setSound(on){
   SND.on = on; SND.want = on;
   try { localStorage.setItem('cold-kutty-son', on ? '1' : '0'); } catch (_) {}
   const b = $('btnSound'); b.setAttribute('aria-pressed', String(on)); b.setAttribute('aria-label', on ? 'Couper le son' : 'Activer le son');
-  if (SND.ctx){ const now = SND.ctx.currentTime; SND.master.gain.setTargetAtTime(on ? .7 : 0, now, .15); if (on){ SND.next = Math.max(SND.next, now + .1); sndAmbience(NOW_T); } }
+  if (SND.ctx){ const now = SND.ctx.currentTime; SND.master.gain.setTargetAtTime(on ? OPT.vol / 100 : 0, now, .15); if (on){ SND.next = Math.max(SND.next, now + .1); sndAmbience(NOW_T); } }
 }
 $('btnSound').addEventListener('click', () => setSound(!SND.on));
 // le navigateur exige un geste : si le son etait allume la derniere fois, on le rallume au premier clic

@@ -164,7 +164,7 @@ async function send(text){
 }
 
 /* ================= sauvegarde ================= */
-const SAVE_KEY = 'cold-kutty-town-8';
+// les parties sont rangees par emplacements (22-home.js) ; ici, la photo de la partie et sa relecture
 let saveTimer = 0;
 // territoire compresse : longueurs des suites de cases identiques
 function rleEncode(a){ const out = []; let v = a[0], n = 0; for (let i = 0; i < a.length; i++){ if (a[i] === v) n++; else { out.push(v, n); v = a[i]; n = 1; } } out.push(v, n); return out.join(','); }
@@ -178,14 +178,14 @@ function snapshot(){
     towers: WALL_TOWERS.map(w => [w.side === 'usc' ? 0 : 1, +w.a.toFixed(1), +w.b.toFixed(1), w.ph, w.line]),
     trees: TREES.list.map((t, i) => t.alive ? '' : i).filter(x => x !== '').join(','),
     vest: VEST.filter(v => v.looted).map(v => v.id),
-    ter: rleEncode(TER.own), space: [SPACE.usc.stage, SPACE.ccp.stage], ev: Math.round(EV.next), rival: [RIVAL[GAME.rival].lastBarge, RIVAL[GAME.rival].lastWall], won: GAME.winner || '' };
+    ter: rleEncode(TER.own), space: [SPACE.usc.stage, SPACE.ccp.stage], ev: Math.round(EV.next), rival: [RIVAL[GAME.rival].lastBarge, RIVAL[GAME.rival].lastWall], won: GAME.winner || '',
+    land: GAME.landing ? [Math.round(GAME.landing[0]), Math.round(GAME.landing[1])] : null, rland: GAME.rivalLanding ? [Math.round(GAME.rivalLanding[0]), Math.round(GAME.rivalLanding[1])] : null };
 }
 function saveSoon(){
   if (GAME.mode !== 'play' && GAME.mode !== 'over') return;
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => { try { localStorage.setItem(SAVE_KEY, JSON.stringify(snapshot())); } catch (_) {} }, 900);
+  saveTimer = setTimeout(saveNow, 900);
 }
-function readSave(){ try { const s = localStorage.getItem(SAVE_KEY); return s ? JSON.parse(s) : null; } catch (_) { return null; } }
 function loadGame(d){
   if (!d || d.v !== 8) return false;
   newWorld(d.seed | 0);
@@ -215,6 +215,9 @@ function loadGame(d){
   setSpeed(clamp(d.speed | 0, 1, 4) || 1);
   mapDirtyAll();
   enterPlay();
+  // partie sauvegardee pendant le debarquement : les barges ne sont pas gardees, le QG se pose directement sur la plage choisie
+  GAME.landing = d.land || null; GAME.rivalLanding = d.rland || null;
+  for (const [side, p] of [[GAME.side, d.land], [GAME.rival, d.rland]]) if (p && !BLD.some(l => l.side === side && l.type === 'qg')) landHQ(side, +p[0], +p[1]);
   const hq = BLD.find(l => l.side === GAME.side && l.type === 'qg');
   if (hq) centerOn(hq.ca, hq.cb);
   setZoom(KDEF, null, null, true);
@@ -251,26 +254,7 @@ function enterPlay(){
   if (!PAPER.issue) deliverPaper(true);
 }
 function THUMBS_CLEAR(){ for (const k in THUMBS) delete THUMBS[k]; }
-// accueil : choix du camp
-let pickSide = 'usc';
-for (const b of document.querySelectorAll('.side-card')) b.addEventListener('click', () => { pickSide = b.dataset.side; for (const o of document.querySelectorAll('.side-card')) o.setAttribute('aria-checked', String(o === b)); sfx(pickSide); });
-$('introGo').addEventListener('click', () => {
-  GAME.side = pickSide; GAME.rival = other(pickSide);
-  try { localStorage.removeItem(SAVE_KEY); } catch (_) {}
-  newWorld(1 + Math.floor(Math.random() * 99999));
-  startLanding();
-});
-$('introResume').addEventListener('click', () => {
-  if (GAME.mode === 'play'){ $('intro').hidden = true; return; }
-  const d = readSave(); if (!d || !loadGame(d)) toast('La sauvegarde est illisible.');
-});
-$('btnMenu').addEventListener('click', () => { openIntro(); });
-function openIntro(){
-  $('intro').hidden = false;
-  const d = readSave(); $('introResume').hidden = !d || GAME.mode === 'play';
-  if (GAME.mode === 'play'){ $('introResume').hidden = false; $('introResume').textContent = 'Revenir à la partie'; $('introGo').textContent = 'Nouvelle partie'; }
-  else { $('introResume').textContent = 'Reprendre la partie'; $('introGo').textContent = 'Débarquer'; }
-}
+// accueil, parties, profil et options : voir 22-home.js
 // choix de la plage, sur la carte de toute l'ile
 function startLanding(){
   GAME.mode = 'landing';
@@ -287,7 +271,7 @@ function chooseLanding(a, b){
   if (!inland){ toast('Trop de rochers ou de forêt épaisse ici : choisis une autre plage.'); return; }
   const rv = rivalLanding(s[0], s[1]);
   if (!rv){ toast('Choisis une plage un peu plus au centre d’un rivage.'); return; }
-  GAME.landing = s;
+  GAME.landing = s; GAME.rivalLanding = rv;
   RIVAL.auto = { usc: GAME.rival === 'usc', ccp: GAME.rival === 'ccp' };
   enterPlay();
   // les barges arrivent du large, en formation
@@ -340,7 +324,7 @@ function stubRoad(l, side, away){
 function checkVictory(){
   if (GAME.mode !== 'play' || GAME.winner) return;
   for (const s of SIDES) if (terPct(s) >= .6){
-    GAME.winner = s; saveSoon();
+    GAME.winner = s; profileResult(s); saveSoon();
     const me = s === GAME.side;
     $('endFlag').innerHTML = flagSVG(s);
     $('endTitle').textContent = me ? 'Victoire !' : 'L’autre camp l’emporte';
@@ -348,7 +332,7 @@ function checkVictory(){
     $('endBox').hidden = false; fwSalvo(s, 12); sfx('launch');
   }
 }
-$('endNew').addEventListener('click', () => { $('endBox').hidden = true; openIntro(); });
+$('endNew').addEventListener('click', () => { $('endBox').hidden = true; openIntro('new'); });
 $('endKeep').addEventListener('click', () => { $('endBox').hidden = true; });
 
 /* ================= boucle ================= */
@@ -406,10 +390,8 @@ let rz = 0;
 window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { layout(); }, 120); });
 function start(){
   layout();
-  const d = readSave();
-  // en fond de l'accueil : une ile deja tiree au sort, vue de loin
-  newWorld(d && d.seed ? d.seed | 0 : 1 + Math.floor(Math.random() * 99999));
-  centerOn(IS.ca, IS.cb); setZoom(ZLEVELS[1], null, null, true);
+  // en fond de l'accueil : une ile tiree au sort, vue de loin, qui tourne doucement
+  homeIsland(1 + Math.floor(Math.random() * 99999));
   radioNext();
   openIntro();
   window.__okt = { state, cam, GAME, RES, BLD: () => BLD, ROADS: () => ROADS, WALLS: () => WALLS, BOATS: () => BOATS, CATS: () => CATS, TER, TREES, MAPV, get VEST(){ return VEST; }, lootVestige, SPACE, EV, RIVAL, CLOCK, CAL, TYPES, ECO, PEAKS,

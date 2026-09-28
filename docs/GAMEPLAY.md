@@ -6,6 +6,10 @@ Le détail et les intentions sont dans le [PRD](PRD.md). En bref :
 
 Une île vierge tirée au sort à chaque partie : forêts, plages, rochers, îlots. Deux camps de chats : les **United Sands of Cats** (USC) et la **Cats Communist Republic** (CCR). Aucun pays réel, aucune année.
 
+## L’accueil
+
+Au lancement, un vrai menu de jeu sur une île qui tourne en fond : Continuer (la dernière partie), Nouvelle partie (camp, nom, numéro d’île à partager), Charger une partie (toutes tes parties, avec vignette, camp, mois, territoire), Profil (ton nom, ton camp préféré, tes victoires et ton temps de jeu), Options (volume, musique, vitesse de départ, pluie et neige), Règles. En jeu, le bouton Menu met en pause et propose de revenir à la partie ou de la quitter. Tout se garde dans le navigateur ; les parties se sauvegardent toutes seules.
+
 ## Le déroulé
 
 1. Choisis ton camp, puis clique sur la côte où débarquer.

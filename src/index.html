@@ -181,27 +181,70 @@
   </div>
 </div>
 
-<div class="intro" id="intro">
-  <div class="intro-card panel" role="dialog" aria-labelledby="introTitle">
+<div class="home-fade" id="homeFade" aria-hidden="true"></div>
+<div class="home" id="intro">
+  <div class="home-flags" aria-hidden="true"><span class="flag wave" data-flag="usc"></span><span class="flag wave slow" data-flag="ccp"></span></div>
+  <div class="home-col panel" role="dialog" aria-labelledby="introTitle">
     <div class="intro-kicker">ÎLE DE KUTTY · LA GUERRE FROIDE</div>
     <h1 class="intro-title" id="introTitle"><span class="brand-old">Cold</span><span class="brand-name">KUTTY TOWN</span></h1>
-    <p>Une île vierge, des forêts, des plages. Deux camps de chats débarquent chacun de leur côté. Choisis le tien, choisis ta plage, et fais grandir ton territoire avant l’autre.</p>
+    <p class="home-hello" id="homeHello">Bienvenue sur l’île, camarade chat.</p>
+    <nav class="home-menu" aria-label="Menu principal">
+      <button class="hm primary" id="hmBack" type="button" hidden>Revenir à la partie</button>
+      <button class="hm primary" id="hmContinue" type="button" hidden><span>Continuer</span><i id="hmContinueSub"></i></button>
+      <button class="hm" type="button" data-page="new"><span>Nouvelle partie</span></button>
+      <button class="hm" type="button" data-page="load"><span>Charger une partie</span><i id="hmLoadSub"></i></button>
+      <button class="hm" type="button" data-page="profile"><span>Profil</span></button>
+      <button class="hm" type="button" data-page="options"><span>Options</span></button>
+      <button class="hm" type="button" data-page="rules"><span>Règles du jeu</span></button>
+      <button class="hm" id="hmQuit" type="button" hidden><span>Quitter la partie</span><i>sauvegardée</i></button>
+    </nav>
+  </div>
+
+  <section class="home-page panel" id="pageNew" aria-labelledby="pageNewT" hidden>
+    <h2 id="pageNewT">Nouvelle partie</h2>
     <div class="sides" role="radiogroup" aria-label="Ton camp">
       <button class="side-card" type="button" role="radio" data-side="usc" aria-checked="true"><span class="flag big" data-flag="usc"></span><b>United Sands of Cats</b><span>USC. Diners, drive-in, voitures à ailerons et rock’n’roll.</span></button>
       <button class="side-card" type="button" role="radio" data-side="ccp" aria-checked="false"><span class="flag big" data-flag="ccp"></span><b>Cats Communist Republic</b><span>CCR. Kolkhozes, usines, défilés et cosmonautes.</span></button>
     </div>
-    <div class="intro-modes">
-      <button class="btn primary" id="introGo" type="button">Débarquer</button>
-      <button class="btn" id="introResume" type="button" hidden>Reprendre la partie</button>
-    </div>
+    <label class="field"><span>Nom de la partie</span><input id="newName" type="text" maxlength="28" autocomplete="off"></label>
+    <label class="field"><span>Île</span><span class="field-row"><input id="newSeed" type="text" inputmode="numeric" maxlength="5" placeholder="au hasard" autocomplete="off"><button class="btn" id="newDice" type="button">Tirer au sort</button></span></label>
+    <p class="field-note">Le numéro d’île redonne la même île : partage-le pour jouer sur la même carte.</p>
+    <div class="intro-modes"><button class="btn primary" id="introGo" type="button">Débarquer</button></div>
+  </section>
+
+  <section class="home-page panel" id="pageLoad" aria-labelledby="pageLoadT" hidden>
+    <h2 id="pageLoadT">Charger une partie</h2>
+    <div class="saves" id="saveList"></div>
+  </section>
+
+  <section class="home-page panel" id="pageProfile" aria-labelledby="pageProfileT" hidden>
+    <h2 id="pageProfileT">Profil</h2>
+    <label class="field"><span>Ton nom</span><input id="profName" type="text" maxlength="20" autocomplete="off" placeholder="Chat anonyme"></label>
+    <div class="field"><span>Camp préféré</span><div class="seg" id="profSide" role="radiogroup" aria-label="Camp préféré"><button class="btn" type="button" role="radio" data-side="usc">USC</button><button class="btn" type="button" role="radio" data-side="ccp">CCR</button></div></div>
+    <div class="stats-grid" id="profStats"></div>
+  </section>
+
+  <section class="home-page panel" id="pageOptions" aria-labelledby="pageOptionsT" hidden>
+    <h2 id="pageOptionsT">Options</h2>
+    <label class="field"><span>Volume général <b id="optVolV"></b></span><input id="optVol" type="range" min="0" max="100" step="5"></label>
+    <label class="field"><span>Musique <b id="optMusV"></b></span><input id="optMus" type="range" min="0" max="100" step="5"></label>
+    <div class="field"><span>Vitesse au début d’une partie</span><div class="seg" id="optSpeed" role="radiogroup" aria-label="Vitesse au départ"><button class="btn" type="button" role="radio" data-v="1">×1</button><button class="btn" type="button" role="radio" data-v="2">×2</button><button class="btn" type="button" role="radio" data-v="4">×4</button></div></div>
+    <div class="field"><span>Pluie et neige à l’écran</span><div class="seg" id="optWx" role="radiogroup" aria-label="Météo à l’écran"><button class="btn" type="button" role="radio" data-v="1">Oui</button><button class="btn" type="button" role="radio" data-v="0">Non</button></div></div>
+    <div class="field danger-zone"><span>Tout effacer</span><button class="btn danger" id="optWipe" type="button">Effacer parties, profil et options</button></div>
+  </section>
+
+  <section class="home-page panel" id="pageRules" aria-labelledby="pageRulesT" hidden>
+    <h2 id="pageRulesT">Règles du jeu</h2>
     <ul class="intro-rules">
       <li><b>01</b><span>Choisis ta plage : tes barges accostent et bâtissent ton QG.</span></li>
       <li><b>02</b><span>Chaque bâtiment rayonne : ton territoire grandit tout seul autour. Les avant-postes le poussent plus loin, les barges l’emmènent sur d’autres côtes.</span></li>
       <li><b>03</b><span>Trois ressources : croquettes pour manger, laine pour bâtir, ronrons pour conquérir. Chaque bâtiment produit et coûte en fonctionnement.</span></li>
       <li><b>04</b><span>Relie tes bâtiments au QG par des routes, droites ou courbes, sinon ils restent à l’arrêt. Améliore-les : un ponton devient quai, puis grand port.</span></li>
-      <li><b>05</b><span>Le premier camp à tenir 60 % de l’île gagne. Le Rideau de Laine fige ta frontière.</span></li>
+      <li><b>05</b><span>Des vestiges catzi traînent sur l’île : fouille-les quand ton territoire les atteint.</span></li>
+      <li><b>06</b><span>Le premier camp à tenir 60 % de l’île gagne. Le Rideau de Laine fige ta frontière.</span></li>
     </ul>
-  </div>
+    <p class="field-note">Glisser pour se déplacer, molette pour zoomer, clic droit glissé pour tourner. En construction, clic droit glissé ou T pour tourner le bâtiment.</p>
+  </section>
 </div>
 
 <div class="intro" id="endBox" hidden>

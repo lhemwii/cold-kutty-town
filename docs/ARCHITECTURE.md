@@ -31,6 +31,7 @@ Le résultat est un site statique dans `dist/` : `index.html`, un CSS et deux sc
 | `19-extras.js` | Son, mini-carte, fiche au survol, mode photo. |
 | `20-rival.js` | IA adverse (ébauche, à finir en dernier). |
 | `21-main.js` | Radio, conversation, sauvegarde, déroulé de la partie (accueil, plage, victoire), boucle de jeu. |
+| `22-home.js` | Accueil du jeu : menu, parties sauvegardées par emplacements (`ckt-saves`, `ckt-partie-*`, vignettes), profil, options, île qui tourne en fond. |
 
 ## Le rendu
 

@@ -117,7 +117,7 @@ function stepWeather(dt, t){
   WX.snow = sh === 'neige' ? Math.min(1, WX.snow + dt * .04) : Math.max(0, WX.snow - dt * .025);
 }
 function drawWeather(t){
-  if (!COLOR || WEATHER.k < .05) return;
+  if (!COLOR || WEATHER.k < .05 || !OPT.wx) return;
   // de loin, les gouttes et les flocons feraient de gros pixels devant la vue : ils s'estompent en dezoomant (la teinte du ciel reste)
   const fk = SC >= .999 ? 1 : clamp((SC - .55) / .4, 0, 1); if (fk <= 0) return;
   const sh = WEATHER.shown, k = WEATHER.k * fk;

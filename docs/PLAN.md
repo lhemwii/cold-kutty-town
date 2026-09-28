@@ -92,21 +92,22 @@ Les demandes qui arrivent en cours de route et ne rentrent dans aucune étape de
 
 - [x] De loin (52 %, 36 %, 24 %, 16 %), chaque arbre est redessiné directement à sa taille au lieu d’être réduit : il garde son tronc et son feuillage rond, et son ombre au sol, comme à 74 %.
 
-## Étape 0.12. Vrai menu d’accueil (à faire, bientôt)
+## Étape 0.12. Vrai menu d’accueil (fait)
 
-- [ ] Écran d’accueil de jeu : l’île qui défile en fond, les drapeaux des deux camps, musique.
-- [ ] Nouvelle partie (choix du camp, de la graine d’île, de la difficulté quand l’IA sera prête).
-- [ ] Charger une partie : plusieurs emplacements de sauvegarde gardés dans le navigateur, avec date, camp et aperçu.
-- [ ] Profil du joueur : nom, camp préféré, statistiques (parties jouées, gagnées).
-- [ ] Options : son, musique, vitesse par défaut, qualité, langue plus tard.
-- [ ] Quitter : revenir à l’accueil en sauvegardant.
+- [x] Écran d’accueil de jeu : une île vue de loin qui tourne en fond et change toutes les 40 s, les drapeaux des deux camps qui flottent.
+- [x] Nouvelle partie : camp, nom de la partie, numéro d’île (au hasard ou choisi, pour rejouer la même île). La difficulté viendra avec l’IA (étape 9).
+- [x] Charger une partie : plusieurs emplacements de sauvegarde gardés dans le navigateur, avec date, camp et aperçu.
+- [x] Profil du joueur : nom, camp préféré, statistiques (parties jouées, gagnées).
+- [x] Options : volume, musique, vitesse au départ, pluie et neige à l’écran, tout effacer. La langue viendra plus tard.
+- [x] Quitter la partie (depuis le bouton Menu en jeu) : sauvegarde et retour à l’accueil. L’ancienne sauvegarde unique est reprise comme première partie.
+- [x] Bug vu en passant : une partie sauvegardée pendant le débarquement revenait sans QG. Les plages choisies sont gardées et le QG se pose au chargement.
 
 ## Étape 1. Fiabiliser ce qui existe
 
 - [ ] Jouer une vraie partie à la souris et noter chaque bug d’interface.
 - [ ] Vérifier la sauvegarde et le rechargement sur une partie avancée.
 - [ ] Annuler : couvrir aussi les améliorations et la démolition.
-- [ ] Menu : bouton « Nouvelle partie » qui demande confirmation.
+- [x] Menu : nouvelle partie depuis l’accueil, la partie en cours est sauvegardée avant (étape 0.12).
 - [ ] Mini-carte : ne pas l’afficher avant le choix du camp.
 - [ ] Les chats nommés : vérifier qu’ils apparaissent tous et ne se marchent pas dessus.
 - [ ] Nettoyer les restes de l’ancien code (réglages de lumière, motifs, inspecteur de pixels).
