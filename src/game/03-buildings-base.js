@@ -42,6 +42,25 @@ function artSprite(rows){
     }
   });
 }
+// le meme arbre redessine directement en petit pour la vue de loin (au lieu d'etre reduit) :
+// il garde un tronc d'au moins un pixel et un feuillage rond, a toutes les distances
+const TREE_SPR_SC = {};
+function treeSprSc(r, s){
+  const q = Math.max(1, Math.round(s * 20)), key = r + ':' + q; if (TREE_SPR_SC[key]) return TREE_SPR_SC[key];
+  s = q / 20;
+  return TREE_SPR_SC[key] = makeSprite(put => {
+    const tw = Math.max(1, Math.round(2 * s)), th = Math.max(2, Math.round(4 * s));
+    for (let y = -th + 1; y <= 0; y++) for (let x = 0; x < tw; x++) put(x, y, tw === 1 ? 0 : (x === 0 ? 1 : 0));
+    const rx = Math.max(1, (r + 1) * s), ry = Math.max(1, r * s), cy = -th + 1 - Math.ceil(ry) - 1;
+    for (let dy = -Math.ceil(ry); dy <= Math.ceil(ry); dy++) for (let dx = -Math.ceil(rx); dx <= Math.ceil(rx); dx++){
+      const e = (dx / (rx + .5)) ** 2 + (dy / (ry + .5)) ** 2; if (e > 1) continue;
+      const tone = clamp(0.35 - (dx / rx) * .3 - (dy / ry) * .4, 0, 1);
+      let c = bay(dx + 8, dy + 8) < tone * 6 ? 1 : 0;
+      if (e > .6 && (dx <= 0 || dy <= 0) && rx > 1.5) c = 1;
+      put(dx + (tw > 1 ? 0 : 0), cy + dy, c);
+    }
+  });
+}
 const TREE_SPR = {};
 function treeSpr(r){
   if (TREE_SPR[r]) return TREE_SPR[r];

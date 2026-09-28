@@ -88,6 +88,19 @@ Les demandes qui arrivent en cours de route et ne rentrent dans aucune étape de
 - [x] Tous les bâtiments se tournent : ils sont dessinés face à +b puis tournés autour de leur centre (projection, soleil, ombres et lumières suivent). Le port et la pêcherie gardent leur sens face à la mer.
 - [x] Question réglée : la vue de près en plus petit ne peut pas descendre sous 74 %. À 52 %, on tombe à 30 images par seconde ; en dessous, un pixel du jeu devient plus petit qu’un pixel de l’écran. Pour aller plus loin, il faudra le rendu par la carte graphique (étape 10).
 
+## Étape 0.11. Arbres de loin comme de près (fait)
+
+- [x] De loin (52 %, 36 %, 24 %, 16 %), chaque arbre est redessiné directement à sa taille au lieu d’être réduit : il garde son tronc et son feuillage rond, et son ombre au sol, comme à 74 %.
+
+## Étape 0.12. Vrai menu d’accueil (à faire, bientôt)
+
+- [ ] Écran d’accueil de jeu : l’île qui défile en fond, les drapeaux des deux camps, musique.
+- [ ] Nouvelle partie (choix du camp, de la graine d’île, de la difficulté quand l’IA sera prête).
+- [ ] Charger une partie : plusieurs emplacements de sauvegarde gardés dans le navigateur, avec date, camp et aperçu.
+- [ ] Profil du joueur : nom, camp préféré, statistiques (parties jouées, gagnées).
+- [ ] Options : son, musique, vitesse par défaut, qualité, langue plus tard.
+- [ ] Quitter : revenir à l’accueil en sauvegardant.
+
 ## Étape 1. Fiabiliser ce qui existe
 
 - [ ] Jouer une vraie partie à la souris et noter chaque bug d’interface.

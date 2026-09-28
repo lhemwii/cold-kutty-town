@@ -90,7 +90,7 @@ function treeDrawables(out, t, withShadows){
   const cs = [unprj(-20, -20), unprj(W + 20, -20), unprj(-20, H + 60), unprj(W + 20, H + 60)];
   let a0 = 1e9, a1 = -1e9, b0 = 1e9, b1 = -1e9;
   for (const [a, b] of cs){ a0 = Math.min(a0, a); a1 = Math.max(a1, a); b0 = Math.min(b0, b); b1 = Math.max(b1, b); }
-  const xmas = XMAS_ON, far = SC < .999, s = SC;
+  const xmas = XMAS_ON, far = SC < .999, s = SC, farShade = far && COLOR && NIGHT < .6;
   vestDrawables(out);
   peaksIn(a0 - 40, a1 + 40, b0 - 40, b1 + 80, (pk) => {
     const q = prj(pk.a, pk.b, 0);
@@ -101,16 +101,17 @@ function treeDrawables(out, t, withShadows){
     const q = prj(tr.a, tr.b, 0);
     if (q[0] < -14 * s || q[0] > W + 14 * s || q[1] < -4 * s || q[1] > H + 26 * s) return;
     // de loin, l'arbre est recopie en petit directement (il est le meme sous tous les angles)
-    if (far){ out.push({ d: dep(tr.a, tr.b), m: M.TREE, raw: true, f: () => { CUR = M.TREE; blitSc(treeSpr(tr.r), q[0], q[1], s); } }); return; }
+    if (far){ if (farShade) treeShadow(tr, q, s); out.push({ d: dep(tr.a, tr.b), m: M.TREE, raw: true, f: () => { CUR = M.TREE; blit(treeSprSc(tr.r, s), Math.round(q[0]), Math.round(q[1])); } }); return; }
     if (withShadows) treeShadow(tr, q);
     const deco = xmas && hash2(tr.a, tr.b) < .3;
     out.push({ d: dep(tr.a, tr.b), m: M.TREE, f: (tt) => { CUR = M.TREE; blitAt(treeSpr(tr.r), tr.a, tr.b, 0); if (deco) drawTreeLights(tr.a, tr.b, tr.r, tt); } });
   });
 }
 // ombre d'arbre : un ovale decale selon le soleil, seulement sur le sol
-function treeShadow(tr, q){
+function treeShadow(tr, q, s){
+  s = s || 1;
   const h = tr.r * 2 + 3, sa = tr.a + h * SHADOW_V[0] * .5, sb = tr.b + h * SHADOW_V[1] * .5, p = prj(sa, sb, 0);
-  const cx = Math.round(p[0]), cy = Math.round(p[1]), rx = tr.r + 2, ry = Math.max(2, tr.r * .6);
+  const cx = Math.round(p[0]), cy = Math.round(p[1]), rx = Math.max(1, (tr.r + 2) * s), ry = Math.max(s < 1 ? 1 : 2, tr.r * .6 * s);
   for (let dy = -Math.ceil(ry); dy <= Math.ceil(ry); dy++){
     const y = cy + dy; if (y < 0 || y >= H) continue;
     const w = Math.floor(rx * Math.sqrt(Math.max(0, 1 - (dy / (ry + .5)) ** 2)));
