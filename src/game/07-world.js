@@ -48,12 +48,13 @@ function drawPeak(pk){
     // normale sortante de la face (p, q, sommet)
     const ux = qa - pa, uy = qb - pb, vx = ta - pa, vy = tb - pb, nx = uy * H - 0 * vy, ny = 0 * vx - ux * H, nz = ux * vy - uy * vx;
     const sgn = nz < 0 ? -1 : 1, nrm = [nx * sgn, ny * sgn, nz * sgn];
+    // faces pleines, seul l'eclairage change de l'une a l'autre : pas de trame qui fait des carres au zoom ou en tournant
     CUR = M.ROCK;
-    drawFace([pa, pb, 0, qa, qb, 0, ta, tb, H], nrm, (x, y) => bz(x, y) < 5 ? 1 : 0, 1);
+    drawFace([pa, pb, 0, qa, qb, 0, ta, tb, H], nrm, 0, 1);
     if (pk.snow){
       const f = .68, sa = pa + (ta - pa) * f, sb = pb + (tb - pb) * f, ea = qa + (ta - qa) * f, eb = qb + (tb - qb) * f;
       CUR = M.NEUTRAL;
-      drawFace([sa, sb, H * f, ea, eb, H * f, ta, tb, H], nrm, (x, y) => bz(x, y) < 14 ? 1 : 0, -1);
+      drawFace([sa, sb, H * f, ea, eb, H * f, ta, tb, H], nrm, 1, -1);
     }
   }
 }

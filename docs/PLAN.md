@@ -60,6 +60,11 @@ Les demandes qui arrivent en cours de route et ne rentrent dans aucune étape de
 - [x] CCR : tête de chat jaune au centre, tenue par la faucille, le marteau à côté.
 - [x] Drapeaux du jeu agrandis (19 x 11) pour que les dessins se lisent, et ceux de l’interface en 26 x 13.
 
+## Étape 0.6. Montagnes sans quadrillage (fait)
+
+- [x] Plus de trame en petits carrés sur les montagnes : faces pleines, seul l’éclairage change d’une face à l’autre. Plus de gros carrés au zoom ni d’effet bizarre en tournant.
+- [x] Sol rocheux : taches claires accrochées au sol au lieu d’une trame calée sur l’écran.
+
 ## Étape 1. Fiabiliser ce qui existe
 
 - [ ] Jouer une vraie partie à la souris et noter chaque bug d’interface.

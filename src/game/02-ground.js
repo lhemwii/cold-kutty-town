@@ -119,7 +119,8 @@ function baseTone(t, ld, sd, ia, ib){
   switch (t){
     case T_SEA: return (sd >= 1 && sd <= 10) ? 32 + sd : 0;
     case T_BEACH: if (ld <= 2) return 16; return Math.max(1, Math.round(4 - ld * .25));
-    case T_ROCK: return hash2(ia >> 1, ib >> 1) < .3 ? 16 : (hash2(ia, ib) < .5 ? 3 : 6);
+    // roche : des taches claires accrochees au sol, pas de trame a l'ecran (elle faisait des carres en tournant et au dezoom)
+    case T_ROCK: return (hash2(ia >> 2, ib >> 2) < .18 || hash2(ia, ib) < .16) ? 16 : 0;
     case T_FOREST: return hash2(ia * 3 + 1, ib * 5 + 2) < .05 ? 16 : (hash2(ia, ib + 7) < .5 ? 1 : 0);
     case T_DIRT: return hash2(ia + 5, ib) < .4 ? 2 : 0;
     default: return hash2((hash2(ia, ib) * 4294967296) | 0, (ia * 31) ^ ib) < 0.012 ? 16 : 0;
