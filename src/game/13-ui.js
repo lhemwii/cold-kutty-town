@@ -223,6 +223,8 @@ function drawCompass(){
   for (const [ox, oy] of [[0,0],[1,0],[-1,0],[0,1],[0,-1]]){ const x = tx + ox, y = ty + oy; if (x >= 0 && y >= 0 && x < 11 && y < 11) d[y * 11 + x] = WHITE; }
   g.putImageData(im, 0, 0);
 }
+// de loin, l'ile est gardee en images tous les 45 degres : en lachant, on se cale sur l'angle le plus proche, deja pret
+function snapTurn(){ if (OV_ON) cam.phiT = Math.round(cam.phi / (Math.PI / 4)) * (Math.PI / 4); }
 function rotateBy(delta){ const base = cam.phiT == null ? cam.phi : cam.phiT; cam.phiT = Math.round((base + delta) / (Math.PI / 4)) * (Math.PI / 4); }
 $('zoomIn').addEventListener('click', () => { zoomStep(1); updateZoomUI(); });
 $('zoomOut').addEventListener('click', () => { zoomStep(-1); updateZoomUI(); });
@@ -324,8 +326,9 @@ scene.addEventListener('pointermove', e => {
   }
 });
 function endPointer(e){
-  if (e.pointerType === 'touch'){ touches.delete(e.pointerId); if (touches.size < 2 && pinch){ pinch = null; drag = null; snapZoom(); return; } }
+  if (e.pointerType === 'touch'){ touches.delete(e.pointerId); if (touches.size < 2 && pinch){ const tn = pinch.turning; pinch = null; drag = null; snapZoom(); if (tn) snapTurn(); return; } }
   const d = drag; drag = null; scene.classList.remove('panning', 'turning');
+  if (d && d.turn && d.moved) snapTurn();
   if (!d || d.moved || d.id !== e.pointerId || e.type === 'pointercancel') return;
   if (d.right){ if (toolPts.length){ toolPts = []; toast('Tracé interrompu.'); } else if (state.tool !== 'walk') setTool('walk'); return; }
   if (d.turn) return;

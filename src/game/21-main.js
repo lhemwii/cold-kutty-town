@@ -392,7 +392,7 @@ function frame(tms){
   updateClockUI();
   secAcc += dt; if (secAcc > 1){ secAcc = 0; checkVictory(); if (GAME.mode === 'play') renderHUD(); }
   if (OV_ON) drawOverview(t);
-  else { render(t); if (GAME.mode === 'play'){ const b = OVT.budget; OVT.budget = 2; ovtWork(t); OVT.budget = b; } }
+  else { render(t); if (GAME.mode === 'play'){ const b = OVT.budget; OVT.budget = 2; ovtWork(t, false); OVT.budget = b; } }
   for (const f of HOOKS.after) f(t);
   if (compassPhi !== cam.phi){ compassPhi = cam.phi; drawCompass(); }
   if (state.chatCat) drawPortrait(state.chatCat, t, portraitCv);

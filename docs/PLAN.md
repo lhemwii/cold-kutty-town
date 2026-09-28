@@ -37,7 +37,10 @@ Les demandes qui arrivent en cours de route et ne rentrent dans aucune étape de
 
 ## Étape 0.2. Rotation vue de loin (fait)
 
-- [x] Quand on tourne dézoomé, la vue se remet d’aplomb tout de suite : le nouveau cache commence dès le début de la rotation, les tuiles à l’écran d’abord, et chaque tuile prête s’affiche aussitôt. Mesuré : nouvelle vue prête en 0,3 s environ, avant la fin du quart de tour.
+- [x] Aux boutons : le nouveau cache commence dès le début de la rotation, les tuiles à l’écran d’abord, et chaque tuile prête s’affiche aussitôt.
+- [x] À la souris (clic droit glissé) et au doigt : plus d’image figée qui se déforme. Le jeu prépare d’avance l’île aux angles voisins (tous les 45°) et, pendant qu’on tourne, fond les deux vues les plus proches pour que les reliefs tournent vraiment.
+- [x] En lâchant, la vue de loin se cale sur l’angle de 45° le plus proche, déjà prêt.
+- [x] Mémoire : caches plus légers (un seul tableau par tuile, tampons de rendu partagés), tuiles hors de la carte jamais dessinées.
 
 ## Étape 1. Fiabiliser ce qui existe
 

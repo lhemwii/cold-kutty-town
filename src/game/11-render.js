@@ -324,19 +324,26 @@ function drawOverview(t){
   const sea = PALL[(M.SEA * 2) * 5];
   c.fillStyle = 'rgb(' + (sea & 255) + ',' + ((sea >> 8) & 255) + ',' + ((sea >> 16) & 255) + ')';
   c.fillRect(0, 0, devW, devH);
-  ovtWork(t);
-  const O = OVT.front;
-  // tant que le cache n'est pas plein, la carte plate sert de fond
-  if (!O || O.pending){
+  ovtWork(t, true);
+  const { E, A, B, wB } = ovtPick();
+  OVT.drawn = [E, A, B].filter(Boolean);
+  // tant que rien n'est pret a l'ecran, la carte plate sert de fond
+  const first = A && B ? (A.visPending <= B.visPending ? A : B) : (A || B);
+  if (!(E && !E.visPending) && (!first || first.visPending)){
     mapUpdate();
     c.imageSmoothingEnabled = Z * MS < 3;
     c.setTransform(...mapMatrix());
     c.drawImage(MAPV.cv, 0, 0);
     c.setTransform(1, 0, 0, 1, 0, 0);
   }
-  if (O) ovtDraw(O);
-  // les tuiles deja pretes du nouvel angle passent par-dessus, sans attendre que tout soit fini
-  if (OVT.back) ovtDraw(OVT.back);
+  // fondu entre les deux angles qui encadrent la vue : le sol tombe juste, les reliefs passent de l'un a l'autre
+  if (first){
+    const second = first === A ? B : A;
+    ovtDraw(first, 1);
+    if (second) ovtDraw(second, second === B ? wB : 1 - wB);
+  }
+  // l'angle exact passe par-dessus, tuile par tuile, des qu'il est pret
+  if (E) ovtDraw(E, 1);
   for (const f of HOOKS.map) f(c, t);
 }
 
@@ -612,27 +619,54 @@ function drawShadows(){
 /* ================= vue d'ensemble detaillee : toute l'ile en pixel art, gardee en tuiles ================= */
 // Au dezoom, on n'essaie plus de tout redessiner a chaque image : l'ile est rendue a l'echelle 1 dans des tuiles,
 // on ne refait que les tuiles salies (batiment, route) ou on les recolore (territoire, nuit), avec un budget de temps.
-// Quand la vue tourne, on construit un nouveau cache a cote et on garde l'ancien, deforme, en attendant.
-const TS = 256, OVT = { front: null, back: null, budget: 7 };
+// Pour tourner sans image figee, on garde l'ile a plusieurs angles (tous les 45 degres) : les voisins de l'angle
+// courant sont prepares d'avance, et pendant qu'on tourne on fond les deux angles les plus proches.
+const TS = 256, OVT_STEP = Math.PI / 4, OVT_MAX = 4;
+const OVT = { list: [], budget: 7, urgent: 8, lastT: 0, cost: 3, dir: 1, lastPhi: 0, drawn: [] };
+// tampons de rendu partages par toutes les tuiles ; chaque tuile ne garde qu'un indice de couleur par pixel
+const OSC = { fb: new Uint8Array(TS * TS), mb: new Uint8Array(TS * TS), lb: new Uint8Array(TS * TS), ob: new Uint8Array(TS * TS), img: null, px: null };
 // dans le cache, pas de lueur sur les cases fraichement prises : elle y resterait figee
 let NOFRESH = false;
 const ISO_X = (a, b) => (a * PC - b * PS) - (a * PS + b * PC), ISO_Y = (a, b) => ((a * PC - b * PS) + (a * PS + b * PC)) * .5;
+const angDiff = (u, v) => { let d = (u - v) % TAU; if (d > Math.PI) d -= TAU; else if (d <= -Math.PI) d += TAU; return d; };
+const ovtFind = (phi) => OVT.list.find(O => Math.abs(angDiff(O.phi, phi)) < 1e-4) || null;
 function ovtNew(phi){
+  const sp = [PC, PS];
   PC = Math.cos(phi); PS = Math.sin(phi);
+  const corners = [[GA0, GB0], [GA0 + GW / GSC, GB0], [GA0 + GW / GSC, GB0 + GH / GSC], [GA0, GB0 + GH / GSC]].map(([a, b]) => [ISO_X(a, b), ISO_Y(a, b)]);
+  [PC, PS] = sp;
   let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
-  for (const [a, b] of [[GA0, GB0], [GA0 + GW / GSC, GB0], [GA0, GB0 + GH / GSC], [GA0 + GW / GSC, GB0 + GH / GSC]]){ const x = ISO_X(a, b), y = ISO_Y(a, b); x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+  for (const [x, y] of corners){ x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
   x0 = Math.floor(x0 - 20); y0 = Math.floor(y0 - 110); x1 = Math.ceil(x1 + 20); y1 = Math.ceil(y1 + 20);
   const nx = Math.ceil((x1 - x0) / TS), ny = Math.ceil((y1 - y0) / TS), cv = document.createElement('canvas');
   cv.width = nx * TS; cv.height = ny * TS;
-  const O = { phi, x0, y0, nx, ny, cv, g: cv.getContext('2d'), tiles: [], pending: nx * ny, palKey: '' };
-  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) O.tiles.push({ i, j, state: 2, pk: '', fb: null, mb: null, lb: null, ob: null, img: null, empty: false });
+  const poly = corners.map(([x, y]) => [x - x0, y - y0]);
+  const O = { phi, x0, y0, nx, ny, cv, g: cv.getContext('2d'), tiles: [], pending: 0, visPending: 0 };
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++){
+    // une tuile qui ne touche pas la carte (avec la marge des objets qui montent) reste vide : c'est la mer du fond
+    const out = !rectHitsPoly(i * TS - 24, j * TS - 24, (i + 1) * TS + 24, (j + 1) * TS + 120, poly);
+    O.tiles.push({ i, j, state: out ? 0 : 2, pk: '', ix: null, ready: out, out });
+  }
+  O.pending = O.tiles.filter(T => !T.ready).length;
   return O;
 }
+// rectangle contre quadrilatere convexe (axes separateurs)
+function rectHitsPoly(rx0, ry0, rx1, ry1, poly){
+  const rect = [[rx0, ry0], [rx1, ry0], [rx1, ry1], [rx0, ry1]];
+  const axes = [[1, 0], [0, 1]];
+  for (let k = 0; k < poly.length; k++){ const p = poly[k], q = poly[(k + 1) % poly.length]; axes.push([q[1] - p[1], p[0] - q[0]]); }
+  for (const [ax, ay] of axes){
+    let a0 = 1e18, a1 = -1e18, b0 = 1e18, b1 = -1e18;
+    for (const [x, y] of rect){ const v = x * ax + y * ay; a0 = Math.min(a0, v); a1 = Math.max(a1, v); }
+    for (const [x, y] of poly){ const v = x * ax + y * ay; b0 = Math.min(b0, v); b1 = Math.max(b1, v); }
+    if (a1 < b0 || b1 < a0) return false;
+  }
+  return true;
+}
 // state : 0 a jour, 1 a recolorer (territoire), 2 a redessiner
-function ovtDirtyAll(){ for (const O of [OVT.front, OVT.back]) if (O) for (const T of O.tiles) T.state = 2; }
+function ovtDirtyAll(){ for (const O of OVT.list) for (const T of O.tiles) if (!T.out) T.state = 2; }
 function ovtDirty(a0, a1, b0, b1, terOnly){
-  for (const O of [OVT.front, OVT.back]){
-    if (!O) continue;
+  for (const O of OVT.list){
     const pc = Math.cos(O.phi), ps = Math.sin(O.phi), X = (a, b) => (a * pc - b * ps) - (a * ps + b * pc), Y = (a, b) => ((a * pc - b * ps) + (a * ps + b * pc)) * .5;
     let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
     for (const [a, b] of [[a0, b0], [a1, b0], [a0, b1], [a1, b1]]){ const x = X(a, b), y = Y(a, b); x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
@@ -640,73 +674,134 @@ function ovtDirty(a0, a1, b0, b1, terOnly){
     const up = terOnly ? 2 : 90;
     const i0 = Math.max(0, Math.floor((x0 - 4 - O.x0) / TS)), i1 = Math.min(O.nx - 1, Math.floor((x1 + 4 - O.x0) / TS));
     const j0 = Math.max(0, Math.floor((y0 - up - O.y0) / TS)), j1 = Math.min(O.ny - 1, Math.floor((y1 + 4 - O.y0) / TS));
-    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++){ const T = O.tiles[j * O.nx + i]; if (T.state < (terOnly ? 1 : 2)) T.state = terOnly ? 1 : 2; }
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++){ const T = O.tiles[j * O.nx + i]; if (!T.out && T.state < (terOnly ? 1 : 2)) T.state = terOnly ? 1 : 2; }
   }
 }
-// rendu d'une tuile : on detourne les tampons du rendu vers ceux de la tuile
+// rendu d'une tuile : on detourne les tampons du rendu vers les tampons partages, puis on garde l'indice de couleur
 function ovtRender(O, T, t, full){
+  if (!OSC.img){ OSC.img = new ImageData(TS, TS); OSC.px = new Uint32Array(OSC.img.data.buffer); }
+  if (!T.ix){ T.ix = new Uint16Array(TS * TS); full = true; }
   const sv = [W, H, N, fb, mb, lb, ob, img, px32, PC, PS, TX, TY];
-  if (!T.img){ T.fb = new Uint8Array(TS * TS); T.mb = new Uint8Array(TS * TS); T.lb = new Uint8Array(TS * TS); T.ob = new Uint8Array(TS * TS); T.img = O.g.createImageData(TS, TS); T.px = new Uint32Array(T.img.data.buffer); }
-  W = TS; H = TS; N = TS * TS; fb = T.fb; mb = T.mb; lb = T.lb; ob = T.ob; img = T.img; px32 = T.px;
+  W = TS; H = TS; N = TS * TS; fb = OSC.fb; mb = OSC.mb; lb = OSC.lb; ob = OSC.ob; img = OSC.img; px32 = OSC.px;
   PROJ_FIX = [-O.x0 - T.i * TS, -O.y0 - T.j * TS];
   const cp = cam.phi; cam.phi = O.phi; NOFRESH = true;
+  const IX = T.ix, P = PALX, pl = PL, F = fb, MB = mb, LB = lb, OB = ob, PX = px32, n = N;
   try {
-    if (full){ render(t, true); }
-    else {
+    if (full){
+      render(t, true);
+      for (let k = 0; k < n; k++) IX[k] = OB[k] * pl + (((MB[k] << 1) | F[k]) * 5 + LB[k]);
+    } else {
       setProj(); groundOwners();
-      const P = PALX, pl = PL, F = fb, MB = mb, LB = lb, OB = ob, PX = px32;
-      for (let k = 0; k < N; k++) PX[k] = P[OB[k] * pl + (((MB[k] << 1) | F[k]) * 5 + LB[k])];
+      for (let k = 0; k < n; k++){ const v = OB[k] * pl + IX[k] % pl; IX[k] = v; PX[k] = P[v]; }
     }
   } finally {
     cam.phi = cp; PROJ_FIX = null; NOFRESH = false;
     [W, H, N, fb, mb, lb, ob, img, px32, PC, PS, TX, TY] = sv;
   }
-  O.g.putImageData(T.img, T.i * TS, T.j * TS);
-  T.state = 0; T.pk = palKey;
+  O.g.putImageData(OSC.img, T.i * TS, T.j * TS);
+  T.state = 0; T.pk = palKey; T.ready = true;
 }
 // recolorer une tuile deja rendue (la nuit tombe, la saison change)
 function ovtRecolor(O, T){
-  const P = PALX, pl = PL, F = T.fb, MB = T.mb, LB = T.lb, OB = T.ob, PX = T.px, n = TS * TS;
-  for (let k = 0; k < n; k++) PX[k] = P[OB[k] * pl + (((MB[k] << 1) | F[k]) * 5 + LB[k])];
-  O.g.putImageData(T.img, T.i * TS, T.j * TS);
+  if (!OSC.img){ OSC.img = new ImageData(TS, TS); OSC.px = new Uint32Array(OSC.img.data.buffer); }
+  const P = PALX, IX = T.ix, PX = OSC.px, n = TS * TS;
+  for (let k = 0; k < n; k++) PX[k] = P[IX[k]];
+  O.g.putImageData(OSC.img, T.i * TS, T.j * TS);
   T.pk = palKey;
 }
 // les tuiles a l'ecran d'abord
 function ovtVisible(O){
   const pc = Math.cos(O.phi), ps = Math.sin(O.phi), cx = (cam.a * pc - cam.b * ps) - (cam.a * ps + cam.b * pc) - O.x0, cy = ((cam.a * pc - cam.b * ps) + (cam.a * ps + cam.b * pc)) * .5 - O.y0;
-  const hw = devW / 2 / Z + TS, hh = devH / 2 / Z + TS;
+  // quand la vue a tourne depuis, l'image est deformee : on prend large
+  const d = Math.abs(angDiff(cam.phi, O.phi)), wide = 1 + d * 1.6;
+  const hw = devW / 2 / Z * wide + TS, hh = devH / 2 / Z * wide + TS;
   return (T) => Math.abs((T.i + .5) * TS - cx) < hw && Math.abs((T.j + .5) * TS - cy) < hh;
 }
-function ovtWork(t){
-  const t0 = performance.now();
-  if (!OVT.front) OVT.front = ovtNew(cam.phi);
-  // angle d'arrivee : on prepare le nouveau cache des le debut d'une rotation par les boutons ou le clavier
-  const turning = drag && drag.turn, target = cam.phiT != null ? cam.phiT : cam.phi;
-  if (!turning && Math.abs(OVT.front.phi - target) > 1e-4){
-    if (!OVT.back || Math.abs(OVT.back.phi - target) > 1e-4) OVT.back = ovtNew(target);
-  } else if (OVT.back && Math.abs(OVT.back.phi - target) > 1e-4) OVT.back = null;
-  const budget = OVT.back ? Math.max(OVT.budget, 14) : OVT.budget;
-  const O = OVT.back || OVT.front, vis = ovtVisible(O);
-  const order = O.tiles.slice().sort((u, v) => (vis(v) - vis(u)) || (v.state - u.state));
-  for (const T of order){
-    if (performance.now() - t0 > budget) break;
-    if (T.state === 2 || !T.img) ovtRender(O, T, t, true);
-    else if (T.state === 1) ovtRender(O, T, t, false);
-    else if (T.pk !== palKey) ovtRecolor(O, T);
+const ovtTurning = () => !!((drag && drag.turn && drag.moved) || (pinch && pinch.turning));
+// angles a tenir prets, du plus urgent au moins urgent
+function ovtWanted(far){
+  const turning = ovtTurning(), rest = turning ? null : (cam.phiT != null ? cam.phiT : cam.phi), out = [];
+  const add = (p) => { if (!out.some(q => Math.abs(angDiff(p, q)) < 1e-4)) out.push(p); };
+  if (rest != null) add(rest);
+  if (!far) return out;
+  const k = Math.floor(cam.phi / OVT_STEP + 1e-6), lo = k * OVT_STEP;
+  add(lo); if (Math.abs(cam.phi - lo) > 1e-4) add(lo + OVT_STEP);
+  if (turning) add(OVT.dir > 0 ? lo + 2 * OVT_STEP : lo - OVT_STEP);
+  else {
+    const r = Math.round(rest / OVT_STEP);
+    if (Math.abs(rest - r * OVT_STEP) < 1e-4){ add(rest + OVT_STEP); add(rest - OVT_STEP); }
+    else { const f = Math.floor(rest / OVT_STEP) * OVT_STEP; add(f); add(f + OVT_STEP); }
   }
-  O.pending = O.tiles.filter(T => !T.img).length;
-  if (OVT.back && !OVT.back.pending && cam.phiT == null){ OVT.front = OVT.back; OVT.back = null; }
-  // pendant qu'on construit le nouveau cache, l'ancien reste a la bonne couleur
-  if (OVT.back){ const F = OVT.front, v2 = ovtVisible(F); for (const T of F.tiles){ if (performance.now() - t0 > budget + 2) break; if (T.img && T.pk !== palKey && v2(T)) ovtRecolor(F, T); } }
+  return out;
 }
-// affichage : echelle Z, et si la vue a tourne depuis, une deformation en attendant le nouveau cache
-function ovtDraw(O){
+function ovtWork(t, far){
+  const t0 = performance.now();
+  const dp = angDiff(cam.phi, OVT.lastPhi); if (Math.abs(dp) > 1e-5) OVT.dir = dp > 0 ? 1 : -1; OVT.lastPhi = cam.phi;
+  const wanted = ovtWanted(far), keep = new Set(OVT.drawn);
+  const caches = [];
+  for (const p of wanted){
+    let O = ovtFind(p);
+    if (!O){
+      if (OVT.list.length >= OVT_MAX){
+        // on libere l'angle le plus loin qui ne sert plus
+        let worst = null, wd = -1;
+        for (const Q of OVT.list){ if (keep.has(Q) || caches.includes(Q) || wanted.some(w => Math.abs(angDiff(w, Q.phi)) < 1e-4)) continue; const d = Math.abs(angDiff(Q.phi, cam.phi)); if (d > wd){ wd = d; worst = Q; } }
+        if (!worst) continue;
+        OVT.list.splice(OVT.list.indexOf(worst), 1);
+      }
+      O = ovtNew(p); OVT.list.push(O);
+    }
+    caches.push(O);
+  }
+  const urgent = far && (ovtTurning() || cam.phiT != null || caches.slice(0, 2).some(O => O.visPending));
+  // en tournant, on travaille plus, mais on recule des que les images ralentissent (ecrans tres denses, machine lente)
+  const fdt = t0 - OVT.lastT; OVT.lastT = t0;
+  if (urgent && fdt < 200) OVT.urgent = clamp(OVT.urgent + (fdt > 22 ? -1.5 : .5), 3, 12);
+  const budget = urgent ? Math.max(OVT.budget, OVT.urgent) : OVT.budget;
+  // d'abord les tuiles a l'ecran des deux angles les plus urgents, puis tout le reste dans l'ordre
+  const passes = [];
+  for (const O of caches.slice(0, 2)) passes.push([O, true]);
+  for (const O of caches) passes.push([O, false]);
+  outer: for (const [O, visOnly] of passes){
+    const vis = ovtVisible(O);
+    const order = O.tiles.filter(T => !T.out && (!visOnly || vis(T)) && (!T.ready || T.state || T.pk !== palKey));
+    order.sort((u, v) => (vis(v) - vis(u)) || (u.ready - v.ready) || (v.state - u.state));
+    for (const T of order){
+      if (performance.now() - t0 + OVT.cost > budget) break outer;
+      const s0 = performance.now();
+      if (T.state === 2 || !T.ready){ ovtRender(O, T, t, true); OVT.cost = OVT.cost * .8 + (performance.now() - s0) * .2; }
+      else if (T.state === 1) ovtRender(O, T, t, false);
+      else ovtRecolor(O, T);
+    }
+  }
+  for (const O of OVT.list){ const vis = ovtVisible(O); let p = 0, vp = 0; for (const T of O.tiles) if (!T.ready){ p++; if (vis(T)) vp++; } O.pending = p; O.visPending = vp; }
+}
+// les couches a afficher : l'angle exact s'il est pret, sinon les deux angles qui encadrent la vue, fondus
+function ovtPick(){
+  let E = null, A = null, B = null, dA = 1e9, dB = 1e9;
+  for (const O of OVT.list){
+    if (O.pending === O.tiles.length) continue;
+    const d = angDiff(O.phi, cam.phi);
+    if (Math.abs(d) < 1e-4){ E = O; continue; }
+    if (d < 0 && -d < dA){ dA = -d; A = O; } else if (d > 0 && d < dB){ dB = d; B = O; }
+  }
+  if (E && !E.visPending) return { E, A: null, B: null, wB: 0 };
+  // fondu court au milieu : le reste du temps, une seule image nette (sinon les reliefs se dedoublent)
+  let w = A && B ? dA / (dA + dB) : (B ? 1 : 0);
+  if (A && B){ w = clamp((w - .32) / .36, 0, 1); w = w * w * (3 - 2 * w); }
+  return { E, A, B, wB: w };
+}
+// affichage : echelle Z, et si la vue a tourne depuis, une deformation (exacte pour le sol)
+function ovtDraw(O, alpha){
+  if (alpha <= .004) return;
   const c = ctx, s = Z, po = O.phi, pc = Math.cos(po), ps = Math.sin(po);
   const cx = (cam.a * pc - cam.b * ps) - (cam.a * ps + cam.b * pc) - O.x0, cy = ((cam.a * pc - cam.b * ps) + (cam.a * ps + cam.b * pc)) * .5 - O.y0;
   const d = cam.phi - po, dc = Math.cos(d), ds = Math.sin(d);
   const A11 = dc * s, A12 = -2 * ds * s, A21 = .5 * ds * s, A22 = dc * s;
   c.imageSmoothingEnabled = Z < 1;
+  c.globalAlpha = alpha;
   c.setTransform(A11, A21, A12, A22, devW / 2 - (A11 * cx + A12 * cy), devH / 2 - (A21 * cx + A22 * cy));
   c.drawImage(O.cv, 0, 0);
   c.setTransform(1, 0, 0, 1, 0, 0);
+  c.globalAlpha = 1;
 }
