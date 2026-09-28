@@ -335,6 +335,8 @@ function drawOverview(t){
     c.setTransform(1, 0, 0, 1, 0, 0);
   }
   if (O) ovtDraw(O);
+  // les tuiles deja pretes du nouvel angle passent par-dessus, sans attendre que tout soit fini
+  if (OVT.back) ovtDraw(OVT.back);
   for (const f of HOOKS.map) f(c, t);
 }
 
@@ -677,24 +679,25 @@ function ovtVisible(O){
 }
 function ovtWork(t){
   const t0 = performance.now();
-  // la vue a tourne pour de bon : on prepare un nouveau cache
   if (!OVT.front) OVT.front = ovtNew(cam.phi);
-  const still = cam.phiT == null && (!drag || !drag.turn);
-  if (Math.abs(OVT.front.phi - cam.phi) > 1e-4 && still){
-    if (!OVT.back || Math.abs(OVT.back.phi - cam.phi) > 1e-4) OVT.back = ovtNew(cam.phi);
-  }
+  // angle d'arrivee : on prepare le nouveau cache des le debut d'une rotation par les boutons ou le clavier
+  const turning = drag && drag.turn, target = cam.phiT != null ? cam.phiT : cam.phi;
+  if (!turning && Math.abs(OVT.front.phi - target) > 1e-4){
+    if (!OVT.back || Math.abs(OVT.back.phi - target) > 1e-4) OVT.back = ovtNew(target);
+  } else if (OVT.back && Math.abs(OVT.back.phi - target) > 1e-4) OVT.back = null;
+  const budget = OVT.back ? Math.max(OVT.budget, 14) : OVT.budget;
   const O = OVT.back || OVT.front, vis = ovtVisible(O);
   const order = O.tiles.slice().sort((u, v) => (vis(v) - vis(u)) || (v.state - u.state));
   for (const T of order){
-    if (performance.now() - t0 > OVT.budget) break;
+    if (performance.now() - t0 > budget) break;
     if (T.state === 2 || !T.img) ovtRender(O, T, t, true);
     else if (T.state === 1) ovtRender(O, T, t, false);
     else if (T.pk !== palKey) ovtRecolor(O, T);
   }
   O.pending = O.tiles.filter(T => !T.img).length;
-  if (OVT.back && !OVT.back.pending){ OVT.front = OVT.back; OVT.back = null; }
-  // le cache affiche n'est pas refait pendant une construction : on recolore quand meme ce qui est visible
-  if (OVT.back){ const F = OVT.front, v2 = ovtVisible(F); for (const T of F.tiles){ if (performance.now() - t0 > OVT.budget + 2) break; if (T.img && T.pk !== palKey && v2(T)) ovtRecolor(F, T); } }
+  if (OVT.back && !OVT.back.pending && cam.phiT == null){ OVT.front = OVT.back; OVT.back = null; }
+  // pendant qu'on construit le nouveau cache, l'ancien reste a la bonne couleur
+  if (OVT.back){ const F = OVT.front, v2 = ovtVisible(F); for (const T of F.tiles){ if (performance.now() - t0 > budget + 2) break; if (T.img && T.pk !== palKey && v2(T)) ovtRecolor(F, T); } }
 }
 // affichage : echelle Z, et si la vue a tourne depuis, une deformation en attendant le nouveau cache
 function ovtDraw(O){

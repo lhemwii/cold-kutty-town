@@ -35,6 +35,10 @@ Les demandes qui arrivent en cours de route et ne rentrent dans aucune étape de
 - [x] HUD : symbole des ronrons en patte de chat, meilleur symbole des habitants.
 - [x] Drapeau de l’USC retravaillé pour que la tête de chat se lise bien.
 
+## Étape 0.2. Rotation vue de loin (fait)
+
+- [x] Quand on tourne dézoomé, la vue se remet d’aplomb tout de suite : le nouveau cache commence dès le début de la rotation, les tuiles à l’écran d’abord, et chaque tuile prête s’affiche aussitôt. Mesuré : nouvelle vue prête en 0,3 s environ, avant la fin du quart de tour.
+
 ## Étape 1. Fiabiliser ce qui existe
 
 - [ ] Jouer une vraie partie à la souris et noter chaque bug d’interface.
