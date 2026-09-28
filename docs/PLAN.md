@@ -47,6 +47,13 @@ Les demandes qui arrivent en cours de route et ne rentrent dans aucune étape de
 - [x] Animations de loin sans bug : drapeaux, chantiers, fumées, écume bougent en direct.
 - [x] Toujours 60 images par seconde : même nombre de pixels à calculer qu’au zoom le plus éloigné de la vue rapprochée, objets dessinés en petit.
 
+## Étape 0.4. Retours de jeu : drapeau, panneaux, météo, vestiges (fait)
+
+- [x] Drapeau de la CCR : une vraie tête de chat qui se lit, en jeu comme dans l’interface.
+- [x] Panneaux et enseignes (diner, motel, panneau publicitaire, etc.) collés au bâtiment : ils tournent avec le monde au lieu de rester face à l’écran.
+- [x] De loin, plus de gros pixels de pluie ou de neige devant la vue : la météo s’estompe quand on dézoome.
+- [x] Vestiges catzi : ruines d’un ancien régime déchu éparpillées sur l’île (bunkers, canons rouillés, statue renversée de Catdolf). Une fois dans son territoire, on les fouille pour récupérer des ressources. Sauvegardés avec la partie.
+
 ## Étape 1. Fiabiliser ce qui existe
 
 - [ ] Jouer une vraie partie à la souris et noter chaque bug d’interface.

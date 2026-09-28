@@ -293,14 +293,41 @@ function plate2(put, s, cx, by, opt){
   if (!opt.off) drawText(put, s, x0 + 2, y0 + 2, opt.inv ? 0 : 1);
   return [x0, y0, w, h];
 }
+// Dessin colle au monde : une image w x h (une case par unite le long du sol, une par unite de hauteur) posee debout
+// le long de la direction (ea, eb), bas au milieu en (a, b, z). Elle tourne avec la ville au lieu de rester face a l'ecran,
+// se lit toujours dans le bon sens et, vue par la tranche, n'est plus qu'un trait.
+function wallBitmap(a, b, z, ea, eb, w, h, pix){
+  const era = ea * PC - eb * PS, erb = ea * PS + eb * PC;
+  let sx = era - erb, sy = (era + erb) * .5;
+  if (sx < 0){ sx = -sx; sy = -sy; }
+  const P = prj(a, b, z), px = Math.round(P[0]), py = P[1];
+  if (sx < .3){ const top = Math.round(py) - h; for (let ly = 0; ly < h; ly++) fput(px, top + ly, 1); return [px, top, 1, h]; }
+  const half = w / 2, xa = Math.ceil(-half * sx), xb = Math.floor(half * sx);
+  let y0 = 1e9;
+  for (let dx = xa; dx <= xb; dx++){
+    const u = dx / sx, lx = Math.floor(u + half); if (lx < 0 || lx >= w) continue;
+    const top = Math.round(py + u * sy) - h; if (top < y0) y0 = top;
+    for (let ly = 0; ly < h; ly++){ const v = pix[ly * w + lx]; if (v >= 0) fput(px + dx, top + ly, v); }
+  }
+  return [px + xa, y0, xb - xa + 1, h];
+}
+// plaque avec texte collee au monde : bas au milieu en (a, b, z), le long de dir (par defaut l'axe a, face +b ou -b)
+function plateW(s, a, b, z, opt, dir){
+  opt = opt || {};
+  const w = textW(s) + 4, h = 9, pix = new Int8Array(w * h).fill(-1);
+  const savedM = CUR; CUR = CUR_SIDE === 'ccp' ? M.SIGN_CCP : M.SIGN;
+  plate2((x, y, c) => { if (x >= 0 && y >= 0 && x < w && y < h) pix[y * w + x] = c; }, s, w >> 1, h, opt);
+  const r = wallBitmap(a, b, z, dir ? dir[0] : 1, dir ? dir[1] : 0, w, h, pix);
+  CUR = savedM; return r;
+}
 
 /* ================= drapeaux ================= */
 // USC : fond bleu, tete de chat blanche au nez rouge, liseres blanc et rouge (le collier).
-// CCR : fond rouge, tete de chat jaune dans le coin.
+// CCR : fond rouge, grande tete de chat jaune (oreilles pointues, yeux et nez rouges) du cote du mat.
 // b bleu, w blanc, r rouge, y jaune, R fond rouge de la CCR
 const FLAG_ART = {
   usc: ['bbbwbbbbbwbbb', 'bbbwwbbbwwbbb', 'bbbwwwwwwwbbb', 'bbbwbwwwbwbbb', 'bbbwwwrwwwbbb', 'bbbbwwwwwbbbb', 'wwwwwwwwwwwww', 'rrrrrrrrrrrrr'],
-  ccp: ['RRRRRRRRRRRRR', 'RyRRRyRRRRRRR', 'RyyyyyRRRRRRR', 'RyRyRyRRRRRRR', 'RyyyyyRRRRRRR', 'RRyyyRRRRRRRR', 'RRRRRRRRRRRRR', 'RRRRRRRRRRRRR']
+  ccp: ['RyRRRRRyRRRRR', 'RyyRRRyyRRRRR', 'RyyyyyyyRRRRR', 'RyyRyRyyRRRRR', 'RyyyyyyyRRRRR', 'RyyyRyyyRRRRR', 'RRyyyyyRRRRRR', 'RRRRRRRRRRRRR']
 };
 function flagPixels(kind, t){
   const out = [], w = 13, h = 8, art = FLAG_ART[kind];

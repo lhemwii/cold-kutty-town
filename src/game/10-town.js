@@ -2,7 +2,7 @@
 // un batiment : type, camp, emprise au sol (a0..a1, b0..b1), niveau, chantier en cours, direction de la mer pour la cote
 let BLD = [], BLD_ID = 1;
 // emprise au sol de chaque type (largeur en a, profondeur en b) ; le reste prend un terrain de 36 x 31
-const FOOT = { statue: [16, 16], fontaine: [32, 32], panneau: [22, 10], drapeau: [18, 16], parc: [32, 28], kiosque: [32, 30], chateau: [18, 18],
+const FOOT = { statue: [16, 16], fontaine: [32, 32], panneau: [46, 10], drapeau: [18, 16], parc: [32, 28], kiosque: [32, 30], chateau: [18, 18],
   phare: [18, 18], port: [32, 32], pecherie: [28, 28], checkpoint: [22, 18], maison: [28, 26], radio: [30, 28], epicerie: [26, 24], diner: [32, 22] };
 const footOf = (type) => FOOT[type] || [36, 31];
 function makeBuilding(type, side, ca, cb, dir){
@@ -42,6 +42,7 @@ function placeProblem(type, side, ca, cb, dir, free){
   } else if (land < n) return 'Pas de construction dans l’eau.';
   if (bad) return bad;
   for (const o of BLD) if (l.a0 < o.a1 + 1 && l.a1 > o.a0 - 1 && l.b0 < o.b1 + 1 && l.b1 > o.b0 - 1) return 'Il y a déjà un bâtiment ici.';
+  for (const v of VEST) if (!v.looted && v.a > l.a0 - (v.kind === 'statue' ? 32 : 14) && v.a < l.a1 + 14 && v.b > l.b0 - (v.kind === 'statue' ? 16 : 14) && v.b < l.b1 + 14) return 'Des vestiges catzi sont ici : fouille-les d’abord.';
   for (const r of ROADS) if (rectRoadDist(l, r) < RW + .5) return 'Une route passe ici.';
   for (const w of WALLS){ const m = [(w.pa + w.qa) / 2, (w.pb + w.qb) / 2]; if (m[0] > l.a0 - 6 && m[0] < l.a1 + 6 && m[1] > l.b0 - 6 && m[1] < l.b1 + 6) return 'Le Rideau de Laine passe ici.'; }
   if (type === 'checkpoint' && !WALLS.some(w => Math.hypot((w.pa + w.qa) / 2 - ca, (w.pb + w.qb) / 2 - cb) < 45)) return 'Le Checkpoint se pose à côté d’un Rideau de Laine.';
@@ -261,7 +262,7 @@ const SHADOW_EXTRA = {
   radio: (l) => circ(l.ca - 5, l.cb - 3, 6, 0, 4).concat(circ(l.ca - 5, l.cb - 3, 1, 57, 4)),
   fusee: (l) => circ(l.ca - 2, l.cb, 2.2, 36, 6).concat(circ(l.ca - 2, l.cb, 2.2, 2, 6), circ(l.ca + 6.5, l.cb - .5, 1.6, 36, 4)),
   statue: (l) => circ(l.ca, l.cb, 1.6, 28, 6),
-  panneau: (l) => [l.ca - 7, l.cb, 19, l.ca + 7, l.cb, 19, l.ca - 7, l.cb, 0, l.ca + 7, l.cb, 0, l.ca - 7, l.cb + .4, 19, l.ca + 7, l.cb + .4, 19],
+  panneau: (l) => [l.ca - 22, l.cb, 29, l.ca + 22, l.cb, 29, l.ca - 12, l.cb, 0, l.ca + 12, l.cb, 0, l.ca - 22, l.cb + .4, 9, l.ca + 22, l.cb + .4, 9],
   fontaine: (l) => circ(l.ca, l.cb, 8, 2, 10)
 };
 let TOWN_VER = 0;

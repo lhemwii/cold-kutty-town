@@ -12,11 +12,11 @@ Le résultat est un site statique dans `dist/` : `index.html`, un CSS et deux sc
 
 | Fichier | Rôle |
 |---|---|
-| `01-core.js` | Bases : matières, crochets (HOOKS), état de partie (`GAME`), caméra, projection isométrique, primitives de dessin, police 3x5, drapeaux à tête de chat. |
+| `01-core.js` | Bases : matières, crochets (HOOKS), état de partie (`GAME`), caméra, projection isométrique, primitives de dessin, police 3x5, plaques et panneaux collés au monde (`wallBitmap`, `plateW`), drapeaux à tête de chat. |
 | `02-ground.js` | L’île tirée au sort : forme, îlots, plages, chaînes de montagnes, forêts, grille du sol (2 cellules par unité), défrichage. |
 | `03-buildings-base.js` | Aides de décor : lumières, fumée, arbres, maisons à pignon, voitures (aussi en biais), coques de bateaux, fanions. |
 | `04-types.js`, `05-types-extra.js`, `06-types-more.js` | Catalogue des bâtiments. Chaque type sait se dessiner. `06` contient aussi QG, port (3 niveaux), pêcherie, bergerie, phare, avant-poste, Checkpoint. |
-| `07-world.js` | Forêts et montagnes rangées par cases, Rideau de Laine en pans libres, miradors, phare, lampadaires, voilier. |
+| `07-world.js` | Forêts et montagnes rangées par cases, Rideau de Laine en pans libres, miradors, phare, lampadaires, voilier, vestiges catzi (`VEST`, `VEST_DEF`). |
 | `08-territory.js` | Territoires : grille de cases de 4 unités, influence des bâtiments, expansion en direct, pression aux frontières, verrous. |
 | `09-roads.js` | Routes droites et courbes : peinture au sol, graphe, raccords, accès au QG, voitures. |
 | `10-town.js` | Bâtiments posés (`BLD`), règles de pose, chats nommés qui arrivent avec leur bâtiment, reconstruction de la scène. |

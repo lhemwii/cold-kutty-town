@@ -23,6 +23,10 @@ Une île vierge tirée au sort à chaque partie : forêts, plages, rochers, îlo
 
 Chaque bâtiment produit et coûte en fonctionnement. Les producteurs ont besoin d’habitants pour les emplois.
 
+## Les vestiges catzi
+
+Avant les deux camps, l’île était tenue par le régime catzi de Catdolf, tombé depuis longtemps. Il en reste une dizaine de ruines dans la nature : bunkers, canons rouillés, dépôts abandonnés et la statue renversée de Catdolf. Elles apparaissent sur la mini-carte (petits carrés sombres). On ne peut pas construire dessus. Quand ton territoire en atteint une, clique dessus puis **Fouiller** : les ruines disparaissent et rapportent d’un coup des croquettes, de la laine ou des ronrons. La statue de Catdolf, fondue, rapporte le plus.
+
 ## Améliorer
 
 Trois niveaux pour la plupart des bâtiments : le port passe de ponton à quai puis à grand port (chalutiers, puis cargo), la maison devient pavillon puis villa.

@@ -118,7 +118,9 @@ function stepWeather(dt, t){
 }
 function drawWeather(t){
   if (!COLOR || WEATHER.k < .05) return;
-  const sh = WEATHER.shown, k = WEATHER.k;
+  // de loin, les gouttes et les flocons feraient de gros pixels devant la vue : ils s'estompent en dezoomant (la teinte du ciel reste)
+  const fk = SC >= .999 ? 1 : clamp((SC - .55) / .4, 0, 1); if (fk <= 0) return;
+  const sh = WEATHER.shown, k = WEATHER.k * fk;
   if (sh === 'pluie'){
     CUR = M.RAIN;
     const n = Math.floor(W * H / 170 * k), sp = 260;
@@ -288,6 +290,12 @@ function mapPaint(x0, x1, y0, y1){
       const c = e ? rim : col; px[y * Wm + x] = rgb32(c[0], c[1], c[2]);
     }
   }
+  // vestiges catzi pas encore fouilles : un petit carre sombre
+  for (const v of VEST){
+    if (v.looted) continue;
+    const vx = Math.floor((v.a - GA0) / MS), vy = Math.floor((v.b - GB0) / MS);
+    for (let y = vy - 2; y <= vy + 2; y++) for (let x = vx - 2; x <= vx + 2; x++) if (x >= x0 && x <= x1 && y >= y0 && y <= y1) px[y * Wm + x] = (Math.abs(x - vx) === 2 || Math.abs(y - vy) === 2) ? rgb32(236, 228, 206) : rgb32(58, 52, 48);
+  }
   for (const w of WALLS){
     if (Math.max(w.pa, w.qa) < A0 - 2 || Math.min(w.pa, w.qa) > A1 + 2 || Math.max(w.pb, w.qb) < B0 - 2 || Math.min(w.pb, w.qb) > B1 + 2) continue;
     const L = Math.hypot(w.qa - w.pa, w.qb - w.pb);
@@ -406,6 +414,8 @@ function drawWaves(t){
   let a0 = 1e9, a1 = -1e9, b0 = 1e9, b1 = -1e9;
   for (const [a, b] of cs){ a0 = Math.min(a0, a); a1 = Math.max(a1, a); b0 = Math.min(b0, b); b1 = Math.max(b1, b); }
   const CW = 12;
+  // tout au fond du dezoom, l'ecume ne ferait plus que des points blancs isoles
+  if (SC < .3) return;
   CUR = M.FOAM;
   // de loin, une case sur k dans chaque sens : autant de vagues a l'ecran qu'en vue rapprochee
   const st = Math.max(1, Math.round(1 / SC));

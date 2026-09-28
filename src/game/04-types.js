@@ -76,7 +76,7 @@ const TYPES = {
       for (let r = 1; r <= 5; r++) for (let x = bx - 4 + r; x <= bx + 4 - r; x++) fput(x, by - 11 - r, (x === bx - 4 + r || x === bx + 4 - r) ? 1 : 0);
       fput(bx, by - 17, 1); fput(bx, by - 18, 1);
     }), part(g.ca + 10, g.b1 + 4, 0, (t) => drawFlagPole(g.ca + 10, g.b1 + 4, 0, 20, lot.side, t)),
-      part(g.ca, g.b1, .3, () => { if (!frontVisible(0)) return; const p = prj(g.ca, g.b1, g.hh - 1); plate(fput, 'MAIRIE', Math.round(p[0]), Math.round(p[1])); })];
+      part(g.ca, g.b1, .3, () => { if (!frontVisible(0)) return; plateW('MAIRIE', g.ca, g.b1, g.hh - 1); })];
     return { parts, lights: houseLights(g).concat([Lc(g.ca, g.b1 + 9, 14, 1.3)]) };
   } },
   diner: { name: 'Diner', fem: false, build(lot, seed){
@@ -93,9 +93,9 @@ const TYPES = {
     }, 0);
     const sign = (t) => {
       const on = (COLOR && DAY) || Math.floor(t * 2.5) % 5 !== 4;
-      const p = prj(lot.ca, lot.cb, hh), bx = Math.round(p[0]), by = Math.round(p[1]);
-      for (let k = 0; k <= 3; k++){ fput(bx - 6, by - k, 1); fput(bx + 6, by - k, 1); }
-      const r = plate(fput, 'DINER', bx, by - 3, { off: !on });
+      const p = prj(lot.ca, lot.cb, hh), bx = Math.round(p[0]);
+      CUR = M.METAL; line3(lot.ca - 6, lot.cb, hh, lot.ca - 6, lot.cb, hh + 3, 1); line3(lot.ca + 6, lot.cb, hh, lot.ca + 6, lot.cb, hh + 3, 1);
+      const r = plateW('DINER', lot.ca, lot.cb, hh + 3, { off: !on });
       CUR = M.SIGN; if (on) drawStar(fput, bx - 2, r[1] - 6, 1);
     };
     return { parts: [part(lot.ca, lot.cb, 0, body), part(lot.ca, lot.cb, .5, sign)],
@@ -168,7 +168,7 @@ const TYPES = {
         ccp ? ((x, y) => bz(x, y) < 3 ? 1 : 0) : alongSh(a0 + 1, b1 + 4, 5, a1 - 1, b1 + 4, 5, la - 2, (u) => (Math.floor(u / 1.5) & 1) ? 1 : 0), 1);
       CUR = savedM;
       if (!frontVisible(0) && !faceVisible([0, 2, 4])) return;
-      const p = prj(lot.ca, b1, hh + .5); plate(fput, ccp ? 'GASTRONOM' : 'EPICERIE', Math.round(p[0]), Math.round(p[1]));
+      plateW(ccp ? 'GASTRONOM' : 'EPICERIE', lot.ca, b1, hh + .5);
     };
     const parts = [part(lot.ca, lot.cb - 3, 0, body), part(lot.ca, lot.cb - 3, .3, awning)];
     // la file avance : toutes les 7 s, le premier entre, les autres font un pas, un nouveau arrive au bout
@@ -259,7 +259,7 @@ const TYPES = {
     const roof = () => {
       const p = prj(lot.ca, lot.cb, hh), x = Math.round(p[0]), y = Math.round(p[1]);
       if (seed % 4 === 0){ for (let k = 0; k < 7; k++) fput(x, y - k, 1); drawStar(fput, x - 3, y - 14, 1, true); }
-      else if (seed % 4 === 1){ for (let k = 0; k < 3; k++){ fput(x - 5, y - k, 1); fput(x + 5, y - k, 1); } plate(fput, 'CCR', x, y - 2, { inv: true }); }
+      else if (seed % 4 === 1){ line3(lot.ca - 5, lot.cb, hh, lot.ca - 5, lot.cb, hh + 2, 1); line3(lot.ca + 5, lot.cb, hh, lot.ca + 5, lot.cb, hh + 2, 1); plateW('CCR', lot.ca, lot.cb, hh + 2, { inv: true }); }
       else boxS(lot.ca + 4, lot.ca + 8, lot.cb - 3, lot.cb + 1, hh, hh + 3, (u, h, xx, yy, k) => wallBase(k, xx, yy), 0);
     };
     const lights = [];
@@ -303,7 +303,7 @@ const TYPES = {
         const p = prj(cx, cy2, 32); smokeAt(p[0], p[1] - 1, t * 1.4, sd + seed); smokeAt(p[0] + 2, p[1] - 3, t * 1.1 + .5, sd * 3 + seed);
       }));
     }
-    parts.push(part(lot.ca, b1, .6, () => { if (!frontVisible(0)) return; const p = prj(lot.ca, b1, hh + .5); plate(fput, ccp ? 'USINE 7' : 'KUTTY MOTORS', Math.round(p[0]), Math.round(p[1])); }));
+    parts.push(part(lot.ca, b1, .6, () => { if (!frontVisible(0)) return; plateW(ccp ? 'USINE 7' : 'KUTTY MOTORS', lot.ca, b1, hh + .5); }));
     return { parts, lights: [sideLight(a0, a1, b0, b1, 0, 10, 1.2), sideLight(a0, a1, b0, b1, 1, 8, 1.1)] };
   } },
   statue: { name: 'Statue', fem: true, build(lot, seed){
@@ -320,15 +320,16 @@ const TYPES = {
     const L1 = ccp ? 'GLOIRE AU' : 'BOIS', L2 = ccp ? 'PLAN !' : 'KUTTY COLA';
     const draw = (t) => {
       CUR = M.METAL;
-      line3(ca - 7, cb, 0, ca - 7, cb, 9, 1); line3(ca + 7, cb, 0, ca + 7, cb, 9, 1);
-      const p = prj(ca, cb, 9), x = Math.round(p[0]), y = Math.round(p[1]);
+      line3(ca - 12, cb, 0, ca - 12, cb, 9, 1); line3(ca + 12, cb, 0, ca + 12, cb, 9, 1);
       CUR = ccp ? M.SIGN_CCP : M.SIGN;
-      const w = 45, h = 19, x0 = x - 22, y0 = y - h;
-      for (let yy = y0; yy <= y; yy++) for (let xx = x0; xx < x0 + w; xx++){ const e = xx === x0 || xx === x0 + w - 1 || yy === y0 || yy === y; fput(xx, yy, e ? 1 : (ccp ? 1 : 0)); }
-      const c = ccp ? 0 : 1;
-      drawText(fput, L1, x - (textW(L1) >> 1), y0 + 3, c); drawText(fput, L2, x - (textW(L2) >> 1), y0 + 10, c);
-      if (ccp){ drawStar(fput, x0 + 2, y0 + 2, 0); drawStar(fput, x0 + w - 7, y0 + 2, 0); }
-      else if (Math.floor(t * 1.5) % 2) { fput(x0 + 3, y0 + 3, 1); fput(x0 + w - 4, y0 + 3, 1); }
+      // le panneau est dessine a plat puis pose debout entre ses deux poteaux : il tourne avec la ville
+      const w = 45, h = 20, pix = new Int8Array(w * h).fill(-1), put = (x, y, v) => { if (x >= 0 && y >= 0 && x < w && y < h) pix[y * w + x] = v; };
+      for (let yy = 0; yy < h; yy++) for (let xx = 0; xx < w; xx++){ const e = xx === 0 || xx === w - 1 || yy === 0 || yy === h - 1; put(xx, yy, e ? 1 : (ccp ? 1 : 0)); }
+      const c = ccp ? 0 : 1, x = w >> 1;
+      drawText(put, L1, x - (textW(L1) >> 1), 3, c); drawText(put, L2, x - (textW(L2) >> 1), 10, c);
+      if (ccp){ drawStar(put, 2, 2, 0); drawStar(put, w - 7, 2, 0); }
+      else if (Math.floor(t * 1.5) % 2) { put(3, 3, 1); put(w - 4, 3, 1); }
+      wallBitmap(ca, cb, 9, 1, 0, w, h, pix);
     };
     return { parts: [part(ca, cb, 0, draw)], lights: [Lc(ca, cb + 7, 14, 1.5)] };
   } }

@@ -90,6 +90,7 @@ function treeDrawables(out, t, withShadows){
   let a0 = 1e9, a1 = -1e9, b0 = 1e9, b1 = -1e9;
   for (const [a, b] of cs){ a0 = Math.min(a0, a); a1 = Math.max(a1, a); b0 = Math.min(b0, b); b1 = Math.max(b1, b); }
   const xmas = XMAS_ON, far = SC < .999, s = SC;
+  vestDrawables(out);
   peaksIn(a0 - 40, a1 + 40, b0 - 40, b1 + 80, (pk) => {
     const q = prj(pk.a, pk.b, 0);
     if (q[0] < -pk.R * 2 * s || q[0] > W + pk.R * 2 * s || q[1] < -10 * s || q[1] > H + (pk.H + pk.R) * s) return;
@@ -255,4 +256,72 @@ function drawSailboat(t){
   for (let y = -17; y <= -3; y++) P(0, y, 1);
   for (let y = -16; y <= -4; y++){ const w = Math.floor((y + 17) * 0.52); for (let x = 1; x <= w; x++){ const e = x === w || y === -4; P(x, y, e ? 0 : (x > w - 2 && bay(x, y) > 8 ? 0 : 1)); } }
   for (let y = -14; y <= -4; y++){ const w = Math.floor((y + 15) * 0.4); for (let x = 1; x <= w; x++){ const e = x === w || y === -4; P(-x, y, e ? 0 : (bay(x, y) < 11 ? 1 : 0)); } }
+}
+
+/* ================= vestiges catzi : ruines d'un ancien regime dechu, a fouiller ================= */
+// Avant les deux camps, l'ile etait tenue par le regime catzi de Catdolf. Il en reste des ruines dans la nature.
+// Une fois dans son territoire, on les fouille : elles rapportent des ressources et liberent le terrain.
+const VEST_DEF = {
+  bunker: { name: 'Bunker catzi', loot: { c: 30, l: 40, r: 0 }, desc: 'Un bunker de béton de l’ancien régime catzi. Dedans : des rations et des pelotes de laine militaire.' },
+  canon: { name: 'Canon rouillé', loot: { c: 0, l: 30, r: 10 }, desc: 'Un vieux canon catzi qui ne tirera plus jamais. On le démonte pour la ferraille.' },
+  depot: { name: 'Dépôt abandonné', loot: { c: 60, l: 15, r: 0 }, desc: 'Des caisses oubliées par l’armée catzi. Les croquettes sont encore bonnes, ou presque.' },
+  statue: { name: 'Statue renversée de Catdolf', loot: { c: 0, l: 80, r: 60 }, desc: 'L’ancien chef catzi, tombé de son socle depuis longtemps. Fondue, elle rapporte gros, et tout le monde est content de la voir disparaître.' }
+};
+let VEST = [];
+function buildVestiges(seed){
+  VEST = [];
+  const kinds = ['statue', 'bunker', 'bunker', 'bunker', 'bunker', 'canon', 'canon', 'canon', 'depot', 'depot', 'depot'];
+  for (let k = 0, tries = 0; k < kinds.length && tries < 900; tries++){
+    const a = IS.ca + (hash2(seed + tries * 7, 31) - .5) * IS.ra * 1.8, b = IS.cb + (hash2(seed - tries * 5, 57) - .5) * IS.rb * 1.8;
+    const t = baseAt(a, b);
+    if ((t !== T_GRASS && t !== T_FOREST) || landDAt(a, b) < 14) continue;
+    if (VEST.some(v => Math.hypot(v.a - a, v.b - b) < 110)) continue;
+    let nearPeak = false; peaksIn(a - 30, a + 30, b - 30, b + 30, (pk) => { if (Math.hypot(pk.a - a, pk.b - b) < pk.R + 12) nearPeak = true; }); if (nearPeak) continue;
+    VEST.push({ id: k, kind: kinds[k], a: Math.round(a), b: Math.round(b), ang: Math.floor(hash2(a, b) * 4) * Math.PI / 2, looted: false, vest: true });
+    cutTrees(a - 16, a + 34, b - 14, b + 20);
+    k++;
+  }
+}
+const vestAt = (a, b, r) => { let best = null, bd = r || 8; for (const v of VEST){ if (v.looted) continue; const d = Math.hypot(v.a + (v.kind === 'statue' ? 10 : 0) - a, v.b + (v.kind === 'statue' ? 5 : 0) - b); if (d < bd){ bd = d; best = v; } } return best; };
+function vestDrawables(out){
+  const s = SC;
+  for (const v of VEST){
+    if (v.looted) continue;
+    const q = prj(v.a, v.b, 0); if (q[0] < -30 * s || q[0] > W + 30 * s || q[1] < -10 * s || q[1] > H + 40 * s) continue;
+    out.push({ d: dep(v.a, v.b), m: M.CONCRETE, f: () => drawVestige(v), a: v.a, b: v.b, key: v, still: true });
+  }
+}
+// dessins : tout reste bas et abime, rien d'autre que des ruines
+function drawVestige(v){
+  const a = v.a, b = v.b, rough = (x, y) => bz(x, y) < 5 ? 0 : 1;
+  if (v.kind === 'bunker'){
+    CUR = M.CONCRETE; ACC = M.METAL;
+    boxS(a - 9, a + 9, b - 6.5, b + 6.5, 0, 5, (u, h, x, y, k) => (h > 2.2 && h < 3.4 && u > 3 && u < ((k & 1) ? 10 : 15)) ? 5 : rough(x, y), (x, y) => bz(x, y) < 3 ? 0 : 1, 0);
+    // un coin effondre, des blocs tombes et de la mousse sur le toit
+    boxS(a + 10, a + 13, b + 3, b + 6, 0, 1.6, 0, 1, 0); boxS(a - 13, a - 11, b - 4, b - 1.5, 0, 1.2, 0, 1, 0);
+    CUR = M.FOREST; boxS(a - 4, a + 2, b - 6.5, b - 3.5, 5, 5.5, 0, (x, y) => bz(x, y) < 8 ? 0 : 1, -1);
+  } else if (v.kind === 'canon'){
+    const c = Math.cos(v.ang), sn = Math.sin(v.ang);
+    CUR = M.MILITARY; boxS(a - 4.5, a + 4.5, b - 4.5, b + 4.5, 0, 2.2, (u, h, x, y) => rough(x, y), 1, 0);
+    CUR = M.METAL; for (const s2 of [-1, 1]) boxS(a - sn * 5 * s2 - 1.6, a - sn * 5 * s2 + 1.6, b + c * 5 * s2 - 1.6, b + c * 5 * s2 + 1.6, 0, 3.4, 0, 0, 0);
+    CUR = M.DIRT;
+    for (let du = -.8; du <= .8; du += .4) for (let dv = -.8; dv <= .8; dv += .8) line3(a + du, b + dv, 3.4, a + du + c * 16, b + dv + sn * 16, 6.4, dv === 0 ? 1 : 0);
+  } else if (v.kind === 'depot'){
+    CUR = M.PIER;
+    for (const [da, db, hh] of [[-6, -4.5, 3.6], [0, -5, 3], [-5, 1.5, 3.4], [5, 2, 2], [0, 0, 6.6]]) boxS(a + da - 2.3, a + da + 2.3, b + db - 2.3, b + db + 2.3, hh > 6 ? 3.4 : 0, hh, (u, h, x, y) => (Math.floor(h * 1.2) % 2) ? 1 : 0, 1, 0);
+    CUR = M.MILITARY; drawFace([a - 9, b + 6, 0, a - 2, b + 7.5, 0, a - 2, b + 7.5, 2.6, a - 9, b + 6, 3.8], [0, 1, 0], (x, y) => bz(x, y) < 6 ? 0 : 1, 0);
+  } else {
+    // le socle vide, fissure, et la statue du chef couchee dans l'herbe a cote
+    CUR = M.CONCRETE; boxS(a - 6, a + 6, b - 6, b + 6, 0, 7, (u, h, x, y) => (Math.abs(u - 6 + h * .5) < .6 && h > 2) ? 0 : rough(x, y), 1, 0);
+    CUR = M.STATUE; ACC = M.METAL;
+    const sa = a + 8, sb = b + 9;
+    // le corps couche, les pattes en l'air, la queue
+    boxS(sa, sa + 15, sb - 3, sb + 3, 0, 5, (u, h, x, y) => bz(x, y) < 4 ? 0 : 1, 1, 0);
+    for (const pu of [2, 11]) boxS(sa + pu, sa + pu + 2, sb + 3, sb + 7, 1.2, 3, 1, 1, 0);
+    boxS(sa - 6, sa, sb - 1, sb + 1, 1, 2.4, 1, 1, 0);
+    // la tete, ses oreilles pointues et la petite moustache carree
+    boxS(sa + 15, sa + 21, sb - 3, sb + 3, 0, 6, (u, h, x, y, k) => (k === 1 && h > 1.6 && h < 2.6 && u > 2 && u < 4) ? 5 : (k === 1 && h > 3.4 && h < 4.2 && (Math.abs(u - 1.4) < .5 || Math.abs(u - 4.6) < .5)) ? 5 : 1, 1, 0);
+    drawFace([sa + 16, sb - 3, 6, sa + 18.5, sb - 3, 6, sa + 17, sb - 3, 9], [0, -1, 0], 1, 0);
+    drawFace([sa + 17.5, sb + 3, 6, sa + 20, sb + 3, 6, sa + 19, sb + 3, 9], [0, 1, 0], 1, 0);
+  }
 }

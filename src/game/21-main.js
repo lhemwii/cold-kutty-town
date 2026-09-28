@@ -177,6 +177,7 @@ function snapshot(){
     walls: WALLS.map(w => [w.side === 'usc' ? 0 : 1, +w.pa.toFixed(1), +w.pb.toFixed(1), +w.qa.toFixed(1), +w.qb.toFixed(1), w.g, w.line]),
     towers: WALL_TOWERS.map(w => [w.side === 'usc' ? 0 : 1, +w.a.toFixed(1), +w.b.toFixed(1), w.ph, w.line]),
     trees: TREES.list.map((t, i) => t.alive ? '' : i).filter(x => x !== '').join(','),
+    vest: VEST.filter(v => v.looted).map(v => v.id),
     ter: rleEncode(TER.own), space: [SPACE.usc.stage, SPACE.ccp.stage], ev: Math.round(EV.next), rival: [RIVAL[GAME.rival].lastBarge, RIVAL[GAME.rival].lastWall], won: GAME.winner || '' };
 }
 function saveSoon(){
@@ -191,6 +192,7 @@ function loadGame(d){
   GAME.side = d.side === 'ccp' ? 'ccp' : 'usc'; GAME.rival = other(GAME.side); GAME.t = +d.t || 0; CAL.m = clamp(d.cal | 0, 0, 11); CLOCK.h = +d.h || 10;
   SIDES.forEach((s, k) => { const r = d.res && d.res[k]; if (r){ RES[s].croq = +r[0] || 0; RES[s].laine = +r[1] || 0; RES[s].ron = +r[2] || 0; } });
   for (const t of String(d.trees || '').split(',')){ const i = +t; if (t !== '' && TREES.list[i]) TREES.list[i].alive = false; }
+  for (const id of d.vest || []){ const v = VEST.find(o => o.id === id); if (v) v.looted = true; }
   for (const b of d.bld || []){
     if (!TYPES[b[0]] || !ECO[b[0]]) continue;
     const l = makeBuilding(b[0], b[1] ? 'ccp' : 'usc', +b[2], +b[3], b[5] | 0);
@@ -227,6 +229,7 @@ function newWorld(seed){
   buildGround(seed);
   buildForests(seed);
   buildMountains(seed);
+  buildVestiges(seed);
   initTerritory();
   buildNav();
   BLD = []; ROADS = []; WALLS = []; WALL_TOWERS = []; BOATS = []; CATS = []; CARS.length = 0; LAMP_POS.length = 0; DEMOS.length = 0; CREWS.length = 0; HISTORY.length = 0; updateUndo();
@@ -409,7 +412,7 @@ function start(){
   centerOn(IS.ca, IS.cb); setZoom(ZLEVELS[1], null, null, true);
   radioNext();
   openIntro();
-  window.__okt = { state, cam, GAME, RES, BLD: () => BLD, ROADS: () => ROADS, WALLS: () => WALLS, BOATS: () => BOATS, CATS: () => CATS, TER, TREES, MAPV, SPACE, EV, RIVAL, CLOCK, CAL, TYPES, ECO, PEAKS,
+  window.__okt = { state, cam, GAME, RES, BLD: () => BLD, ROADS: () => ROADS, WALLS: () => WALLS, BOATS: () => BOATS, CATS: () => CATS, TER, TREES, MAPV, get VEST(){ return VEST; }, lootVestige, SPACE, EV, RIVAL, CLOCK, CAL, TYPES, ECO, PEAKS,
     setZoom, centerOn, unprj, prj, worldToScreen, screenToWorld, placeProblem, findSpot, makeBuilding, startBuilding, addRoad, roadProblem, sampleLine, sampleCurve, addWall, sendBarge, chooseLanding, terPct, claimDisc,
     render, FAR, snapshot, loadGame, newWorld, enterPlay, applySeason, updateCalUI, deliverPaper, forceEvent: () => { EV.next = 0; }, autoBoth: () => { RIVAL.auto = { usc: true, ccp: true }; }, selectBuilding, setTool, upgradeBuilding, rivalStep: stepRival,
     get Z(){ return Z; }, get K(){ return K; }, get KMIN(){ return KMIN; }, get KDEF(){ return KDEF; }, get ZLEVELS(){ return ZLEVELS; }, get OV_ON(){ return OV_ON; }, get view(){ return [W, H]; }, get NIGHT(){ return NIGHT; } };

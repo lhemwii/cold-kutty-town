@@ -261,7 +261,7 @@ function catUnder(lx, ly){
   return best;
 }
 // batiment sous le curseur : on remonte le long de la verticale pour attraper les facades
-const TIP_H = { maison: 13, immeuble: 22, artdeco: 50, stalinien: 50, stade: 8, parc: 3, fontaine: 5, usine: 22, bulbes: 28, fusee: 40, radio: 48, cirque: 16, tribune: 10, statue: 22, panneau: 20, chateau: 32, qg: 24, supermarche: 11, grandmagasin: 20, kolkhoze: 12, kiosque: 10, cinema: 15, bowling: 11, drivein: 12, diner: 9, motel: 12, station: 9, epicerie: 10, port: 12, pecherie: 8, bergerie: 10, phare: 44, drapeau: 26, checkpoint: 8 };
+const TIP_H = { maison: 13, immeuble: 22, artdeco: 50, stalinien: 50, stade: 8, parc: 3, fontaine: 5, usine: 22, bulbes: 28, fusee: 40, radio: 48, cirque: 16, tribune: 10, statue: 22, panneau: 29, chateau: 32, qg: 24, supermarche: 11, grandmagasin: 20, kolkhoze: 12, kiosque: 10, cinema: 15, bowling: 11, drivein: 12, diner: 9, motel: 12, station: 9, epicerie: 10, port: 12, pecherie: 8, bergerie: 10, phare: 44, drapeau: 26, checkpoint: 8 };
 function bldPick(lx, ly){
   for (let z = 50; z >= 0; z -= 1){
     const [a, b] = unprj(lx + .5, ly + .5 + z), l = bldAt(a, b);
@@ -269,6 +269,8 @@ function bldPick(lx, ly){
   }
   return null;
 }
+// vestige catzi sous le curseur (on remonte un peu pour attraper les ruines)
+function vestPick(lx, ly){ for (let z = 0; z <= 12; z += 2){ const [a, b] = unprj(lx + .5, ly + .5 + z), v = vestAt(a, b, 14); if (v) return v; } return null; }
 scene.addEventListener('contextmenu', e => e.preventDefault());
 scene.addEventListener('pointerdown', e => {
   if (e.pointerType === 'touch'){
@@ -315,7 +317,7 @@ scene.addEventListener('pointermove', e => {
     hoverW = worldUnder(e);
     hoverCat = !OV_ON && state.tool === 'walk' ? catUnder(lx, ly) : null;
     hoverB = !OV_ON && state.tool === 'walk' && !hoverCat ? bldPick(lx, ly) : null;
-    scene.classList.toggle('pick', !!hoverCat || !!hoverB);
+    scene.classList.toggle('pick', !!hoverCat || !!hoverB || (!OV_ON && state.tool === 'walk' && !!vestPick(lx, ly)));
     if (state.tool === 'build' && GAME.mode === 'play' && !OV_ON){
       const s = buildSpot(hoverW[0], hoverW[1]), e2 = ECO[s.type];
       $('modeHint').textContent = s.why || (typeName(s.type, GAME.side) + ' : ' + costLabel(priceOf(s.type, GAME.side)) + ' · ' + (e2.desc || ''));
@@ -338,6 +340,7 @@ function endPointer(e){
   const [lx, ly] = toLogical(e);
   if (state.tool === 'walk'){
     const c = catUnder(lx, ly); if (c){ openChat(c); return; }
+    const v = vestPick(lx, ly); if (v){ selectVestige(v); return; }
     selectBuilding(bldPick(lx, ly)); return;
   }
   if (state.tool === 'build') tryBuild(w[0], w[1]);
@@ -364,7 +367,7 @@ window.addEventListener('keydown', e => {
   if (typing(e) || e.metaKey || e.ctrlKey || e.altKey) return;
   const k = e.key.toLowerCase();
   if (['arrowleft','arrowright','arrowup','arrowdown','q','a','z','w','s','d'].includes(k)){ keys.add(k); cam.target = null; cam.follow = null; e.preventDefault(); return; }
-  if (k === 'escape'){ if (state.chatCat) closeChat(); else if (toolPts.length) toolPts = []; else if (state.sel) selectBuilding(null); else if (state.tool !== 'landing') setTool('walk'); return; }
+  if (k === 'escape'){ if (state.chatCat) closeChat(); else if (toolPts.length) toolPts = []; else if (state.sel || state.selV) selectBuilding(null); else if (state.tool !== 'landing') setTool('walk'); return; }
   if (GAME.mode !== 'play'){ if (k === '+' || k === '=') zoomStep(1); else if (k === '-' || k === '_') zoomStep(-1); return; }
   if (k === 'b') setTool(state.tool === 'build' ? 'walk' : 'build');
   else if (k === 'r') setTool('road');

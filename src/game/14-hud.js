@@ -39,12 +39,13 @@ const FLAG_HI = (() => {
   for (let x = 9; x <= 16; x++) U[12][x] = 'r';
   U[12][12] = 'y'; U[12][13] = 'y';
   const C = make('R');
-  for (let y = 0; y < 16; y++) for (let x = 0; x < 26; x++){ if (((x - 7.5) / 4.8) ** 2 + ((y - 7.2) / 4.1) ** 2 <= 1) C[y][x] = 'y'; }
-  [[1, 3, 4], [2, 3, 5], [3, 3, 6]].forEach(([y, a, b]) => { for (let x = a; x <= b; x++){ C[y][x] = 'y'; C[y][15 - x] = 'y'; } });
-  for (const [x, y] of [[5, 6], [5, 7], [10, 6], [10, 7]]) C[y][x] = 'R';
-  C[9][7] = 'R'; C[9][8] = 'R';
-  // une etoile jaune au-dessus, comme une medaille
-  for (const [x, y] of [[18, 3], [17, 4], [18, 4], [19, 4], [16, 5], [17, 5], [18, 5], [19, 5], [20, 5], [17, 6], [18, 6], [19, 6], [17, 7], [19, 7]]) C[y][x] = 'y';
+  // une grande tete de chat jaune : oreilles pointues, yeux et nez rouges, moustaches
+  for (let y = 0; y < 16; y++) for (let x = 0; x < 26; x++){ if (((x - 9.5) / 6.6) ** 2 + ((y - 9) / 5.6) ** 2 <= 1) C[y][x] = 'y'; }
+  [[1, 4, 4], [2, 4, 5], [3, 4, 6], [4, 4, 7], [5, 4, 8]].forEach(([y, a, b]) => { for (let x = a; x <= b; x++){ C[y][x] = 'y'; C[y][19 - x] = 'y'; } });
+  C[3][5] = 'R'; C[4][5] = 'R'; C[3][14] = 'R'; C[4][14] = 'R';
+  for (const [x, y] of [[6, 8], [7, 8], [7, 9], [12, 8], [13, 8], [12, 9]]) C[y][x] = 'R';
+  C[11][9] = 'R'; C[11][10] = 'R'; C[12][8] = 'R'; C[12][11] = 'R';
+  for (const y of [10, 12]){ for (let x = 0; x <= 2; x++) C[y][x] = 'y'; for (let x = 17; x <= 19; x++) C[y][x] = 'y'; }
   return { usc: U.map(r => r.join('')), ccp: C.map(r => r.join('')) };
 })();
 function flagSVG(side){ return pixelSVG(FLAG_HI[side], FLAG_HEX); }
@@ -72,7 +73,7 @@ function renderHUD(){
   if (resPopK) showResPop(resPopK);
   const key = Math.floor(R.laine) + ':' + Math.floor(R.ron) + ':' + Math.floor(R.croq / 5) + ':' + BLD.length;
   if (key !== hudKey){ hudKey = key; refreshPalette(); }
-  if (state.sel) renderSel();
+  if (state.sel) renderSel(); else if (state.selV) renderVest();
 }
 // detail d'une ressource : qui produit, qui coute
 let resPopK = null;
@@ -106,9 +107,10 @@ const THUMBS = {};
 function thumb(type, side, w, h, lvl){
   const key = type + ':' + side + ':' + w + ':' + (lvl || 1);
   if (THUMBS[key]) return THUMBS[key];
-  const saved = { PC, PS, TX, TY, W, H, fb, mb, lb };
+  const saved = { PC, PS, TX, TY, W, H, fb, mb, lb, SC };
   const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
   const [fa, fb2] = footOf(type);
+  SC = 1;
   const lot = { a0: -fa / 2, a1: fa / 2, b0: -fb2 / 2, b1: fb2 / 2, ca: 0, cb: 0, side, lvl: lvl || 1, dir: 0 };
   W = w; H = h; fb = new Uint8Array(W * H); mb = new Uint8Array(W * H); lb = new Uint8Array(W * H); PC = 1; PS = 0;
   CUR_SIDE = side;
@@ -124,7 +126,26 @@ function thumb(type, side, w, h, lvl){
     for (let i = 0; i < w * h; i++) d32[i] = (fb[i] || mb[i]) ? PALL[((mb[i] << 1) | fb[i]) * 5 + lb[i]] : 0;
     cx.putImageData(im, 0, 0);
   } catch (_) {}
-  ({ PC, PS, TX, TY, W, H, fb, mb, lb } = saved);
+  ({ PC, PS, TX, TY, W, H, fb, mb, lb, SC } = saved);
+  return THUMBS[key] = cv;
+}
+// vignette d'un vestige, faite comme celles des batiments
+function vestThumb(kind, w, h){
+  const key = 'vest:' + kind + ':' + w; if (THUMBS[key]) return THUMBS[key];
+  const saved = { PC, PS, TX, TY, W, H, fb, mb, lb, SC };
+  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+  W = w; H = h; fb = new Uint8Array(W * H); mb = new Uint8Array(W * H); lb = new Uint8Array(W * H); PC = 1; PS = 0; SC = 1;
+  try {
+    const v = { kind, a: 0, b: 0, ang: 0 };
+    TX = w >> 1; TY = Math.round(h * .62); drawVestige(v);
+    let x0 = 1e9, x1 = -1, y0 = 1e9, y1 = -1;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (fb[y * W + x] || mb[y * W + x]){ x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+    if (x1 >= 0){ TX += Math.round(w / 2 - (x0 + x1) / 2); TY += Math.round(h / 2 - (y0 + y1) / 2); fb.fill(0); mb.fill(0); lb.fill(0); drawVestige(v); }
+    const cx = cv.getContext('2d'), im = cx.createImageData(w, h), d32 = new Uint32Array(im.data.buffer);
+    for (let i = 0; i < w * h; i++) d32[i] = (fb[i] || mb[i]) ? PALL[((mb[i] << 1) | fb[i]) * 5 + lb[i]] : 0;
+    cx.putImageData(im, 0, 0);
+  } catch (_) {}
+  ({ PC, PS, TX, TY, W, H, fb, mb, lb, SC } = saved);
   return THUMBS[key] = cv;
 }
 function buildMenu(){
@@ -170,7 +191,7 @@ function refreshPalette(){
 
 /* ---- batiment selectionne ---- */
 function selectBuilding(l){
-  state.sel = l || null;
+  state.sel = l || null; state.selV = null;
   $('sel').hidden = !l;
   document.body.classList.toggle('sel-open', !!l);
   if (!l) return;
@@ -179,6 +200,44 @@ function selectBuilding(l){
   renderSel();
 }
 $('selClose').addEventListener('click', () => selectBuilding(null));
+/* ---- vestiges catzi : le meme panneau, avec un bouton pour fouiller ---- */
+const vestLoot = (L) => [L.c ? L.c + ' croquettes' : '', L.l ? L.l + ' laine' : '', L.r ? L.r + ' ronrons' : ''].filter(Boolean).join(' · ');
+function lootVestige(v, side){
+  if (!v || v.looted) return 'Ces ruines ont déjà été fouillées.';
+  if (sideAt(v.a, v.b) !== side) return 'Ces ruines sont hors de ton territoire : étends-toi jusqu’à elles.';
+  const L = VEST_DEF[v.kind].loot, R = RES[side];
+  R.croq += L.c; R.laine += L.l; R.ron += L.r;
+  v.looted = true; FAR.cache.delete(v); mapDirtyRect(v.a - 12, v.a + 12, v.b - 12, v.b + 12);
+  return '';
+}
+function selectVestige(v){
+  selectBuilding(null);
+  state.selV = v; $('sel').hidden = false; document.body.classList.add('sel-open');
+  const g = $('selPic').getContext('2d'); g.clearRect(0, 0, 96, 72); g.drawImage(vestThumb(v.kind, 96, 72), 0, 0);
+  sfx('click'); renderVest();
+}
+function renderVest(){
+  const v = state.selV; if (!v) return;
+  if (v.looted){ selectBuilding(null); return; }
+  const D = VEST_DEF[v.kind], mine = sideAt(v.a, v.b) === GAME.side;
+  $('sel').dataset.key = '';
+  $('selSide').innerHTML = '<span>Ancien régime catzi</span>';
+  $('selName').textContent = D.name; $('selLvl').textContent = 'Vestige';
+  $('selState').innerHTML = mine ? '<span class="pill ok">Dans ton territoire : à fouiller</span>' : '<span class="pill bad">Hors de ton territoire</span>';
+  const stats = $('selStats'); stats.textContent = '';
+  const d = document.createElement('div'), x = document.createElement('span'), y = document.createElement('b'); x.textContent = 'Butin'; y.textContent = vestLoot(D.loot); d.append(x, y); stats.append(d);
+  const p = document.createElement('p'); p.textContent = D.desc; stats.append(p);
+  const act = $('selActions'); act.textContent = '';
+  const b = document.createElement('button'); b.className = 'btn'; b.type = 'button'; b.innerHTML = '<span>Fouiller</span><i>' + vestLoot(D.loot) + '</i>'; b.disabled = !mine;
+  b.addEventListener('click', () => {
+    const why = lootVestige(v, GAME.side); if (why){ toast(why); return; }
+    toast(D.name + ' fouillé' + (v.kind === 'statue' ? 'e' : '') + ' : ' + vestLoot(D.loot) + '.');
+    const L = D.loot; floatText(v.a, v.b, '+' + [L.c ? L.c + ' croq.' : '', L.l ? L.l + ' laine' : '', L.r ? L.r + ' ron.' : ''].filter(Boolean).join(' '));
+    sfx('demolish', v.a, v.b); selectBuilding(null); saveSoon(); renderHUD();
+  });
+  act.append(b);
+  if (!mine){ const n = document.createElement('p'); n.className = 'sel-note'; n.textContent = 'Pose un avant-poste ou un bâtiment à côté pour que ton territoire l’atteigne.'; act.append(n); }
+}
 function renderSel(){
   const l = state.sel; if (!l) return;
   if (!BLD.includes(l)){ selectBuilding(null); return; }

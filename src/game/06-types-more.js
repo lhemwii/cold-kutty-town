@@ -115,7 +115,7 @@ Object.assign(TYPES, {
       if (h > 6.5 && h < 9 && cu > 1.2 && cu < 3.8) return ((COLOR && DAY) || hash2(Math.floor(u / 5) + k, seed) < .5) ? 3 : 0;
       return wallBase(k, x, y);
     }, (x, y) => ((x + y) & 3) === 0 ? 1 : 3);
-    const sign = () => { if (!frontVisible(0)) return; const p = prj((a0 + a1) / 2, b1, 12), x = Math.round(p[0]), y = Math.round(p[1]); plate(fput, ccp ? 'GRAND MAGASIN' : 'MAGASIN', x, y - 1); };
+    const sign = () => { if (!frontVisible(0)) return; plateW(ccp ? 'GRAND MAGASIN' : 'MAGASIN', (a0 + a1) / 2, b1, 13); };
     return { parts: [part(lot.ca, lot.cb - 1, 0, body), part(lot.ca, lot.cb - 1, .4, sign)], lights: [Lc(lot.ca, b1 + 7, 14, 1.3)] };
   } },
   supermarche: { name: 'Supermarché', nameCCP: 'Univermag', fem: false, build(lot, seed){
@@ -133,8 +133,8 @@ Object.assign(TYPES, {
     const sign = () => {
       CUR = M.METAL; const p = prj(a1 - 1, b1 + 2, 0), x = Math.round(p[0]), y = Math.round(p[1]);
       for (let k = 0; k < 18; k++) fput(x, y - k, 1);
-      plate(fput, ccp ? 'UNIVERMAG' : 'SUPER', x, y - 17);
-      if (!ccp) plate(fput, 'MARCHE', x, y - 8);
+      plateW(ccp ? 'UNIVERMAG' : 'SUPER', a1 - 1, b1 + 2, 17);
+      if (!ccp) plateW('MARCHE', a1 - 1, b1 + 2, 8);
     };
     ACC = ccp ? M.FLAG_RED : M.FLAG_RED;
     const parts = [part(lot.ca, (b0 + b1) / 2, 0, () => { ACC = M.FLAG_RED; body(); }), part(a1 - 1, b1 + 2, .2, sign)];
@@ -196,7 +196,7 @@ Object.assign(TYPES, {
       CUR = M.NEUTRAL;
       for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++){ const r = Math.hypot(dx, dy); if (r < 3.4) fput(x + dx, y + dy, r > 2.5 ? 0 : 1); }
       CUR = M.METAL; fput(x, y, 0); fput(x, y - 1, 0); fput(x, y - 2, 0); fput(x + 1, y, 0); fput(x + 2, y, 0);
-      const s = prj(ca, hb0 - 1, 19); CUR_SIDE = lot.side; plate(fput, ccp ? 'GARE DU PEUPLE' : 'GARE CENTRALE', Math.round(s[0]), Math.round(s[1]) - 1);
+      CUR_SIDE = lot.side; plateW(ccp ? 'GARE DU PEUPLE' : 'GARE CENTRALE', ca, hb0 - 1, 20);
       if (ccp){ const q = prj(ca, (hb0 + hb1) / 2 - 1.6, 40); CUR = M.SIGN_CCP; drawStar(fput, Math.round(q[0]) - 3, Math.round(q[1]) - 6, 1, true); }
     };
     // quai et marquise le long de la voie
@@ -231,7 +231,7 @@ Object.assign(TYPES, {
       // officiels en rang sur la tribune
       for (let k = -3; k <= 3; k++){ const p = prj(ca + k * 1.6, tb - 5.2, 6.5); CUR = k === 0 ? M.FLAG_RED : M.CAT_GRAY; const x = Math.round(p[0]), y = Math.round(p[1]); fput(x, y - 1, 0); fput(x, y - 2, 0); fput(x, y - 3, 1); }
       // bandeau
-      const p = prj(ca, tb - 7, 3.5); CUR_SIDE = lot.side; plate(fput, ccp ? 'GLOIRE AU PEUPLE' : 'GOD BLESS KUTTY', Math.round(p[0]), Math.round(p[1]) + 1);
+      CUR_SIDE = lot.side; plateW(ccp ? 'GLOIRE AU PEUPLE' : 'GOD BLESS KUTTY', ca, tb - 7, 2.5);
     };
     const flags = (t) => { for (const fa of [a0 + 3, a0 + 11, a1 - 11, a1 - 3]) drawFlagPole(fa, b0 + 2, 0, 16, ccp ? 'ccp' : 'usc', t + fa * .1); };
     const star = () => { if (!ccp) return; const p = prj(ca, tb, 11); CUR = M.SIGN_CCP; drawStar(fput, Math.round(p[0]) - 3, Math.round(p[1]) - 9, 1, true); };
@@ -265,7 +265,7 @@ Object.assign(TYPES, {
       line3(ca - 2.3, cb - 1, 2.5, ca + 2.3, cb - 1, 2.5, 1);
       CUR = M.METAL; const p = prj(ca + 4, cb - 2, 0), x = Math.round(p[0]), y = Math.round(p[1]);
       for (let k = 0; k < 12; k++) fput(x, y - k, 1);
-      plate(fput, 'METRO', x, y - 11);
+      plateW('METRO', ca + 4, cb - 2, 11);
     };
     return { parts: [part(ca, cb + 2.5, 0, rail)], decals: [hole], lights: [Lc(ca, cb + 3, 9, 1.3)] };
   } }
@@ -292,7 +292,7 @@ function drawShed(ca, cb, ang, u0, u1, v0, v1, hh, wallMat, roofMat, sign){
   CUR = roofMat;
   const P = [[u0 - .8, v1 + .8, hh], [u1 + .8, v1 + .8, hh], [u1 + .8, v0 - .8, hh + 2.5], [u0 - .8, v0 - .8, hh + 2.5]].map(([u, v, z]) => { const p = rot2(ca, cb, ang, u, v); return [p[0], p[1], z]; });
   drawFace([P[3][0], P[3][1], P[3][2], P[2][0], P[2][1], P[2][2], P[1][0], P[1][1], P[1][2], P[0][0], P[0][1], P[0][2]], [0, 0, 1], (x, y) => (Math.floor((x + 2 * y) / 2) % 3 === 0) ? 1 : 0, 1);
-  if (sign){ const p = rot2(ca, cb, ang, (u0 + u1) / 2, v1), q = prj(p[0], p[1], hh - .5); plate(fput, sign, Math.round(q[0]), Math.round(q[1])); }
+  if (sign){ const p = rot2(ca, cb, ang, (u0 + u1) / 2, v1); plateW(sign, p[0], p[1], hh - .5, null, [Math.cos(ang), Math.sin(ang)]); }
 }
 // grue de quai : pieds, cabine, fleche qui fait l'aller-retour
 function drawPortCrane(a, b, angShip, side, t, ph){
@@ -415,7 +415,7 @@ Object.assign(TYPES, {
     const booth = (t) => {
       CUR = ccp ? M.CCP : M.USC;
       boxS(ca - 7, ca - 1, cb - 4, cb + 2, 0, 6.5, (u, h) => { if (h >= 2.5 && h < 4.8 && u > .6 && u < 5) return 3; return (h < .8 || h > 5.8) ? 1 : 0; }, (x, y) => bz(x, y) < 6 ? 1 : 0);
-      const p = prj(ca - 4, cb + 2, 6.5); CUR_SIDE = side; plate(fput, 'CHECKPOINT', Math.round(p[0]), Math.round(p[1]) - 1);
+      CUR_SIDE = side; plateW('CHECKPOINT', ca - 4, cb + 2, 7.5);
     };
     const barrier = (t) => {
       const up = (Math.sin(t * .4 + seed) > .75) ? 1 : 0, an = up * Math.PI * .45, len = 12;

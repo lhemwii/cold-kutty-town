@@ -22,9 +22,9 @@ Object.assign(TYPES, {
       CUR = M.METAL;
       const p0 = prj(a1 + 3, b1 + 5, 0), x = Math.round(p0[0]), y = Math.round(p0[1]);
       for (let k = 0; k < 22; k++){ fput(x, y - k, 1); fput(x + 1, y - k, 0); }
-      plate(fput, ccp ? 'HOTEL' : 'MOTEL', x, y - 20);
+      plateW(ccp ? 'HOTEL' : 'MOTEL', a1 + 3, b1 + 5, 20);
       const on = Math.floor(t * 2) % 3 !== 2;
-      plate(fput, ccp ? 'COMPLET' : 'LIBRE', x, y - 10, { inv: true, off: !on });
+      plateW(ccp ? 'COMPLET' : 'LIBRE', a1 + 3, b1 + 5, 10, { inv: true, off: !on });
     };
     const parts = [part(lot.ca, lot.cb - 5, 0, body), part(lot.ca, b1 + 1.5, .3, porch), part(a1 + 3, b1 + 5, 0, sign)];
     if (!ccp) for (const ca of [a0 + 7, a0 + 18]) parts.push(part(ca, b1 + 10, 0, () => drawCar(ca, b1 + 10, 'b', -1, 'usc')));
@@ -58,7 +58,7 @@ Object.assign(TYPES, {
       if (hash2(seed + k, 3) < .2) return;
       parts.push(part(ca, cb, 0, () => { drawCar(ca, cb, 'b', -1, lot.side); CUR = M.METAL; line3(ca + 4, cb, 0, ca + 4, cb, 3, 1); }));
     });
-    parts.push(part(lot.a1 - 3, lot.b1 - 3, 0, () => { CUR = M.METAL; const p = prj(lot.a1 - 3, lot.b1 - 3, 0), x = Math.round(p[0]), y = Math.round(p[1]); for (let k = 0; k < 9; k++){ fput(x - 6, y - k, 1); fput(x + 6, y - k, 1); } plate(fput, ccp ? 'CINE' : 'DRIVE IN', x, y - 8); }));
+    parts.push(part(lot.a1 - 3, lot.b1 - 3, 0, () => { const sa = lot.a1 - 3, sb = lot.b1 - 3; CUR = M.METAL; line3(sa - 6, sb, 0, sa - 6, sb, 8, 1); line3(sa + 6, sb, 0, sa + 6, sb, 8, 1); plateW(ccp ? 'CINE' : 'DRIVE IN', sa, sb, 8); }));
     return { parts, lights: [Lc(lot.ca, sb + 12, 17, 1.2)] };
   } },
   bowling: { name: 'Bowling', fem: false, build(lot, seed){
@@ -76,7 +76,7 @@ Object.assign(TYPES, {
     const sign = (t) => {
       const p = prj(lot.ca - 8, b1 - 2, hh), x = Math.round(p[0]), y = Math.round(p[1]);
       CUR = M.NEUTRAL; blit(PIN_SPR, x, y);
-      if (frontVisible(0)){ const q = prj(lot.ca + 4, b1, hh), on = (COLOR && DAY) || Math.floor(t * 3) % 6 !== 5; plate(fput, 'BOWLING', Math.round(q[0]), Math.round(q[1]) - 1, { off: !on }); }
+      if (frontVisible(0)){ const on = (COLOR && DAY) || Math.floor(t * 3) % 6 !== 5; plateW('BOWLING', lot.ca + 4, b1, hh + 1, { off: !on }); }
     };
     return { parts: [part(lot.ca, lot.cb - 2, 0, body), part(lot.ca, lot.cb - 2, .5, sign)], lights: [Lc(lot.ca, b1 + 7, 14, 1.4)] };
   } },
@@ -103,7 +103,7 @@ Object.assign(TYPES, {
     };
     const cabin = () => {
       boxS(lot.ca + 5, lot.ca + 14, lot.cb + 3, lot.cb + 10, 0, 5, (u, h, x, y, k) => { const kk = win(u, h, 2, 2, 3, 2); if (kk) return winColor(kk, true, x, y); return wallBase(k, x, y); }, 0);
-      if (frontVisible(0)){ const p = prj(lot.ca + 9.5, lot.cb + 10, 5), x = Math.round(p[0]), y = Math.round(p[1]); plate(fput, ccp ? 'RADIO MS' : 'RADIO KL', x, y - 1); }
+      if (frontVisible(0)) plateW(ccp ? 'RADIO MS' : 'RADIO KL', lot.ca + 9.5, lot.cb + 10, 6);
     };
     return { parts: [part(ca, cb, 0, mast), part(lot.ca + 9.5, lot.cb + 6.5, 0, cabin)], lights: [Lc(lot.ca + 9.5, lot.cb + 14, 9, 1.2)] };
   } },
@@ -180,7 +180,7 @@ Object.assign(TYPES, {
       CUR = M.LAMP;
       for (let k = 0; k < 14; k++){ const a = Math.PI * (k / 13), x = Math.round(cx + Math.cos(a) * rx * .98), y = Math.round(cy - wallH + Math.sin(a) * ry * .98 - 1); if (((k + ((t * 3) | 0)) & 1)) fput(x, y, 1); }
     };
-    const sign = () => { if (!frontVisible(0) && !frontVisible(1)) return; const p = prj(ca, cb + R + 4, 0), x = Math.round(p[0]), y = Math.round(p[1]); CUR = M.METAL; for (let k = 0; k < 5; k++){ fput(x - 8, y - k, 1); fput(x + 8, y - k, 1); } plate(fput, 'CIRQUE', x, y - 4); };
+    const sign = () => { if (!frontVisible(0) && !frontVisible(1)) return; const sb = cb + R + 4; CUR = M.METAL; line3(ca - 8, sb, 0, ca - 8, sb, 4, 1); line3(ca + 8, sb, 0, ca + 8, sb, 4, 1); plateW('CIRQUE', ca, sb, 4); };
     return { parts: [part(ca, cb, 0, draw), part(ca, cb + R + 4, 0, sign)], lights: [Lc(ca, cb + 14, 13, 1.4), Lc(ca, cb, 10, .8)] };
   } },
   fontaine: { name: 'Fontaine', fem: true, build(lot, seed){
