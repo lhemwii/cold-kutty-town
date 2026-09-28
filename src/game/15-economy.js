@@ -211,13 +211,13 @@ function drawDust(l, t, amt){
 function siteDrawables(t, out){
   const gt = GAME.t;
   for (const l of BLD){
-    const q = prj(l.ca, l.cb, 0); if (q[0] < -60 || q[0] > W + 60 || q[1] < -60 || q[1] > H + 80) continue;
-    if (!l.done) out.push({ d: dep(l.ca, l.cb) + 2, f: () => drawSite(l, t, clamp((gt - l.buildT) / l.bdur, 0, 1)) });
-    else if (l.upT) out.push({ d: dep(l.ca, l.cb) + 6, f: () => drawDust(l, t, .45 + .2 * Math.sin(t * 5)) });
-    else if (l.doneT && gt < l.doneT + .7) out.push({ d: dep(l.ca, l.cb) + 6, f: () => drawDust(l, t, 1 - (gt - l.doneT) / .7) });
-    if (l.done && !l.active && !l.upT) out.push({ d: dep(l.ca, l.cb) + 8, f: () => drawNoRoad(l, t) });
+    const q = prj(l.ca, l.cb, 0); if (q[0] < -60 * SC || q[0] > W + 60 * SC || q[1] < -60 * SC || q[1] > H + 80 * SC) continue;
+    if (!l.done) out.push({ d: dep(l.ca, l.cb) + 2, a: l.ca, b: l.cb, f: () => drawSite(l, t, clamp((gt - l.buildT) / l.bdur, 0, 1)) });
+    else if (l.upT) out.push({ d: dep(l.ca, l.cb) + 6, a: l.ca, b: l.cb, f: () => drawDust(l, t, .45 + .2 * Math.sin(t * 5)) });
+    else if (l.doneT && gt < l.doneT + .7) out.push({ d: dep(l.ca, l.cb) + 6, a: l.ca, b: l.cb, f: () => drawDust(l, t, 1 - (gt - l.doneT) / .7) });
+    if (l.done && !l.active && !l.upT) out.push({ d: dep(l.ca, l.cb) + 8, a: l.ca, b: l.cb, f: () => drawNoRoad(l, t) });
   }
-  for (let k = DEMOS.length - 1; k >= 0; k--){ const l = DEMOS[k]; if (gt > l.demoT + DUST_DUR){ DEMOS.splice(k, 1); continue; } out.push({ d: dep(l.ca, l.cb) + 6, f: () => drawDust(l, t, 1.2 * (1 - (gt - l.demoT) / DUST_DUR)) }); }
+  for (let k = DEMOS.length - 1; k >= 0; k--){ const l = DEMOS[k]; if (gt > l.demoT + DUST_DUR){ DEMOS.splice(k, 1); continue; } out.push({ d: dep(l.ca, l.cb) + 6, a: l.ca, b: l.cb, f: () => drawDust(l, t, 1.2 * (1 - (gt - l.demoT) / DUST_DUR)) }); }
 }
 // icone au-dessus d'un batiment sans route : un petit panneau barre
 function drawNoRoad(l, t){

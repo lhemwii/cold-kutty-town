@@ -13,7 +13,7 @@ Les demandes qui arrivent en cours de route et ne rentrent dans aucune étape de
 - [x] Suppression de l’ancienne ville, des aéroports, du rail, du métro, du défilé, du ferry, du multijoueur.
 - [x] Bâtiments posés librement (liste `BLD`) au lieu des terrains fixes.
 - [x] Territoires par cases de 4 unités : teinte et frontière au pixel près dans la vue détaillée, expansion en direct, pression aux frontières, verrous sous les bâtiments et le long du Rideau.
-- [x] Carte stratégique au dézoom (fin du lag : 60 images par seconde à tous les zooms dans nos tests).
+- [x] Fin du lag au dézoom (60 images par seconde à tous les zooms dans nos tests).
 - [x] Trois ressources : croquettes, laine, ronrons. Production, fonctionnement, emplois, accès à la route.
 - [x] Chantiers avec échafaudage et barre d’avancement ; améliorations en 3 niveaux (port : ponton, quai, grand port).
 - [x] Routes droites et courbes (Bézier), raccord automatique, graphe, voitures qui suivent les courbes.
@@ -35,12 +35,17 @@ Les demandes qui arrivent en cours de route et ne rentrent dans aucune étape de
 - [x] HUD : symbole des ronrons en patte de chat, meilleur symbole des habitants.
 - [x] Drapeau de l’USC retravaillé pour que la tête de chat se lise bien.
 
-## Étape 0.2. Rotation vue de loin (fait)
+## Étape 0.2. Rotation vue de loin (remplacée par l’étape 0.3)
 
-- [x] Aux boutons : le nouveau cache commence dès le début de la rotation, les tuiles à l’écran d’abord, et chaque tuile prête s’affiche aussitôt.
-- [x] À la souris (clic droit glissé) et au doigt : plus d’image figée qui se déforme. Le jeu prépare d’avance l’île aux angles voisins (tous les 45°) et, pendant qu’on tourne, fond les deux vues les plus proches pour que les reliefs tournent vraiment.
-- [x] En lâchant, la vue de loin se cale sur l’angle de 45° le plus proche, déjà prêt.
-- [x] Mémoire : caches plus légers (un seul tableau par tuile, tampons de rendu partagés), tuiles hors de la carte jamais dessinées.
+- [x] Premier essai : l’île gardée en images tous les 45°, fondues pendant la rotation, avec calage à 45° en lâchant. Pas assez vivant : retiré au profit d’une vue de loin redessinée en direct.
+
+## Étape 0.3. Vue de loin en temps réel (fait)
+
+- [x] Fin de la « photo » de l’île au dézoom : tout est redessiné à chaque image, comme de près (sol, vagues, territoire, arbres, montagnes, bâtiments, bateaux, chats). Mesuré : 60 images par seconde à tous les zooms.
+- [x] Rotation vraiment continue à tous les zooms, sans fondu ni calage à 45°.
+- [x] Les vrais bateaux à toutes les distances (plus de triangles), un peu grossis de très loin pour rester lisibles.
+- [x] Animations de loin sans bug : drapeaux, chantiers, fumées, écume bougent en direct.
+- [x] Toujours 60 images par seconde : même nombre de pixels à calculer qu’au zoom le plus éloigné de la vue rapprochée, objets dessinés en petit.
 
 ## Étape 1. Fiabiliser ce qui existe
 

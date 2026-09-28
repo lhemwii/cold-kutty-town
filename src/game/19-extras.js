@@ -133,7 +133,7 @@ function viewCorners(){
 function drawMap(t){
   if (!document.body.classList.contains('has-map') || !MAPV.cv || GAME.mode === 'menu') return;
   if (t - MINI.t < .12) return; MINI.t = t;
-  if (!OV_ON) mapUpdate();
+  mapUpdate();
   const g = mapCtx, s = miniScale();
   g.fillStyle = '#1d5c96'; g.fillRect(0, 0, mapCv.width, mapCv.height);
   const [x0, y0] = miniXY(GA0, GB0);
@@ -214,8 +214,7 @@ async function photoCanvas(){
   pic.width = vw + pad * 2; pic.height = vh + pad + band;
   const g = pic.getContext('2d'); g.imageSmoothingEnabled = false;
   g.fillStyle = '#f6f0e1'; g.fillRect(0, 0, pic.width, pic.height);
-  if (OV_ON) g.drawImage(scene, 0, 0, scene.width, scene.height, pad, pad, vw, vh);
-  else { const cw = vw / Z, ch = vh / Z; g.drawImage(scene, (W - cw) / 2, (H - ch) / 2, cw, ch, pad, pad, vw, vh); }
+  { const zs = OV_ON ? K : Z, cw = vw / zs, ch = vh / zs; g.drawImage(scene, (W - cw) / 2, (H - ch) / 2, cw, ch, pad, pad, vw, vh); }
   if (PHOTO.filter !== 'couleur'){ const id = g.getImageData(pad, pad, vw, vh); filterPixels(id.data, PHOTO.filter); g.putImageData(id, pad, pad); }
   try { await Promise.all([document.fonts.load('48px Yellowtail'), document.fonts.load('600 20px "IBM Plex Mono"')]); } catch (_) {}
   g.fillStyle = '#2a2622'; g.textBaseline = 'middle';
@@ -227,7 +226,7 @@ async function photoCanvas(){
 async function photoShoot(){
   const btn = $('photoShoot'); btn.disabled = true;
   try {
-    if (!OV_ON) render(NOW_T);
+    render(NOW_T);
     const pic = await photoCanvas();
     const blob = await new Promise(r => pic.toBlob(r, 'image/png'));
     if (!blob){ toast('La photo n’a pas pu être préparée.'); return; }

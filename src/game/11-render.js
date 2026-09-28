@@ -145,7 +145,7 @@ const scene = document.getElementById('scene');
 ctx = scene.getContext('2d', { alpha: false });
 let devW = 0, devH = 0, ob = null;
 // Z : zoom affiche (pixels de l'ecran par pixel du jeu), continu et anime.
-// K : echelle entiere de rendu. En dessous de KMIN, on passe sur la carte strategique (OV_ON).
+// K : echelle entiere de rendu. En dessous de KMIN, on passe sur la vue de loin (OV_ON) : meme tampon, monde dessine en petit.
 let Z = 2, ZT = 2, ZANCH = null, ZLEVELS = [], OV_ON = false;
 // budget de pixels du rendu detaille : au-dela, tout ralentit ; la carte prend le relais
 const PIX_BUDGET = 430000;
@@ -164,17 +164,15 @@ function applyView(force){
   const ov = Z < KMIN - 1e-6;
   if (ov !== OV_ON || force){
     OV_ON = ov;
-    if (ov){ scene.width = devW; scene.height = devH; }
-    else { scene.width = W; scene.height = H; }
-    scene.classList.toggle('overview', ov);
+    if (scene.width !== W || scene.height !== H){ scene.width = W; scene.height = H; }
     document.body.classList.toggle('map-view', ov);
   }
-  if (OV_ON){ scene.style.width = window.innerWidth + 'px'; scene.style.height = window.innerHeight + 'px'; scene.style.left = '0px'; scene.style.top = '0px'; }
-  else {
-    const cw = W * Z / DPR, ch = H * Z / DPR;
-    scene.style.width = cw + 'px'; scene.style.height = ch + 'px';
-    scene.style.left = ((window.innerWidth - cw) / 2) + 'px'; scene.style.top = ((window.innerHeight - ch) / 2) + 'px';
-  }
+  // de loin, le tampon couvre tout l'ecran a l'echelle KMIN et le monde y est dessine en petit (SC < 1)
+  SC = OV_ON ? Z / K : 1;
+  const zs = OV_ON ? K : Z, cw = W * zs / DPR, ch = H * zs / DPR;
+  scene.style.width = cw + 'px'; scene.style.height = ch + 'px';
+  scene.style.left = ((window.innerWidth - cw) / 2) + 'px'; scene.style.top = ((window.innerHeight - ch) / 2) + 'px';
+  setProj();
   if (typeof updateZoomUI === 'function') updateZoomUI();
 }
 function layout(){
@@ -247,9 +245,8 @@ function mapInit(){
   MAPV.g = MAPV.cv.getContext('2d'); MAPV.img = MAPV.g.createImageData(MAPV.W, MAPV.H); MAPV.px = new Uint32Array(MAPV.img.data.buffer);
   MAPV.all = true;
 }
-function mapDirtyAll(){ MAPV.all = true; ovtDirtyAll(); }
+function mapDirtyAll(){ MAPV.all = true; }
 function mapDirtyRect(a0, a1, b0, b1, terOnly){
-  ovtDirty(a0, a1, b0, b1, terOnly);
   if (MAPV.all) return;
   MAPV.dirty.push([Math.max(0, Math.floor((a0 - GA0) / MS)), Math.min(MAPV.W - 1, Math.ceil((a1 - GA0) / MS)), Math.max(0, Math.floor((b0 - GB0) / MS)), Math.min(MAPV.H - 1, Math.ceil((b1 - GB0) / MS))]);
   if (MAPV.dirty.length > 400) MAPV.all = true;
@@ -310,43 +307,6 @@ function mapUpdate(){
   }
   if (x1 >= x0) MAPV.g.putImageData(MAPV.img, 0, 0, x0, y0, x1 - x0 + 1, y1 - y0 + 1);
 }
-// transformation carte -> ecran (pixels de l'appareil)
-function mapMatrix(){
-  const s = Z * MS, ca = cam.a, cb = cam.b;
-  const X = (a, b) => (a * PC - b * PS) - (a * PS + b * PC), Y = (a, b) => ((a * PC - b * PS) + (a * PS + b * PC)) * .5;
-  return [s * (PC - PS), s * (PC + PS) * .5, s * (-PS - PC), s * (PC - PS) * .5, devW / 2 + Z * (X(GA0, GB0) - X(ca, cb)), devH / 2 + Z * (Y(GA0, GB0) - Y(ca, cb))];
-}
-function worldToDev(a, b){ const X = (a - cam.a) * PC - (b - cam.b) * PS, Y = (a - cam.a) * PS + (b - cam.b) * PC; return [devW / 2 + Z * (X - Y), devH / 2 + Z * (X + Y) * .5]; }
-function drawOverview(t){
-  PC = Math.cos(cam.phi); PS = Math.sin(cam.phi);
-  const c = ctx;
-  c.setTransform(1, 0, 0, 1, 0, 0);
-  const sea = PALL[(M.SEA * 2) * 5];
-  c.fillStyle = 'rgb(' + (sea & 255) + ',' + ((sea >> 8) & 255) + ',' + ((sea >> 16) & 255) + ')';
-  c.fillRect(0, 0, devW, devH);
-  ovtWork(t, true);
-  const { E, A, B, wB } = ovtPick();
-  OVT.drawn = [E, A, B].filter(Boolean);
-  // tant que rien n'est pret a l'ecran, la carte plate sert de fond
-  const first = A && B ? (A.visPending <= B.visPending ? A : B) : (A || B);
-  if (!(E && !E.visPending) && (!first || first.visPending)){
-    mapUpdate();
-    c.imageSmoothingEnabled = Z * MS < 3;
-    c.setTransform(...mapMatrix());
-    c.drawImage(MAPV.cv, 0, 0);
-    c.setTransform(1, 0, 0, 1, 0, 0);
-  }
-  // fondu entre les deux angles qui encadrent la vue : le sol tombe juste, les reliefs passent de l'un a l'autre
-  if (first){
-    const second = first === A ? B : A;
-    ovtDraw(first, 1);
-    if (second) ovtDraw(second, second === B ? wB : 1 - wB);
-  }
-  // l'angle exact passe par-dessus, tuile par tuile, des qu'il est pret
-  if (E) ovtDraw(E, 1);
-  for (const f of HOOKS.map) f(c, t);
-}
-
 /* ================= sol, mer, faisceau des phares, teinte des territoires ================= */
 function beamTan(){
   const e = state.spread;
@@ -361,7 +321,7 @@ function renderGround(t){
   for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) PTAB[y * 4 + x] = litAt(x, y, pat, I) ? 1 : 0;
   const bc = Math.cos(state.theta), bs = Math.sin(state.theta), tn = beamTan(), all = tn === Infinity;
   const tick = Math.floor(t * 5), ring = (t * 1.1);
-  const dax = .5 * PC - .5 * PS, dbx = -.5 * PS - .5 * PC, day = PC + PS, dby = PC - PS;
+  const dax = (.5 * PC - .5 * PS) / SC, dbx = (-.5 * PS - .5 * PC) / SC, day = (PC + PS) / SC, dby = (PC - PS) / SC;
   const o = unprj(.5, .5);
   const F = fb, MB = mb, LBF = lb, OB = ob, GV = gVar, GS = gSea, GT = gTone, GTY = gType, GP = gPh, TM = TYPE_MAT, BY = BAYER, PT = PTAB;
   const w = W, h = H, tx = TX, ty = TY, gw = GW, gh = GH, ga0 = GA0, gb0 = GB0, qw = GQW;
@@ -387,7 +347,7 @@ function renderGround(t){
         if (ty2 === 0) m = GS[ci] < 16 ? MSS : GS[ci] < 50 ? MSM : MS2;
         else {
           m = TM[ty2]; if (ty2 === 1) lv = GV[(ib >> 2) * qw + (ia >> 2)];
-          if (hasT){ const ti = (ib >> 3) * TW + (ia >> 3); own = TO[ti]; if (own && !NOFRESH && gt - TFR[ti] < 1.1) own += 2; }
+          if (hasT){ const ti = (ib >> 3) * TW + (ia >> 3); own = TO[ti]; if (own && gt - TFR[ti] < 1.1) own += 2; }
         }
       }
       let v = 0;
@@ -421,7 +381,7 @@ function renderGround(t){
 }
 // recalcule seulement les camps par pixel (teinte et frontieres), d'apres la geometrie du sol
 function groundOwners(){
-  const dax = .5 * PC - .5 * PS, dbx = -.5 * PS - .5 * PC, day = PC + PS, dby = PC - PS, o = unprj(.5, .5);
+  const dax = (.5 * PC - .5 * PS) / SC, dbx = (-.5 * PS - .5 * PC) / SC, day = (PC + PS) / SC, dby = (PC - PS) / SC, o = unprj(.5, .5);
   const OB = ob, GTY = gType, TO = TER.own, TW = TER.W, TFR = TER.fresh, gt = GAME.t, w = W, h = H, gw = GW, gh = GH;
   if (OROW.length !== w) OROW = new Uint8Array(w);
   const UP = OROW; UP.fill(0);
@@ -431,7 +391,7 @@ function groundOwners(){
     const dfa = dax * 2, dfb = dbx * 2;
     for (let x = 0; x < w; x++, i++){
       let own = 0;
-      if (fa >= 0 && fbb >= 0 && fa < gw && fbb < gh){ const ia = fa | 0, ib = fbb | 0; if (GTY[ib * gw + ia] !== 0){ const ti = (ib >> 3) * TW + (ia >> 3); own = TO[ti]; if (own && !NOFRESH && gt - TFR[ti] < 1.1) own += 2; } }
+      if (fa >= 0 && fbb >= 0 && fa < gw && fbb < gh){ const ia = fa | 0, ib = fbb | 0; if (GTY[ib * gw + ia] !== 0){ const ti = (ib >> 3) * TW + (ia >> 3); own = TO[ti]; if (own && gt - TFR[ti] < 1.1) own += 2; } }
       const base = own > 2 ? own - 2 : own;
       let ov = own;
       if (x > 0 && base !== left){ if (base) ov = base + 2; if (left) OB[i - 1] = left + 2; }
@@ -447,15 +407,17 @@ function drawWaves(t){
   for (const [a, b] of cs){ a0 = Math.min(a0, a); a1 = Math.max(a1, a); b0 = Math.min(b0, b); b1 = Math.max(b1, b); }
   const CW = 12;
   CUR = M.FOAM;
-  for (let j = Math.floor(b0 / CW) - 1; j <= Math.floor(b1 / CW) + 1; j++) for (let i = Math.floor(a0 / CW) - 1; i <= Math.floor(a1 / CW) + 1; i++){
+  // de loin, une case sur k dans chaque sens : autant de vagues a l'ecran qu'en vue rapprochee
+  const st = Math.max(1, Math.round(1 / SC));
+  for (let j = Math.floor(b0 / CW / st) * st - st; j <= Math.floor(b1 / CW) + st; j += st) for (let i = Math.floor(a0 / CW / st) * st - st; i <= Math.floor(a1 / CW) + st; i += st){
     if (hash2(i * 3 + 1, j * 7 + 2) < 0.2) continue;
     const ga = i * CW + hash2(i + 11, j - 5) * CW, gb = j * CW + hash2(i - 7, j + 13) * CW;
     const ci = cellOf(ga, gb);
     if (ci >= 0 && (gType[ci] !== T_SEA || gSea[ci] < 14)) continue;
     const ph = hash2(i - 31, j - 17) * TAU, sp = 0.55 + hash2(i + 5, j + 41) * 0.9;
     const amp = Math.sin(t * sp + ph); if (amp < 0.15) continue;
-    const Lw = 2 + ((hash2(i + 23, j + 3) * 5) | 0), len = Math.max(1, Math.round(Lw * amp));
-    const p = prj(ga, gb, 0), x0 = Math.round(p[0] + Math.sin(t * .35 + ph) * 1.5), y0 = Math.round(p[1]);
+    const Lw = 2 + ((hash2(i + 23, j + 3) * 5) | 0), len = Math.max(1, Math.round(Lw * amp * SC));
+    const p = prj(ga, gb, 0), x0 = Math.round(p[0] + Math.sin(t * .35 + ph) * 1.5 * SC), y0 = Math.round(p[1]);
     if (x0 < -10 || y0 < -2 || x0 > W + 2 || y0 > H + 2) continue;
     for (let k = 0; k < len; k++) fput(x0 + k, y0, 1);
     if (len >= 3){ fput(x0 - 1, y0 + 1, 1); fput(x0 + len, y0 + 1, 1); }
@@ -471,12 +433,12 @@ function gatherLights(t, stat){
 }
 function applyLights(){
   const I = state.intensity, pat = state.pattern;
-  const dax = .5 * PC - .5 * PS, dbx = -.5 * PS - .5 * PC, day = PC + PS, dby = PC - PS;
+  const dax = (.5 * PC - .5 * PS) / SC, dbx = (-.5 * PS - .5 * PC) / SC, day = (PC + PS) / SC, dby = (PC - PS) / SC;
   for (const Lt of LIGHTS){
     const R = Lt.kind === 'circle' ? Lt.r : Lt.len + Lt.w0 + 2;
     const ca = Lt.kind === 'circle' ? Lt.a : Lt.a + Lt.da * Lt.len * .5, cb = Lt.kind === 'circle' ? Lt.b : Lt.b + Lt.db * Lt.len * .5;
     const rr = Lt.kind === 'circle' ? R : Lt.len * .5 + Lt.len * Lt.tan + Lt.w0 + 2;
-    const c = prj(ca, cb, 0), ex = rr * 1.42, ey = rr * .72;
+    const c = prj(ca, cb, 0), ex = rr * 1.42 * SC, ey = rr * .72 * SC;
     const x0 = Math.max(0, Math.floor(c[0] - ex)), x1 = Math.min(W - 1, Math.ceil(c[0] + ex));
     const y0 = Math.max(0, Math.floor(c[1] - ey)), y1 = Math.min(H - 1, Math.ceil(c[1] + ey));
     if (x0 > x1 || y0 > y1) continue;
@@ -537,40 +499,43 @@ function drawSatellite(t){
 /* ================= rendu complet ================= */
 let DYN_SHADOWS = [];
 function dynamicDrawables(t){ const out = []; DYN_SHADOWS = []; for (const f of HOOKS.dyn) f(t, out); return out; }
-// stat : rendu d'une tuile du cache, sans rien de ce qui bouge (voitures, chats, bateaux, vagues, meteo)
-function render(t, stat){
+// De pres, chaque objet se dessine directement dans le tampon. De loin (SC < 1), il passe par farDraw : dessine a l'echelle 1 a part, puis recopie en petit.
+function render(t){
+  const far = SC < .999;
   setProj();
   renderGround(t);
-  if (!stat) drawWaves(t);
-  for (const d of DECALS) d(t);
-  const dyn = stat ? [] : dynamicDrawables(t);
+  drawWaves(t);
+  if (!far) for (const d of DECALS) d(t);
+  const dyn = dynamicDrawables(t);
   siteDrawables(t, dyn);
-  const shadowsOn = COLOR && NIGHT < .6;
+  const shadowsOn = COLOR && NIGHT < .6 && !far;
   if (shadowsOn) drawShadows();
-  if (!COLOR || NIGHT > .25){ gatherLights(t, stat); applyLights(); }
+  if (!COLOR || NIGHT > .25){ gatherLights(t); applyLights(); }
   const list = [];
-  const Mg = 110;
+  const Mg = 110 * SC;
   for (const p of STATIC_PARTS){
     const q = prj(p.a, p.b, 0);
-    if (q[0] < -Mg || q[0] > W + Mg || q[1] < -30 || q[1] > H + Mg + 60) continue;
-    list.push({ d: dep(p.a, p.b) + p.zb, f: p.draw, m: p.m, side: p.side });
+    if (q[0] < -Mg || q[0] > W + Mg || q[1] < -30 * SC || q[1] > H + Mg + 60 * SC) continue;
+    list.push({ d: dep(p.a, p.b) + p.zb, f: p.draw, m: p.m, side: p.side, a: p.a, b: p.b, key: p });
   }
   treeDrawables(list, t, shadowsOn);
-  if (!stat){
-  for (const c of CARS){ const p = c.pos; if (!p) continue; const q = prj(p.a, p.b, 0); if (q[0] < -20 || q[0] > W + 20 || q[1] < -20 || q[1] > H + 20) continue; list.push({ d: dep(p.a, p.b), f: () => drawCarAng(p.a, p.b, p.ang, c.side) }); }
-  for (const c of CATS){ const p = catPos(c, t), q = prj(p.a, p.b, 0); if (q[0] < -20 || q[0] > W + 20 || q[1] < -20 || q[1] > H + 20){ c.screen = null; continue; } list.push({ d: dep(p.a, p.b) + .2, f: () => drawCat(c, t) }); }
-  const sp = sailPos(t); list.push({ d: dep(sp[0], sp[1]), f: drawSailboat });
-  }
+  const cm = 20 + 20 * SC;
+  for (const c of CARS){ const p = c.pos; if (!p) continue; const q = prj(p.a, p.b, 0); if (q[0] < -cm || q[0] > W + cm || q[1] < -cm || q[1] > H + cm) continue; list.push({ d: dep(p.a, p.b), a: p.a, b: p.b, f: () => drawCarAng(p.a, p.b, p.ang, c.side) }); }
+  for (const c of CATS){ const p = catPos(c, t), q = prj(p.a, p.b, 0); c.screen = null; if (q[0] < -20 || q[0] > W + 20 || q[1] < -20 || q[1] > H + 20) continue; list.push({ d: dep(p.a, p.b) + .2, a: p.a, b: p.b, f: far ? () => { drawCat(c, t); c.screen = null; } : () => drawCat(c, t) }); }
+  const sp = sailPos(t); list.push({ d: dep(sp[0], sp[1]), a: sp[0], b: sp[1], f: drawSailboat, big: true });
   for (const o of dyn) list.push(o);
   list.sort((u, v) => u.d - v.d);
-  for (const it of list){ CUR = it.m == null ? M.METAL : it.m; CUR_SIDE = it.side || 'usc'; it.f(t); }
-  if (!stat){ for (const f of HOOKS.top) f(t); if (typeof drawToolPreview === 'function') drawToolPreview(t); }
-  if (!COLOR || NIGHT > .35){ for (const bk of BEACONS){ drawLantern(bk[0], bk[1]); drawGlow(bk[0], bk[1], t); } drawLampHeads(); }
+  if (far) farRefresh(list, t);
+  for (const it of list){ CUR = it.m == null ? M.METAL : it.m; CUR_SIDE = it.side || 'usc'; if (far) farDraw(it, t); else it.f(t); }
+  if (!far){ for (const f of HOOKS.top) f(t); if (typeof drawToolPreview === 'function') drawToolPreview(t); }
+  const glow = !COLOR || NIGHT > .35;
+  if (far){ for (const bk of BEACONS) farDraw({ a: bk[0], b: bk[1], f: (tt) => { drawLantern(bk[0], bk[1]); if (glow) drawGlow(bk[0], bk[1], tt); } }, t); }
+  else if (glow){ for (const bk of BEACONS){ drawLantern(bk[0], bk[1]); drawGlow(bk[0], bk[1], t); } drawLampHeads(); }
   else for (const bk of BEACONS) drawLantern(bk[0], bk[1]);
-  if (!stat){ drawSatellite(t); drawWeather(t); if (COLOR) for (const f of HOOKS.post) f(t); }
+  drawSatellite(t); drawWeather(t); if (COLOR) for (const f of HOOKS.post) f(t);
   const P = PALX, pl = PL;
   for (let i = 0; i < N; i++){ const m = mb[i]; px32[i] = P[ob[i] * pl + (((m << 1) | fb[i]) * 5 + lb[i])]; }
-  if (!stat) ctx.putImageData(img, 0, 0);
+  ctx.putImageData(img, 0, 0);
 }
 
 /* ================= ombres portees (version couleur, de jour) ================= */
@@ -616,192 +581,109 @@ function drawShadows(){
   }
 }
 
-/* ================= vue d'ensemble detaillee : toute l'ile en pixel art, gardee en tuiles ================= */
-// Au dezoom, on n'essaie plus de tout redessiner a chaque image : l'ile est rendue a l'echelle 1 dans des tuiles,
-// on ne refait que les tuiles salies (batiment, route) ou on les recolore (territoire, nuit), avec un budget de temps.
-// Pour tourner sans image figee, on garde l'ile a plusieurs angles (tous les 45 degres) : les voisins de l'angle
-// courant sont prepares d'avance, et pendant qu'on tourne on fond les deux angles les plus proches.
-const TS = 256, OVT_STEP = Math.PI / 4, OVT_MAX = 4;
-const OVT = { list: [], budget: 7, urgent: 8, lastT: 0, cost: 3, dir: 1, lastPhi: 0, drawn: [] };
-// tampons de rendu partages par toutes les tuiles ; chaque tuile ne garde qu'un indice de couleur par pixel
-const OSC = { fb: new Uint8Array(TS * TS), mb: new Uint8Array(TS * TS), lb: new Uint8Array(TS * TS), ob: new Uint8Array(TS * TS), img: null, px: null };
-// dans le cache, pas de lueur sur les cases fraichement prises : elle y resterait figee
-let NOFRESH = false;
-const ISO_X = (a, b) => (a * PC - b * PS) - (a * PS + b * PC), ISO_Y = (a, b) => ((a * PC - b * PS) + (a * PS + b * PC)) * .5;
-const angDiff = (u, v) => { let d = (u - v) % TAU; if (d > Math.PI) d -= TAU; else if (d <= -Math.PI) d += TAU; return d; };
-const ovtFind = (phi) => OVT.list.find(O => Math.abs(angDiff(O.phi, phi)) < 1e-4) || null;
-function ovtNew(phi){
-  const sp = [PC, PS];
-  PC = Math.cos(phi); PS = Math.sin(phi);
-  const corners = [[GA0, GB0], [GA0 + GW / GSC, GB0], [GA0 + GW / GSC, GB0 + GH / GSC], [GA0, GB0 + GH / GSC]].map(([a, b]) => [ISO_X(a, b), ISO_Y(a, b)]);
-  [PC, PS] = sp;
-  let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
-  for (const [x, y] of corners){ x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
-  x0 = Math.floor(x0 - 20); y0 = Math.floor(y0 - 110); x1 = Math.ceil(x1 + 20); y1 = Math.ceil(y1 + 20);
-  const nx = Math.ceil((x1 - x0) / TS), ny = Math.ceil((y1 - y0) / TS), cv = document.createElement('canvas');
-  cv.width = nx * TS; cv.height = ny * TS;
-  const poly = corners.map(([x, y]) => [x - x0, y - y0]);
-  const O = { phi, x0, y0, nx, ny, cv, g: cv.getContext('2d'), tiles: [], pending: 0, visPending: 0 };
-  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++){
-    // une tuile qui ne touche pas la carte (avec la marge des objets qui montent) reste vide : c'est la mer du fond
-    const out = !rectHitsPoly(i * TS - 24, j * TS - 24, (i + 1) * TS + 24, (j + 1) * TS + 120, poly);
-    O.tiles.push({ i, j, state: out ? 0 : 2, pk: '', ix: null, ready: out, out });
-  }
-  O.pending = O.tiles.filter(T => !T.ready).length;
-  return O;
-}
-// rectangle contre quadrilatere convexe (axes separateurs)
-function rectHitsPoly(rx0, ry0, rx1, ry1, poly){
-  const rect = [[rx0, ry0], [rx1, ry0], [rx1, ry1], [rx0, ry1]];
-  const axes = [[1, 0], [0, 1]];
-  for (let k = 0; k < poly.length; k++){ const p = poly[k], q = poly[(k + 1) % poly.length]; axes.push([q[1] - p[1], p[0] - q[0]]); }
-  for (const [ax, ay] of axes){
-    let a0 = 1e18, a1 = -1e18, b0 = 1e18, b1 = -1e18;
-    for (const [x, y] of rect){ const v = x * ax + y * ay; a0 = Math.min(a0, v); a1 = Math.max(a1, v); }
-    for (const [x, y] of poly){ const v = x * ax + y * ay; b0 = Math.min(b0, v); b1 = Math.max(b1, v); }
-    if (a1 < b0 || b1 < a0) return false;
-  }
-  return true;
-}
-// state : 0 a jour, 1 a recolorer (territoire), 2 a redessiner
-function ovtDirtyAll(){ for (const O of OVT.list) for (const T of O.tiles) if (!T.out) T.state = 2; }
-function ovtDirty(a0, a1, b0, b1, terOnly){
-  for (const O of OVT.list){
-    const pc = Math.cos(O.phi), ps = Math.sin(O.phi), X = (a, b) => (a * pc - b * ps) - (a * ps + b * pc), Y = (a, b) => ((a * pc - b * ps) + (a * ps + b * pc)) * .5;
-    let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
-    for (const [a, b] of [[a0, b0], [a1, b0], [a0, b1], [a1, b1]]){ const x = X(a, b), y = Y(a, b); x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
-    // les objets montent au-dessus du sol : on salit aussi vers le haut
-    const up = terOnly ? 2 : 90;
-    const i0 = Math.max(0, Math.floor((x0 - 4 - O.x0) / TS)), i1 = Math.min(O.nx - 1, Math.floor((x1 + 4 - O.x0) / TS));
-    const j0 = Math.max(0, Math.floor((y0 - up - O.y0) / TS)), j1 = Math.min(O.ny - 1, Math.floor((y1 + 4 - O.y0) / TS));
-    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++){ const T = O.tiles[j * O.nx + i]; if (!T.out && T.state < (terOnly ? 1 : 2)) T.state = terOnly ? 1 : 2; }
-  }
-}
-// rendu d'une tuile : on detourne les tampons du rendu vers les tampons partages, puis on garde l'indice de couleur
-function ovtRender(O, T, t, full){
-  if (!OSC.img){ OSC.img = new ImageData(TS, TS); OSC.px = new Uint32Array(OSC.img.data.buffer); }
-  if (!T.ix){ T.ix = new Uint16Array(TS * TS); full = true; }
-  const sv = [W, H, N, fb, mb, lb, ob, img, px32, PC, PS, TX, TY];
-  W = TS; H = TS; N = TS * TS; fb = OSC.fb; mb = OSC.mb; lb = OSC.lb; ob = OSC.ob; img = OSC.img; px32 = OSC.px;
-  PROJ_FIX = [-O.x0 - T.i * TS, -O.y0 - T.j * TS];
-  const cp = cam.phi; cam.phi = O.phi; NOFRESH = true;
-  const IX = T.ix, P = PALX, pl = PL, F = fb, MB = mb, LB = lb, OB = ob, PX = px32, n = N;
+/* ================= vue de loin : tout en direct, les objets dessines en petit ================= */
+// De loin, le tampon garde la taille du zoom le plus eloigne de la vue rapprochee (KMIN) et le monde y est dessine a l'echelle SC.
+// Le sol, l'ecume, les lumieres et le territoire sont calcules au pixel comme de pres. Chaque objet est dessine a l'echelle 1
+// dans un petit tampon a part, avec le meme code que de pres, puis recopie en petit. Les batiments et les montagnes gardent
+// ce dessin en memoire et le refont par roulement (la vue a tourne, un drapeau flotte) ; ce qui bouge est refait a chaque image.
+const SPW = 256, SPH = 256, SPAX = 128, SPAY = 196, EMPTY = 255;
+const SPB = { fb: new Uint8Array(SPW * SPH), mb: new Uint8Array(SPW * SPH), lb: new Uint8Array(SPW * SPH), ob: new Uint8Array(SPW * SPH) };
+const FAR = { budget: 5, bk: TAU / 360, age: 1200, cache: new WeakMap(), t0: 0 };
+function sprRender(it, t){
+  const sv = [W, H, N, fb, mb, lb, ob, TX, TY, SC, PROJ_FIX];
+  W = SPW; H = SPH; N = SPW * SPH; fb = SPB.fb; mb = SPB.mb; lb = SPB.lb; ob = SPB.ob;
+  fb.fill(0); mb.fill(EMPTY); lb.fill(0);
+  SC = 1;
+  const ar = it.a * PC - it.b * PS, br = it.a * PS + it.b * PC;
+  PROJ_FIX = [Math.round(SPAX - (ar - br)), Math.round(SPAY - (ar + br) * .5)];
+  setProj();
+  const ax = TX + ar - br, ay = TY + (ar + br) * .5;
+  let out = null;
   try {
-    if (full){
-      render(t, true);
-      for (let k = 0; k < n; k++) IX[k] = OB[k] * pl + (((MB[k] << 1) | F[k]) * 5 + LB[k]);
-    } else {
-      setProj(); groundOwners();
-      for (let k = 0; k < n; k++){ const v = OB[k] * pl + IX[k] % pl; IX[k] = v; PX[k] = P[v]; }
+    CUR = it.m == null ? M.METAL : it.m; CUR_SIDE = it.side || 'usc';
+    it.f(t);
+    let x0 = SPW, x1 = -1, y0 = SPH, y1 = -1;
+    const MB = mb;
+    for (let y = 0, i = 0; y < SPH; y++){
+      let any = false;
+      for (let x = 0; x < SPW; x++, i++) if (MB[i] !== EMPTY){ any = true; if (x < x0) x0 = x; if (x > x1) x1 = x; }
+      if (any){ if (y < y0) y0 = y; y1 = y; }
+    }
+    if (x1 >= 0){
+      const w = x1 - x0 + 1, h = y1 - y0 + 1, F = new Uint8Array(w * h), Mm = new Uint8Array(w * h), L = new Uint8Array(w * h);
+      for (let y = 0; y < h; y++){ const s0 = (y + y0) * SPW + x0, d0 = y * w; F.set(fb.subarray(s0, s0 + w), d0); Mm.set(MB.subarray(s0, s0 + w), d0); L.set(lb.subarray(s0, s0 + w), d0); }
+      out = { x0: x0 - ax, y0: y0 - ay, w, h, fb: F, mb: Mm, lb: L };
     }
   } finally {
-    cam.phi = cp; PROJ_FIX = null; NOFRESH = false;
-    [W, H, N, fb, mb, lb, ob, img, px32, PC, PS, TX, TY] = sv;
-  }
-  O.g.putImageData(OSC.img, T.i * TS, T.j * TS);
-  T.state = 0; T.pk = palKey; T.ready = true;
-}
-// recolorer une tuile deja rendue (la nuit tombe, la saison change)
-function ovtRecolor(O, T){
-  if (!OSC.img){ OSC.img = new ImageData(TS, TS); OSC.px = new Uint32Array(OSC.img.data.buffer); }
-  const P = PALX, IX = T.ix, PX = OSC.px, n = TS * TS;
-  for (let k = 0; k < n; k++) PX[k] = P[IX[k]];
-  O.g.putImageData(OSC.img, T.i * TS, T.j * TS);
-  T.pk = palKey;
-}
-// les tuiles a l'ecran d'abord
-function ovtVisible(O){
-  const pc = Math.cos(O.phi), ps = Math.sin(O.phi), cx = (cam.a * pc - cam.b * ps) - (cam.a * ps + cam.b * pc) - O.x0, cy = ((cam.a * pc - cam.b * ps) + (cam.a * ps + cam.b * pc)) * .5 - O.y0;
-  // quand la vue a tourne depuis, l'image est deformee : on prend large
-  const d = Math.abs(angDiff(cam.phi, O.phi)), wide = 1 + d * 1.6;
-  const hw = devW / 2 / Z * wide + TS, hh = devH / 2 / Z * wide + TS;
-  return (T) => Math.abs((T.i + .5) * TS - cx) < hw && Math.abs((T.j + .5) * TS - cy) < hh;
-}
-const ovtTurning = () => !!((drag && drag.turn && drag.moved) || (pinch && pinch.turning));
-// angles a tenir prets, du plus urgent au moins urgent
-function ovtWanted(far){
-  const turning = ovtTurning(), rest = turning ? null : (cam.phiT != null ? cam.phiT : cam.phi), out = [];
-  const add = (p) => { if (!out.some(q => Math.abs(angDiff(p, q)) < 1e-4)) out.push(p); };
-  if (rest != null) add(rest);
-  if (!far) return out;
-  const k = Math.floor(cam.phi / OVT_STEP + 1e-6), lo = k * OVT_STEP;
-  add(lo); if (Math.abs(cam.phi - lo) > 1e-4) add(lo + OVT_STEP);
-  if (turning) add(OVT.dir > 0 ? lo + 2 * OVT_STEP : lo - OVT_STEP);
-  else {
-    const r = Math.round(rest / OVT_STEP);
-    if (Math.abs(rest - r * OVT_STEP) < 1e-4){ add(rest + OVT_STEP); add(rest - OVT_STEP); }
-    else { const f = Math.floor(rest / OVT_STEP) * OVT_STEP; add(f); add(f + OVT_STEP); }
+    [W, H, N, fb, mb, lb, ob, TX, TY, SC, PROJ_FIX] = sv;
   }
   return out;
 }
-function ovtWork(t, far){
-  const t0 = performance.now();
-  const dp = angDiff(cam.phi, OVT.lastPhi); if (Math.abs(dp) > 1e-5) OVT.dir = dp > 0 ? 1 : -1; OVT.lastPhi = cam.phi;
-  const wanted = ovtWanted(far), keep = new Set(OVT.drawn);
-  const caches = [];
-  for (const p of wanted){
-    let O = ovtFind(p);
-    if (!O){
-      if (OVT.list.length >= OVT_MAX){
-        // on libere l'angle le plus loin qui ne sert plus
-        let worst = null, wd = -1;
-        for (const Q of OVT.list){ if (keep.has(Q) || caches.includes(Q) || wanted.some(w => Math.abs(angDiff(w, Q.phi)) < 1e-4)) continue; const d = Math.abs(angDiff(Q.phi, cam.phi)); if (d > wd){ wd = d; worst = Q; } }
-        if (!worst) continue;
-        OVT.list.splice(OVT.list.indexOf(worst), 1);
-      }
-      O = ovtNew(p); OVT.list.push(O);
-    }
-    caches.push(O);
-  }
-  const urgent = far && (ovtTurning() || cam.phiT != null || caches.slice(0, 2).some(O => O.visPending));
-  // en tournant, on travaille plus, mais on recule des que les images ralentissent (ecrans tres denses, machine lente)
-  const fdt = t0 - OVT.lastT; OVT.lastT = t0;
-  if (urgent && fdt < 200) OVT.urgent = clamp(OVT.urgent + (fdt > 22 ? -1.5 : .5), 3, 12);
-  const budget = urgent ? Math.max(OVT.budget, OVT.urgent) : OVT.budget;
-  // d'abord les tuiles a l'ecran des deux angles les plus urgents, puis tout le reste dans l'ordre
-  const passes = [];
-  for (const O of caches.slice(0, 2)) passes.push([O, true]);
-  for (const O of caches) passes.push([O, false]);
-  outer: for (const [O, visOnly] of passes){
-    const vis = ovtVisible(O);
-    const order = O.tiles.filter(T => !T.out && (!visOnly || vis(T)) && (!T.ready || T.state || T.pk !== palKey));
-    order.sort((u, v) => (vis(v) - vis(u)) || (u.ready - v.ready) || (v.state - u.state));
-    for (const T of order){
-      if (performance.now() - t0 + OVT.cost > budget) break outer;
-      const s0 = performance.now();
-      if (T.state === 2 || !T.ready){ ovtRender(O, T, t, true); OVT.cost = OVT.cost * .8 + (performance.now() - s0) * .2; }
-      else if (T.state === 1) ovtRender(O, T, t, false);
-      else ovtRecolor(O, T);
+// recopie en petit d'un dessin fait a part (x, y : point d'ancrage dans le tampon)
+function sprBlit(S, x, y, sc){
+  const X0 = x + S.x0 * sc, Y0 = y + S.y0 * sc, inv = 1 / sc, sw = S.w, sh = S.h, SM = S.mb, SF = S.fb, SL = S.lb;
+  const xa = Math.max(0, Math.floor(X0)), xb = Math.min(W - 1, Math.ceil(X0 + sw * sc) - 1);
+  const ya = Math.max(0, Math.floor(Y0)), yb = Math.min(H - 1, Math.ceil(Y0 + sh * sc) - 1);
+  for (let dy = ya; dy <= yb; dy++){
+    const sy = Math.floor((dy + .5 - Y0) * inv); if (sy < 0 || sy >= sh) continue;
+    const row = dy * W, srow = sy * sw;
+    for (let dx = xa; dx <= xb; dx++){
+      const sx = Math.floor((dx + .5 - X0) * inv); if (sx < 0 || sx >= sw) continue;
+      const k = srow + sx, m = SM[k]; if (m === EMPTY) continue;
+      const j = row + dx; fb[j] = SF[k]; mb[j] = m; lb[j] = SL[k];
     }
   }
-  for (const O of OVT.list){ const vis = ovtVisible(O); let p = 0, vp = 0; for (const T of O.tiles) if (!T.ready){ p++; if (vis(T)) vp++; } O.pending = p; O.visPending = vp; }
 }
-// les couches a afficher : l'angle exact s'il est pret, sinon les deux angles qui encadrent la vue, fondus
-function ovtPick(){
-  let E = null, A = null, B = null, dA = 1e9, dB = 1e9;
-  for (const O of OVT.list){
-    if (O.pending === O.tiles.length) continue;
-    const d = angDiff(O.phi, cam.phi);
-    if (Math.abs(d) < 1e-4){ E = O; continue; }
-    if (d < 0 && -d < dA){ dA = -d; A = O; } else if (d > 0 && d < dB){ dB = d; B = O; }
+// meme chose pour les petits dessins tout faits (arbres) : 2 transparent, 3 fenetre, sinon la matiere courante
+function blitSc(s, x, y, sc){
+  const X0 = x + s.x0 * sc, Y0 = y + s.y0 * sc, inv = 1 / sc, sw = s.w, sh = s.h, B = s.buf, cur = CUR, lv = LV, col = COLOR;
+  const xa = Math.max(0, Math.floor(X0)), xb = Math.min(W - 1, Math.ceil(X0 + sw * sc) - 1);
+  const ya = Math.max(0, Math.floor(Y0)), yb = Math.min(H - 1, Math.ceil(Y0 + sh * sc) - 1);
+  for (let dy = ya; dy <= yb; dy++){
+    const sy = Math.floor((dy + .5 - Y0) * inv); if (sy < 0 || sy >= sh) continue;
+    const row = dy * W, srow = sy * sw;
+    for (let dx = xa; dx <= xb; dx++){
+      const sx = Math.floor((dx + .5 - X0) * inv); if (sx < 0 || sx >= sw) continue;
+      const v = B[srow + sx]; if (v === 2) continue;
+      const j = row + dx; if (col) lb[j] = lv;
+      if (v === 3){ fb[j] = 1; mb[j] = M.WIN; } else { fb[j] = v; mb[j] = cur; }
+    }
   }
-  if (E && !E.visPending) return { E, A: null, B: null, wB: 0 };
-  // fondu court au milieu : le reste du temps, une seule image nette (sinon les reliefs se dedoublent)
-  let w = A && B ? dA / (dA + dB) : (B ? 1 : 0);
-  if (A && B){ w = clamp((w - .32) / .36, 0, 1); w = w * w * (3 - 2 * w); }
-  return { E, A, B, wB: w };
 }
-// affichage : echelle Z, et si la vue a tourne depuis, une deformation (exacte pour le sol)
-function ovtDraw(O, alpha){
-  if (alpha <= .004) return;
-  const c = ctx, s = Z, po = O.phi, pc = Math.cos(po), ps = Math.sin(po);
-  const cx = (cam.a * pc - cam.b * ps) - (cam.a * ps + cam.b * pc) - O.x0, cy = ((cam.a * pc - cam.b * ps) + (cam.a * ps + cam.b * pc)) * .5 - O.y0;
-  const d = cam.phi - po, dc = Math.cos(d), ds = Math.sin(d);
-  const A11 = dc * s, A12 = -2 * ds * s, A21 = .5 * ds * s, A22 = dc * s;
-  c.imageSmoothingEnabled = Z < 1;
-  c.globalAlpha = alpha;
-  c.setTransform(A11, A21, A12, A22, devW / 2 - (A11 * cx + A12 * cy), devH / 2 - (A21 * cx + A22 * cy));
-  c.drawImage(O.cv, 0, 0);
-  c.setTransform(1, 0, 0, 1, 0, 0);
-  c.globalAlpha = 1;
+const farBucket = () => Math.round(cam.phi / FAR.bk);
+// avant de dessiner : on refait d'abord les dessins en memoire les plus anciens, dans la limite du budget
+// (still : ce qui ne bouge jamais, comme une montagne, n'est refait que si la vue a tourne)
+function farRefresh(list, t){
+  const now = performance.now(), bk = farBucket(), stale = [];
+  FAR.t0 = now;
+  for (const it of list){
+    if (!it.key) continue;
+    const c = FAR.cache.get(it.key);
+    if (c && (c.bk !== bk || (!it.still && now - c.t0 > FAR.age))) stale.push([it, c]);
+  }
+  stale.sort((u, v) => u[1].t0 - v[1].t0);
+  for (const [it, c] of stale){
+    if (performance.now() - now > FAR.budget) break;
+    CUR = it.m == null ? M.METAL : it.m; CUR_SIDE = it.side || 'usc';
+    c.spr = sprRender(it, t); c.bk = bk; c.t0 = performance.now();
+  }
+}
+function farDraw(it, t){
+  if (it.raw){ it.f(t); return; }
+  if (it.a == null) return;
+  let S;
+  if (it.key){
+    let c = FAR.cache.get(it.key);
+    if (!c){
+      // pas encore dessine : on le fait tout de suite, sauf si l'image a deja pris trop de temps (il viendra a la suivante)
+      if (performance.now() - FAR.t0 > 24) return;
+      c = { spr: sprRender(it, t), bk: farBucket(), t0: performance.now() };
+      FAR.cache.set(it.key, c);
+    }
+    S = c.spr;
+  } else S = sprRender(it, t);
+  if (!S) return;
+  const q = prj(it.a, it.b, 0);
+  // les bateaux restent lisibles de tres loin
+  sprBlit(S, q[0], q[1], it.big ? Math.max(SC, .5) : SC);
 }

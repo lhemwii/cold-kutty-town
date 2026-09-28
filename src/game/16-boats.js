@@ -204,18 +204,9 @@ HOOKS.dyn.push((t, out) => {
     if (b.state === 'gone') continue;
     const q = prj(b.a, b.b, 0); if (q[0] < -60 || q[0] > W + 60 || q[1] < -40 || q[1] > H + 40) continue;
     const f = b.kind === 'barge' ? () => drawBarge(b, t) : b.kind === 'cargo' ? () => drawCargo({ a: b.a, b: b.b, ang: b.ang, L: 40, W: 9, seed: b.id % 5, side: b.side }, t) : () => drawFishing(b, t);
-    out.push({ d: dep(b.a, b.b), f });
+    out.push({ d: dep(b.a, b.b), f, a: b.a, b: b.b, big: true });
   }
-  for (let k = CREWS.length - 1; k >= 0; k--){ const c = CREWS[k]; if (GAME.t - c.t0 > 7){ CREWS.splice(k, 1); continue; } out.push({ d: dep(c.a1, c.b1) + 1, f: () => drawCrew(c, t) }); }
-});
-// sur la carte strategique : de petits bateaux a la couleur du camp
-HOOKS.map.push((c, t) => {
-  for (const b of BOATS){
-    if (b.state === 'gone') continue;
-    const [x, y] = worldToDev(b.a, b.b), s = Math.max(3, Z * 5);
-    c.fillStyle = b.side === 'usc' ? '#2f5bd8' : '#d8342f'; c.strokeStyle = '#fbf7ee'; c.lineWidth = Math.max(1, s * .25);
-    c.beginPath(); c.moveTo(x, y - s); c.lineTo(x + s * .8, y + s * .6); c.lineTo(x - s * .8, y + s * .6); c.closePath(); c.fill(); c.stroke();
-  }
+  for (let k = CREWS.length - 1; k >= 0; k--){ const c = CREWS[k]; if (GAME.t - c.t0 > 7){ CREWS.splice(k, 1); continue; } out.push({ d: dep(c.a1, c.b1) + 1, a: c.a1, b: c.b1, f: () => drawCrew(c, t) }); }
 });
 // petits textes qui montent (+6 croquettes)
 const FLOATS = [];

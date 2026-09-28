@@ -69,7 +69,8 @@ let W = 0, H = 0, N = 0, K = 2, DPR = 1, KDEF = 2, KMIN = 1, KMAX = 8;
 let fb = null, mb = null, lb = null, img = null, px32 = null, ctx = null;
 let GHOST = false, GHOST_T = 0;
 
-let PROJ_FIX = null, NOW_T = 0;
+// SC : echelle du monde dans le tampon (1 de pres ; plus petit dans la vue de loin, ou tout est dessine en petit)
+let PROJ_FIX = null, NOW_T = 0, SC = 1;
 // partie : 'menu' (accueil), 'landing' (choix de la plage), 'play', 'over'. side : le camp du joueur, rival : l'IA en face
 const GAME = { mode: 'menu', side: 'usc', rival: 'ccp', speed: 1, paused: false, t: 0, seed: 1, winner: null };
 const SIDES = ['usc', 'ccp'];
@@ -80,12 +81,12 @@ function setProj(){
   PC = Math.cos(cam.phi); PS = Math.sin(cam.phi);
   if (PROJ_FIX){ TX = PROJ_FIX[0]; TY = PROJ_FIX[1]; return; }
   const car = cam.a * PC - cam.b * PS, cbr = cam.a * PS + cam.b * PC;
-  TX = Math.round(Math.floor(W / 2) - (car - cbr));
-  TY = Math.round(Math.floor(H / 2) - (car + cbr) * .5);
+  TX = Math.round(Math.floor(W / 2) - (car - cbr) * SC);
+  TY = Math.round(Math.floor(H / 2) - (car + cbr) * .5 * SC);
 }
-function prj(a, b, z){ const ar = a * PC - b * PS, br = a * PS + b * PC; return [TX + ar - br, TY + (ar + br) * .5 - (z || 0)]; }
+function prj(a, b, z){ const ar = a * PC - b * PS, br = a * PS + b * PC; return [TX + (ar - br) * SC, TY + ((ar + br) * .5 - (z || 0)) * SC]; }
 const dep = (a, b) => a * (PC + PS) + b * (PC - PS);
-function unprj(x, y){ const X = x - TX, Y = y - TY, ar = (X + 2 * Y) * .5, br = (2 * Y - X) * .5; return [ar * PC + br * PS, -ar * PS + br * PC]; }
+function unprj(x, y){ const X = (x - TX) / SC, Y = (y - TY) / SC, ar = (X + 2 * Y) * .5, br = (2 * Y - X) * .5; return [ar * PC + br * PS, -ar * PS + br * PC]; }
 function groundDelta(dx, dy){ const ar = (dx + 2 * dy) * .5, br = (2 * dy - dx) * .5; return [ar * PC + br * PS, -ar * PS + br * PC]; }
 // motif ancre sur l'origine du monde : il ne glisse pas quand on se deplace
 const bz = (x, y) => BAYER[(((y - TY) & 3) << 2) | ((x - TX) & 3)];
@@ -148,7 +149,7 @@ function drawFace(pts, n, sh, edge){
   if (!faceVisible(n)) return false;
   if (COLOR) LV = sunLevel(n);
   const k = pts.length / 3;
-  for (let i = 0; i < k; i++){ const a = pts[i*3], b = pts[i*3+1], z = pts[i*3+2]; const ar = a * PC - b * PS, br = a * PS + b * PC; FX[i] = TX + ar - br; FY[i] = TY + (ar + br) * .5 - z; }
+  for (let i = 0; i < k; i++){ const a = pts[i*3], b = pts[i*3+1], z = pts[i*3+2]; const ar = a * PC - b * PS, br = a * PS + b * PC; FX[i] = TX + (ar - br) * SC; FY[i] = TY + ((ar + br) * .5 - z) * SC; }
   if (GHOST){ for (let i = 0, j = k - 1; i < k; j = i++) lineS(FX[j], FY[j], FX[i], FY[i], 1, true); return true; }
   if (sh !== null && sh !== undefined) fillConvex(FX, FY, k, shOf(sh));
   if (edge >= 0) for (let i = 0, j = k - 1; i < k; j = i++) lineS(FX[j], FY[j], FX[i], FY[i], edge);

@@ -89,15 +89,17 @@ function treeDrawables(out, t, withShadows){
   const cs = [unprj(-20, -20), unprj(W + 20, -20), unprj(-20, H + 60), unprj(W + 20, H + 60)];
   let a0 = 1e9, a1 = -1e9, b0 = 1e9, b1 = -1e9;
   for (const [a, b] of cs){ a0 = Math.min(a0, a); a1 = Math.max(a1, a); b0 = Math.min(b0, b); b1 = Math.max(b1, b); }
-  const xmas = XMAS_ON;
+  const xmas = XMAS_ON, far = SC < .999, s = SC;
   peaksIn(a0 - 40, a1 + 40, b0 - 40, b1 + 80, (pk) => {
     const q = prj(pk.a, pk.b, 0);
-    if (q[0] < -pk.R * 2 || q[0] > W + pk.R * 2 || q[1] < -10 || q[1] > H + pk.H + pk.R) return;
-    out.push({ d: dep(pk.a, pk.b) - pk.R * .5, m: M.ROCK, f: () => drawPeak(pk) });
+    if (q[0] < -pk.R * 2 * s || q[0] > W + pk.R * 2 * s || q[1] < -10 * s || q[1] > H + (pk.H + pk.R) * s) return;
+    out.push({ d: dep(pk.a, pk.b) - pk.R * .5, m: M.ROCK, f: () => drawPeak(pk), a: pk.a, b: pk.b, key: pk, still: true });
   });
   treesIn(a0, a1, b0, b1, (tr) => {
     const q = prj(tr.a, tr.b, 0);
-    if (q[0] < -14 || q[0] > W + 14 || q[1] < -4 || q[1] > H + 26) return;
+    if (q[0] < -14 * s || q[0] > W + 14 * s || q[1] < -4 * s || q[1] > H + 26 * s) return;
+    // de loin, l'arbre est recopie en petit directement (il est le meme sous tous les angles)
+    if (far){ out.push({ d: dep(tr.a, tr.b), m: M.TREE, raw: true, f: () => { CUR = M.TREE; blitSc(treeSpr(tr.r), q[0], q[1], s); } }); return; }
     if (withShadows) treeShadow(tr, q);
     const deco = xmas && hash2(tr.a, tr.b) < .3;
     out.push({ d: dep(tr.a, tr.b), m: M.TREE, f: (tt) => { CUR = M.TREE; blitAt(treeSpr(tr.r), tr.a, tr.b, 0); if (deco) drawTreeLights(tr.a, tr.b, tr.r, tt); } });

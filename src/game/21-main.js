@@ -391,8 +391,7 @@ function frame(tms){
   for (const f of HOOKS.step) f(sdt, t);
   updateClockUI();
   secAcc += dt; if (secAcc > 1){ secAcc = 0; checkVictory(); if (GAME.mode === 'play') renderHUD(); }
-  if (OV_ON) drawOverview(t);
-  else { render(t); if (GAME.mode === 'play'){ const b = OVT.budget; OVT.budget = 2; ovtWork(t, false); OVT.budget = b; } }
+  render(t);
   for (const f of HOOKS.after) f(t);
   if (compassPhi !== cam.phi){ compassPhi = cam.phi; drawCompass(); }
   if (state.chatCat) drawPortrait(state.chatCat, t, portraitCv);
@@ -412,7 +411,7 @@ function start(){
   openIntro();
   window.__okt = { state, cam, GAME, RES, BLD: () => BLD, ROADS: () => ROADS, WALLS: () => WALLS, BOATS: () => BOATS, CATS: () => CATS, TER, TREES, MAPV, SPACE, EV, RIVAL, CLOCK, CAL, TYPES, ECO, PEAKS,
     setZoom, centerOn, unprj, prj, worldToScreen, screenToWorld, placeProblem, findSpot, makeBuilding, startBuilding, addRoad, roadProblem, sampleLine, sampleCurve, addWall, sendBarge, chooseLanding, terPct, claimDisc,
-    render, drawOverview, OVT, ovtRender, snapshot, loadGame, newWorld, enterPlay, applySeason, updateCalUI, deliverPaper, forceEvent: () => { EV.next = 0; }, autoBoth: () => { RIVAL.auto = { usc: true, ccp: true }; }, selectBuilding, setTool, upgradeBuilding, rivalStep: stepRival,
+    render, FAR, snapshot, loadGame, newWorld, enterPlay, applySeason, updateCalUI, deliverPaper, forceEvent: () => { EV.next = 0; }, autoBoth: () => { RIVAL.auto = { usc: true, ccp: true }; }, selectBuilding, setTool, upgradeBuilding, rivalStep: stepRival,
     get Z(){ return Z; }, get K(){ return K; }, get KMIN(){ return KMIN; }, get KDEF(){ return KDEF; }, get ZLEVELS(){ return ZLEVELS; }, get OV_ON(){ return OV_ON; }, get view(){ return [W, H]; }, get NIGHT(){ return NIGHT; } };
   requestAnimationFrame(frame);
 }

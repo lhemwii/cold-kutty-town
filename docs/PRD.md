@@ -54,7 +54,7 @@ Chaque bâtiment a une **production** et un **coût de fonctionnement** par minu
 - **Barre du haut** : camp, trois ressources avec leur débit par minute et le détail au survol, habitants et emplois, barre de territoire des deux camps avec l’objectif, pause et vitesse (×1, ×2, ×4).
 - **Dock en bas** : Observer, Construire (menu par catégories avec vignettes, prix et effet), Route, Courbe, Rideau, Démolir, Annuler, Journal.
 - **Panneau du bâtiment sélectionné** : état (chantier, en service, à l’arrêt), production, fonctionnement, emplois, rayon d’influence, Améliorer, Démolir, Barge.
-- **Carte stratégique** au dézoom : l’île à plat, les territoires et leurs frontières, les bâtiments, les bateaux. Mini-carte cliquable.
+- **Vue de loin en direct** au dézoom : toute l’île en pixel art, qui bouge et tourne comme de près (territoires et frontières, bâtiments, vrais bateaux). Mini-carte cliquable.
 - Radio qui défile, événements à choix, journal du matin (Gazette de Kutty et Pravdachat).
 
 ## 9. Les chats

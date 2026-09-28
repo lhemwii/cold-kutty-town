@@ -20,7 +20,6 @@ body[data-side="ccp"]{--me:var(--ccp)}
 html,body{height:100%}
 body{margin:0;background:#1d5c96;color:var(--paper);font-family:var(--text);overflow:hidden;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
 #scene{position:fixed;left:0;top:0;display:block;image-rendering:crisp-edges;image-rendering:pixelated;touch-action:none;cursor:grab;background:#1d5c96}
-#scene.overview{image-rendering:auto}
 #scene.panning{cursor:grabbing}
 #scene.turning{cursor:ew-resize}
 #scene.pick{cursor:pointer}
