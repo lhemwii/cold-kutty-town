@@ -149,6 +149,15 @@ Au lancement d’une partie, on choisit la taille de la carte et la forme du mon
 - [x] Police de texte : Bricolage Grotesque (au lieu d’Archivo). Les titres gardent la police pixel.
 - [x] Accueil épuré : plus de ligne « Île de Kutty · La guerre froide », plus de « Bienvenue sur l’île, camarade chat » (le mot d’accueil n’apparaît que quand on a un nom de profil).
 
+## Étape 0.19. TypeScript, PixiJS, Vite et Electron (en cours)
+
+Le jeu passe à une base prête pour la haute définition et pour Steam, sans rien réécrire de la logique : TypeScript (du JavaScript typé), PixiJS pour dessiner avec la carte graphique, Vite pour le build, Electron et steamworks.js pour la version Steam. La version web reste sur Vercel pour faire tester. Dans cet ordre :
+
+- [x] 1. Vite et modules ES à la place de la concaténation. Chaque module importe ce qu’il utilise des modules plus petits en numéro ; ce qui est appelé vers l’avant, et les variables que plusieurs modules modifient, passent par un objet partagé (`SH`, dans `00-shared.js`). Conversion faite par un script, puis vérifiée partie en main.
+- [ ] 2. TypeScript module par module, en commençant par le monde et l’économie.
+- [ ] 3. PixiJS à la place du rendu actuel : le sol et les objets en textures, le style pixel gardé avec un filtre.
+- [ ] 4. Electron et steamworks.js (succès, sauvegardes Steam) dès qu’il y a une démo jouable. Plus tard, Gemma sur la machine du joueur avec node-llama-cpp.
+
 ## Étape 1. Fiabiliser ce qui existe
 
 - [ ] Jouer une vraie partie à la souris et noter chaque bug d’interface.

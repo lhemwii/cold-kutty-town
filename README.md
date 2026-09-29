@@ -10,11 +10,12 @@ Une île vierge, deux camps : les United Sands of Cats (USC) et la Cats Communis
 
 ## Lancer le jeu sur ton ordi
 
-Il faut Node.js 20 ou plus récent. Le projet n’a aucune dépendance à installer.
+Il faut Node.js 20.19 ou plus récent.
 
 ```bash
 git clone https://github.com/lhemwii/cold-kutty-town.git
 cd cold-kutty-town
+npm install
 npm run dev
 ```
 
@@ -33,17 +34,18 @@ Le dépôt est relié à Vercel : chaque push sur `main` part en production, cha
 
 ## Comment c’est fait
 
-Du JavaScript sans framework, rendu pixel par pixel dans un canvas. Le moteur isométrique est écrit à la main : buffers de pixels, palette jour et nuit, tri des objets par profondeur, lumières, ombres. Pas d’image : chaque bâtiment, chat, voiture et avion est dessiné par du code.
+Du JavaScript en modules ES, construit avec Vite, rendu pixel par pixel dans un canvas. La suite prévue : TypeScript, PixiJS pour le rendu en haute définition, Electron pour Steam (voir le plan, étape 0.19). Le moteur isométrique est écrit à la main : buffers de pixels, palette jour et nuit, tri des objets par profondeur, lumières, ombres. Pas d’image : chaque bâtiment, chat, voiture et avion est dessiné par du code.
 
 ```
 src/
   index.html            la page (panneaux, fenêtres, dock)
   styles/main.css       le style de l’interface
-  game/01-core.js ...   le jeu, en modules chargés dans l’ordre de leur numéro
+  main.js               point d’entrée : charge les modules dans l’ordre
+  game/00-shared.js     état partagé entre modules (SH)
+  game/01-core.js ...   le jeu, en modules ES chargés dans l’ordre de leur numéro
   platform/standalone.js  branche Claude et les téléchargements hors de claude.ai
 api/claude.js           fonction Vercel qui relaie vers l’API Claude
-scripts/build.mjs       assemble les modules et écrit dist/
-scripts/dev.mjs         serveur local avec rechargement automatique
+vite.config.js          build, serveur local et /api/claude en local
 docs/                   architecture, règles du jeu, développement, feuille de route
 ```
 

@@ -1,9 +1,19 @@
+import { SH } from './00-shared.js';
+import { CAMP_FULL, GAME, H, M, SC, SIDES, TAU, W, bz, cam, clamp, dep, fput, hash2, line3, other, prj, state } from './01-core.js';
+import { pennant } from './03-buildings-base.js';
+import { TYPES } from './04-types.js';
+import { typeName } from './05-types-extra.js';
+import { cutTrees } from './07-world.js';
+import { SID, TER, lockCells, rebuildLocks, terPct } from './08-territory.js';
+import { reseatCars, roadAccess } from './09-roads.js';
+import { rebuildTown } from './10-town.js';
+import { $, toast } from './13-ui.js';
 /* ================= economie : croquettes, laine et ronrons ================= */
 // Par batiment, au niveau 1 et par minute : c croquettes, l laine, r ronrons (negatif = fonctionnement),
 // pop habitants, jobs emplois, fun loisirs, rad rayon d'influence, cost laine a la construction, costR ronrons,
 // up : ameliorable, coast : au bord de l'eau, noRoad : n'a pas besoin de route, time : secondes de chantier.
-const bdef = (cat, cost, o) => Object.assign({ cat, cost, costR: 0, costC: 0, c: 0, l: 0, r: 0, pop: 0, jobs: 0, fun: 0, rad: 34, up: false, time: 0 }, o);
-const ECO = {
+export const bdef = (cat, cost, o) => Object.assign({ cat, cost, costR: 0, costC: 0, c: 0, l: 0, r: 0, pop: 0, jobs: 0, fun: 0, rad: 34, up: false, time: 0 }, o);
+export const ECO = {
   qg: bdef('base', 0, { c: 10, l: 12, r: 6, pop: 6, rad: 150, noRoad: true, time: 12 }),
   maison: bdef('logement', 20, { pop: 5, rad: 34, up: true, desc: 'Des habitants : ils mangent, travaillent et ronronnent.' }),
   immeuble: bdef('logement', 45, { l: -1, pop: 14, rad: 34, up: true, desc: 'Beaucoup d’habitants, un peu d’entretien.' }),
@@ -39,40 +49,40 @@ const ECO = {
   drapeau: bdef('frontiere', 0, { costC: 30, costR: 20, rad: 78, noRoad: true, time: 5, desc: 'Un avant-poste : des pionniers à nourrir, et ton territoire avance autour. Chaque nouveau coûte un peu plus.' }),
   checkpoint: bdef('frontiere', 40, { c: 3, l: 3, r: 2, jobs: 2, rad: 40, noRoad: true, desc: 'Au bord du Rideau de Laine : petits échanges avec l’autre camp.' })
 };
-const CATS_MENU = [['logement', 'Logement'], ['nourriture', 'Croquettes'], ['laine', 'Laine'], ['loisirs', 'Loisirs'], ['prestige', 'Prestige'], ['mer', 'Mer'], ['frontiere', 'Frontière']];
+export const CATS_MENU = [['logement', 'Logement'], ['nourriture', 'Croquettes'], ['laine', 'Laine'], ['loisirs', 'Loisirs'], ['prestige', 'Prestige'], ['mer', 'Mer'], ['frontiere', 'Frontière']];
 // chaque camp a ses gouts : un diner fait plus ronronner l'ouest, une usine fache moins l'est
-const CAMP_VAL = {
+export const CAMP_VAL = {
   maison: [2, 1], immeuble: [1, 3], diner: [5, 1], cinema: [5, 2], drivein: [6, 1], motel: [3, 1], bowling: [5, 1], station: [3, 2],
   epicerie: [3, 3], supermarche: [7, 1], grandmagasin: [6, 4], artdeco: [6, 2], stalinien: [2, 7], usine: [1, 8],
   kolkhoze: [1, 7], bulbes: [2, 4], stade: [7, 5], radio: [3, 4], fusee: [5, 7], cirque: [3, 5], statue: [2, 4], panneau: [3, 3],
   fontaine: [2, 2], chateau: [2, 2], kiosque: [3, 2], parc: [2, 1], tribune: [2, 6]
 };
-const taste = (type, side) => { const v = CAMP_VAL[type]; return v ? .55 + v[side === 'usc' ? 0 : 1] / 7 : 1; };
-const LVL_POP = { maison: [5, 8, 12], immeuble: [14, 22, 34] };
-const LVL_MULT = [1, 1.7, 2.5];
-const LVL_NAME = { maison: ['Maison', 'Pavillon', 'Villa'], immeuble: ['Immeuble', 'Barre', 'Tour'], port: ['Ponton', 'Quai', 'Grand port'] };
-const LVL_NAME_CCP = { maison: ['Isba', 'Datcha', 'Datcha de ministre'], immeuble: ['Immeuble', 'Barre du Plan', 'Tour du Peuple'], port: ['Ponton', 'Quai du Peuple', 'Port du Peuple'] };
-function lvlName(l){ const L = (l.side === 'ccp' ? LVL_NAME_CCP : LVL_NAME)[l.type]; return L ? L[(l.lvl || 1) - 1] : typeName(l.type, l.side); }
-const costOf = (type) => (ECO[type] ? ECO[type].cost : 20);
+export const taste = (type, side) => { const v = CAMP_VAL[type]; return v ? .55 + v[side === 'usc' ? 0 : 1] / 7 : 1; };
+export const LVL_POP = { maison: [5, 8, 12], immeuble: [14, 22, 34] };
+export const LVL_MULT = [1, 1.7, 2.5];
+export const LVL_NAME = { maison: ['Maison', 'Pavillon', 'Villa'], immeuble: ['Immeuble', 'Barre', 'Tour'], port: ['Ponton', 'Quai', 'Grand port'] };
+export const LVL_NAME_CCP = { maison: ['Isba', 'Datcha', 'Datcha de ministre'], immeuble: ['Immeuble', 'Barre du Plan', 'Tour du Peuple'], port: ['Ponton', 'Quai du Peuple', 'Port du Peuple'] };
+export function lvlName(l){ const L = (l.side === 'ccp' ? LVL_NAME_CCP : LVL_NAME)[l.type]; return L ? L[(l.lvl || 1) - 1] : typeName(l.type, l.side); }
+export const costOf = (type) => (ECO[type] ? ECO[type].cost : 20);
 // prix complet d'un batiment pour un camp : laine, croquettes, ronrons (les avant-postes coutent de plus en plus cher)
-function priceOf(type, side){
+export function priceOf(type, side){
   const e = ECO[type]; if (!e) return { l: 20, c: 0, r: 0 };
-  const n = type === 'drapeau' ? BLD.filter(l => l.side === side && l.type === 'drapeau').length : 0;
+  const n = type === 'drapeau' ? SH.BLD.filter(l => l.side === side && l.type === 'drapeau').length : 0;
   return { l: e.cost, c: e.costC + n * 5, r: e.costR + n * 3 };
 }
-const costLabel = (p) => [p.l ? p.l + ' laine' : '', p.c ? p.c + ' croq.' : '', p.r ? p.r + ' ron.' : ''].filter(Boolean).join(' · ') || 'gratuit';
-const canAfford = (side, p) => canPay(side, p.l, p.r, p.c);
-const upCost = (l) => { const e = ECO[l.type], lv = l.lvl || 1; return lv >= 3 || !e || !e.up ? null : { l: Math.round(Math.max(30, e.cost) * (lv === 1 ? 1.5 : 2.6)), r: lv === 1 ? 15 : 40 }; };
-const buildTime = (type) => { const e = ECO[type]; return e && e.time ? e.time : Math.round(7 + (e ? e.cost : 20) / 7); };
-const popOf = (l) => LVL_POP[l.type] ? LVL_POP[l.type][(l.lvl || 1) - 1] : (ECO[l.type] ? ECO[l.type].pop : 0);
+export const costLabel = (p) => [p.l ? p.l + ' laine' : '', p.c ? p.c + ' croq.' : '', p.r ? p.r + ' ron.' : ''].filter(Boolean).join(' · ') || 'gratuit';
+export const canAfford = (side, p) => canPay(side, p.l, p.r, p.c);
+export const upCost = (l) => { const e = ECO[l.type], lv = l.lvl || 1; return lv >= 3 || !e || !e.up ? null : { l: Math.round(Math.max(30, e.cost) * (lv === 1 ? 1.5 : 2.6)), r: lv === 1 ? 15 : 40 }; };
+export const buildTime = (type) => { const e = ECO[type]; return e && e.time ? e.time : Math.round(7 + (e ? e.cost : 20) / 7); };
+export const popOf = (l) => LVL_POP[l.type] ? LVL_POP[l.type][(l.lvl || 1) - 1] : (ECO[l.type] ? ECO[l.type].pop : 0);
 
-const newRes = () => ({ croq: 150, laine: 260, ron: 60, rc: 0, rl: 0, rr: 0, pop: 0, jobs: 0, fun: 0, eff: 1, short: 0, shortL: 0, split: { c: [], l: [], r: [] } });
-const RES = { usc: newRes(), ccp: newRes() };
+export const newRes = () => ({ croq: 150, laine: 260, ron: 60, rc: 0, rl: 0, rr: 0, pop: 0, jobs: 0, fun: 0, eff: 1, short: 0, shortL: 0, split: { c: [], l: [], r: [] } });
+export const RES = { usc: newRes(), ccp: newRes() };
 // bilan d'un camp : ce qui entre et ce qui sort, avec le detail pour les infobulles
-function ecoTally(side){
+export function ecoTally(side){
   const R = RES[side], sp = { c: [], l: [], r: [] };
   let pop = 0, jobs = 0, fun = 0;
-  const mine = BLD.filter(l => l.side === side && l.done);
+  const mine = SH.BLD.filter(l => l.side === side && l.done);
   for (const l of mine){ pop += popOf(l); if (l.active) jobs += (ECO[l.type] ? ECO[l.type].jobs : 0) * LVL_MULT[(l.lvl || 1) - 1] ** .5; }
   const eff = jobs ? clamp(pop / jobs, .3, 1) : 1;
   const acc = { c: 0, l: 0, r: 0 }, add = (k, v, why) => { if (!v) return; acc[k] += v; const e = sp[k].find(x => x[0] === why); if (e) e[1] += v; else sp[k].push([why, v]); };
@@ -94,9 +104,9 @@ function ecoTally(side){
   else add('r', pop * .3 * (.5 + funRatio), 'Habitants heureux');
   Object.assign(R, { rc: acc.c, rl: acc.l, rr: acc.r, pop, jobs: Math.round(jobs), fun: Math.round(fun), eff, funRatio, split: sp });
 }
-function refreshAccess(){ for (const l of BLD) l.active = roadAccess(l); for (const s of SIDES) ecoTally(s); }
-let ecoAcc = 0;
-function stepEco(dt){
+export function refreshAccess(){ for (const l of SH.BLD) l.active = roadAccess(l); for (const s of SIDES) ecoTally(s); }
+export let ecoAcc = 0;
+export function stepEco(dt){
   if (GAME.mode !== 'play') return;
   ecoAcc += dt;
   if (ecoAcc < 1) return;
@@ -107,99 +117,99 @@ function stepEco(dt){
     R.croq = clamp(R.croq + R.rc * k, 0, 99999); R.laine = clamp(R.laine + R.rl * k, 0, 99999); R.ron = clamp(R.ron + R.rr * k, 0, 99999);
     const was = R.short; R.short = R.croq <= 0 && R.rc < 0 ? 1 : 0;
     if (R.short && !was){
-      logDay(side, 'short', 'pénurie de croquettes');
-      if (side === GAME.side){ toast('Pénurie de croquettes ! Les habitants ne ronronnent plus. Construis une pêcherie, une ferme ou une épicerie.'); sfx('event'); }
-      radioQueue.unshift(side === 'ccp' ? ['ccp', 'Radio Miaou-Scou', 'Pause technique dans la distribution de croquettes. Le Plan prévoit des kolkhozes, vite.'] : ['usc', 'Radio Kutty Libre', 'Pénurie de croquettes au secteur USC ! Il faut des pêcheries et des épiceries.']);
+      SH.logDay(side, 'short', 'pénurie de croquettes');
+      if (side === GAME.side){ toast('Pénurie de croquettes ! Les habitants ne ronronnent plus. Construis une pêcherie, une ferme ou une épicerie.'); SH.sfx('event'); }
+      SH.radioQueue.unshift(side === 'ccp' ? ['ccp', 'Radio Miaou-Scou', 'Pause technique dans la distribution de croquettes. Le Plan prévoit des kolkhozes, vite.'] : ['usc', 'Radio Kutty Libre', 'Pénurie de croquettes au secteur USC ! Il faut des pêcheries et des épiceries.']);
     }
   }
   stepSites();
-  if (typeof renderHUD === 'function') renderHUD();
+  if (typeof SH.renderHUD === 'function') SH.renderHUD();
 }
 
 /* ================= chantiers : construire, ameliorer, demolir ================= */
-const DUST_DUR = 1.4;
-function canPay(side, l, r, c){ const R = RES[side]; return R.laine >= l && R.ron >= (r || 0) && R.croq >= (c || 0); }
-function pay(side, l, r, c){ const R = RES[side]; R.laine -= l; R.ron -= (r || 0); R.croq -= (c || 0); }
-function startBuilding(l){
+export const DUST_DUR = 1.4;
+export function canPay(side, l, r, c){ const R = RES[side]; return R.laine >= l && R.ron >= (r || 0) && R.croq >= (c || 0); }
+export function pay(side, l, r, c){ const R = RES[side]; R.laine -= l; R.ron -= (r || 0); R.croq -= (c || 0); }
+export function startBuilding(l){
   l.done = false; l.buildT = GAME.t; l.bdur = buildTime(l.type) * (l.side === GAME.side ? 1 : 1.05);
   cutTrees(l.a0, l.a1, l.b0, l.b1);
-  BLD.push(l);
-  mapDirtyRect(l.a0, l.a1, l.b0, l.b1);
+  SH.BLD.push(l);
+  SH.mapDirtyRect(l.a0, l.a1, l.b0, l.b1);
   lockCells(l.a0, l.a1, l.b0, l.b1, SID[l.side]);
   TER.srcVer = -1;
 }
-function stepSites(){
+export function stepSites(){
   let changed = false;
-  for (const l of BLD){
+  for (const l of SH.BLD){
     if (!l.done && GAME.t >= l.buildT + l.bdur){
-      l.done = true; l.doneT = GAME.t; changed = true; mapDirtyRect(l.a0 - 4, l.a1 + 4, l.b0 - 4, l.b1 + 4);
+      l.done = true; l.doneT = GAME.t; changed = true; SH.mapDirtyRect(l.a0 - 4, l.a1 + 4, l.b0 - 4, l.b1 + 4);
       l.active = roadAccess(l);
       onBuilt(l);
     }
-    if (l.upT && GAME.t >= l.upT + l.udur){ mapDirtyRect(l.a0 - 4, l.a1 + 4, l.b0 - 4, l.b1 + 4); l.upT = 0; l.lvl = Math.min(3, (l.lvl || 1) + 1); l.doneT = GAME.t; changed = true; onUpgraded(l); }
+    if (l.upT && GAME.t >= l.upT + l.udur){ SH.mapDirtyRect(l.a0 - 4, l.a1 + 4, l.b0 - 4, l.b1 + 4); l.upT = 0; l.lvl = Math.min(3, (l.lvl || 1) + 1); l.doneT = GAME.t; changed = true; onUpgraded(l); }
   }
   if (changed){ rebuildTown(); refreshAccess(); reseatCars(); }
 }
-function onBuilt(l){
-  logDay(l.side, 'build', typeName(l.type, l.side), { id: l.id, type: l.type });
+export function onBuilt(l){
+  SH.logDay(l.side, 'build', typeName(l.type, l.side), { id: l.id, type: l.type });
   if (l.side === GAME.side){
     const nm = typeName(l.type, l.side);
     toast(nm + (TYPES[l.type].fem ? ' terminée' : ' terminé') + '.' + (!l.active ? ' Attention : pas de route jusqu’au QG, il reste à l’arrêt.' : ''));
-    sfx('build', l.ca, l.cb);
-    if (typeof radioFlash === 'function' && l.type !== 'maison') radioFlash(l);
+    SH.sfx('build', l.ca, l.cb);
+    if (typeof SH.radioFlash === 'function' && l.type !== 'maison') SH.radioFlash(l);
   }
-  if (typeof boatsForBuilding === 'function') boatsForBuilding(l);
+  if (typeof SH.boatsForBuilding === 'function') SH.boatsForBuilding(l);
 }
-function onUpgraded(l){
-  logDay(l.side, 'upgrade', lvlName(l), { id: l.id, type: l.type });
-  if (l.side === GAME.side){ toast(typeName(l.type, l.side) + ' amélioré' + (TYPES[l.type].fem ? 'e' : '') + ' : ' + lvlName(l).toLowerCase() + ', niveau ' + l.lvl + '.'); sfx('build', l.ca, l.cb); }
-  if (typeof boatsForBuilding === 'function') boatsForBuilding(l);
+export function onUpgraded(l){
+  SH.logDay(l.side, 'upgrade', lvlName(l), { id: l.id, type: l.type });
+  if (l.side === GAME.side){ toast(typeName(l.type, l.side) + ' amélioré' + (TYPES[l.type].fem ? 'e' : '') + ' : ' + lvlName(l).toLowerCase() + ', niveau ' + l.lvl + '.'); SH.sfx('build', l.ca, l.cb); }
+  if (typeof SH.boatsForBuilding === 'function') SH.boatsForBuilding(l);
 }
-function upgradeBuilding(l){
+export function upgradeBuilding(l){
   const c = upCost(l); if (!c) return 'Déjà au niveau maximum.';
   if (!l.done || l.upT) return 'Déjà en chantier.';
   if (!canPay(l.side, c.l, c.r)) return 'Il faut ' + c.l + ' laine et ' + c.r + ' ronrons.';
   pay(l.side, c.l, c.r);
   l.upT = GAME.t; l.udur = buildTime(l.type) * .7;
-  saveSoon();
+  SH.saveSoon();
   return '';
 }
-function demolishBuilding(l){
-  const k = BLD.indexOf(l); if (k < 0) return;
-  BLD.splice(k, 1);
+export function demolishBuilding(l){
+  const k = SH.BLD.indexOf(l); if (k < 0) return;
+  SH.BLD.splice(k, 1);
   const refund = l.done ? Math.round(costOf(l.type) / 2) : costOf(l.type);
   RES[l.side].laine += refund;
   l.demoT = GAME.t; DEMOS.push(l);
-  CATS = CATS.filter(c => c.homeId !== l.id);
+  SH.CATS = SH.CATS.filter(c => c.homeId !== l.id);
   rebuildLocks(); TER.srcVer = -1;
-  rebuildTown(); refreshAccess(); mapDirtyRect(l.a0, l.a1, l.b0, l.b1);
+  rebuildTown(); refreshAccess(); SH.mapDirtyRect(l.a0, l.a1, l.b0, l.b1);
   return refund;
 }
-const DEMOS = [];
+export const DEMOS = [];
 // chantier : palissade, echafaudage qui monte, grue qui tourne, poussiere
-function drawSite(l, t, p){
+export function drawSite(l, t, p){
   const a0 = l.a0 + 3, a1 = l.a1 - 3, b0 = l.b0 + 3, b1 = l.b1 - 3, Hh = 4 + p * 16;
-  CUR = M.WHEAT;
+  SH.CUR = M.WHEAT;
   for (const [pa, pb, qa, qb] of [[a0, b1, a1, b1], [a1, b1, a1, b0], [a0, b0, a0, b1], [a0, b0, a1, b0]]){ const n = Math.ceil(Math.hypot(qa - pa, qb - pb) / 2); for (let k = 0; k <= n; k++){ const a = pa + (qa - pa) * k / n, b = pb + (qb - pb) * k / n; line3(a, b, 0, a, b, 2.2, (k & 1) ? 1 : 0); } }
-  CUR = M.METAL;
+  SH.CUR = M.METAL;
   const e0 = a0 + 4, e1 = a1 - 4, f0 = b0 + 4, f1 = b1 - 4;
   for (const [a, b] of [[e0, f0], [e1, f0], [e1, f1], [e0, f1]]) line3(a, b, 0, a, b, Hh, 1);
   for (let z = 3; z < Hh; z += 3.5){ line3(e0, f1, z, e1, f1, z, 1); line3(e1, f0, z, e1, f1, z, 1); line3(e0, f0, z, e0, f1, z, 0); line3(e0, f0, z, e1, f0, z, 0); }
   const ga = a1 - 1, gb = b0 + 1, gh = 26, ang = t * .8 + l.ca;
-  CUR = M.KVAS; line3(ga, gb, 0, ga, gb, gh, 1); line3(ga + .6, gb, 0, ga + .6, gb, gh, 1);
+  SH.CUR = M.KVAS; line3(ga, gb, 0, ga, gb, gh, 1); line3(ga + .6, gb, 0, ga + .6, gb, gh, 1);
   const ja = ga + Math.cos(ang) * 14, jb = gb + Math.sin(ang) * 14, ca2 = ga - Math.cos(ang) * 4, cb2 = gb - Math.sin(ang) * 4;
   line3(ca2, cb2, gh, ja, jb, gh, 1); line3(ga, gb, gh + 3, ja, jb, gh, 1);
-  CUR = M.METAL; const hook = gh - 4 - 6 * Math.abs(Math.sin(t * 1.3)); line3(ja, jb, gh, ja, jb, hook, 0);
-  const fp = prj(a0, b1, 0); CUR = M.METAL; for (let k = 0; k < 9; k++) fput(Math.round(fp[0]), Math.round(fp[1]) - k, 1);
+  SH.CUR = M.METAL; const hook = gh - 4 - 6 * Math.abs(Math.sin(t * 1.3)); line3(ja, jb, gh, ja, jb, hook, 0);
+  const fp = prj(a0, b1, 0); SH.CUR = M.METAL; for (let k = 0; k < 9; k++) fput(Math.round(fp[0]), Math.round(fp[1]) - k, 1);
   pennant(Math.round(fp[0]), Math.round(fp[1]) - 9, l.side, t, l.id);
   drawDust(l, t, .3 + .2 * Math.sin(t * 6));
   // barre d'avancement
   const bp = prj(l.ca, l.cb, Hh + 8), bx = Math.round(bp[0]) - 8, by = Math.round(bp[1]);
-  CUR = M.BUBBLE; for (let x = 0; x < 17; x++){ fput(bx + x, by, 0); fput(bx + x, by + 2, 0); } fput(bx - 1, by + 1, 0); fput(bx + 17, by + 1, 0);
-  CUR = l.side === 'usc' ? M.FLAG_BLUE : M.FLAG_RED; for (let x = 0; x < 17; x++) fput(bx + x, by + 1, x < Math.round(p * 17) ? 0 : 1);
+  SH.CUR = M.BUBBLE; for (let x = 0; x < 17; x++){ fput(bx + x, by, 0); fput(bx + x, by + 2, 0); } fput(bx - 1, by + 1, 0); fput(bx + 17, by + 1, 0);
+  SH.CUR = l.side === 'usc' ? M.FLAG_BLUE : M.FLAG_RED; for (let x = 0; x < 17; x++) fput(bx + x, by + 1, x < Math.round(p * 17) ? 0 : 1);
 }
-function drawDust(l, t, amt){
-  CUR = M.SMOKE;
+export function drawDust(l, t, amt){
+  SH.CUR = M.SMOKE;
   const c = prj(l.ca, l.cb, 0), cx = Math.round(c[0]), cy = Math.round(c[1]);
   const n = Math.round(70 * amt);
   for (let i = 0; i < n; i++){
@@ -208,9 +218,9 @@ function drawDust(l, t, amt){
     if (bz(x, y) < 8) fput(x, y, 1);
   }
 }
-function siteDrawables(t, out){
+export function siteDrawables(t, out){
   const gt = GAME.t;
-  for (const l of BLD){
+  for (const l of SH.BLD){
     const q = prj(l.ca, l.cb, 0); if (q[0] < -60 * SC || q[0] > W + 60 * SC || q[1] < -60 * SC || q[1] > H + 80 * SC) continue;
     if (!l.done) out.push({ d: dep(l.ca, l.cb) + 2, a: l.ca, b: l.cb, f: () => drawSite(l, t, clamp((gt - l.buildT) / l.bdur, 0, 1)) });
     else if (l.upT) out.push({ d: dep(l.ca, l.cb) + 6, a: l.ca, b: l.cb, f: () => drawDust(l, t, .45 + .2 * Math.sin(t * 5)) });
@@ -220,18 +230,18 @@ function siteDrawables(t, out){
   for (let k = DEMOS.length - 1; k >= 0; k--){ const l = DEMOS[k]; if (gt > l.demoT + DUST_DUR){ DEMOS.splice(k, 1); continue; } out.push({ d: dep(l.ca, l.cb) + 6, a: l.ca, b: l.cb, f: () => drawDust(l, t, 1.2 * (1 - (gt - l.demoT) / DUST_DUR)) }); }
 }
 // icone au-dessus d'un batiment sans route : un petit panneau barre
-function drawNoRoad(l, t){
+export function drawNoRoad(l, t){
   if (Math.floor(t * 2) % 3 === 2) return;
   const p = prj(l.ca, l.cb, 30), x = Math.round(p[0]), y = Math.round(p[1]);
-  CUR = M.BUBBLE;
+  SH.CUR = M.BUBBLE;
   for (let dy = -6; dy <= 6; dy++) for (let dx = -6; dx <= 6; dx++){ const r = Math.hypot(dx, dy); if (r <= 6.4) fput(x + dx, y + dy, r > 5.2 ? 0 : 1); }
-  CUR = M.ICON_R; for (let d = -4; d <= 4; d++){ fput(x + d, y + d, 1); fput(x + d + 1, y + d, 1); }
-  CUR = M.ROAD; for (let dy = -3; dy <= 3; dy++){ fput(x - 2, y + dy, 0); fput(x + 2, y + dy, 0); }
+  SH.CUR = M.ICON_R; for (let d = -4; d <= 4; d++){ fput(x + d, y + d, 1); fput(x + d + 1, y + d, 1); }
+  SH.CUR = M.ROAD; for (let dy = -3; dy <= 3; dy++){ fput(x - 2, y + dy, 0); fput(x + 2, y + dy, 0); }
 }
 
 /* ================= evenements : un choix a faire ================= */
 // E.me et E.them : ressources du joueur et de l'IA ; E.ron, E.croq, E.laine : raccourcis sur le joueur
-const EVENTS = [
+export const EVENTS = [
   { side: 'ccp', title: 'Pénurie au Gastronom', text: 'Plus une sardine au Gastronom. La file fait trois fois le tour du pâté de maisons.',
     a: ['Acheter des croquettes à l’USC', (E) => { E.me.laine -= 40; E.me.croq += 90; }], b: ['Rationner en chantant', (E) => { E.me.ron -= 20; }] },
   { side: 'usc', title: 'Grève des dockers', text: 'Les dockers réclament une prime en sardines avant de décharger les barges.',
@@ -253,12 +263,12 @@ const EVENTS = [
   { side: 'both', title: 'Téléphone rouge', text: 'Le téléphone rouge sonne entre les deux QG. C’est une erreur de numéro. Ou pas.',
     a: ['Discuter un peu', (E) => { E.me.ron += 12; E.them.ron += 12; }], b: ['Raccrocher sèchement', (E) => { E.me.ron += 16; E.them.ron -= 16; }] },
   { side: 'both', title: 'Banc de sardines', text: 'Un banc de sardines géant passe au large. Les chalutiers trépignent.',
-    a: ['Tout le monde en mer', (E) => { E.me.croq += BLD.some(l => l.side === E.side && (l.type === 'port' || l.type === 'pecherie')) ? 70 : 20; E.me.laine -= 10; }], b: ['Laisser filer', (E) => { E.me.ron += 6; }] },
+    a: ['Tout le monde en mer', (E) => { E.me.croq += SH.BLD.some(l => l.side === E.side && (l.type === 'port' || l.type === 'pecherie')) ? 70 : 20; E.me.laine -= 10; }], b: ['Laisser filer', (E) => { E.me.ron += 6; }] },
   { side: 'both', title: 'Laine en solde', text: 'Un cargo de passage vend des pelotes à prix d’ami.',
     a: ['Acheter la cargaison', (E) => { E.me.croq -= 40; E.me.laine += 75; }], b: ['Non merci', () => {}] }
 ];
-const EV = { next: 150, cur: null, shownAt: 0, last: -1 };
-function stepEvents(dt, t){
+export const EV = { next: 150, cur: null, shownAt: 0, last: -1 };
+export function stepEvents(dt, t){
   if (GAME.mode !== 'play') return;
   const gt = GAME.t;
   if (EV.cur){ if (gt - EV.shownAt > 50) resolveEvent(EV.cur.b, true); return; }
@@ -272,28 +282,28 @@ function stepEvents(dt, t){
   $('evTitle').textContent = EV.cur.title; $('evText').textContent = EV.cur.text;
   $('evA').textContent = EV.cur.a[0]; $('evB').textContent = EV.cur.b[0];
   el.dataset.side = EV.cur.side === 'both' ? 'both' : GAME.side;
-  sfx('event');
+  SH.sfx('event');
 }
-function resolveEvent(choice, auto){
+export function resolveEvent(choice, auto){
   const E = { side: GAME.side, me: RES[GAME.side], them: RES[GAME.rival] };
   choice[1](E);
   for (const s of SIDES){ const R = RES[s]; R.laine = Math.max(0, R.laine); R.croq = Math.max(0, R.croq); R.ron = Math.max(0, R.ron); }
-  logDay(GAME.side, 'event', EV.cur.title, { choice: choice[0] });
+  SH.logDay(GAME.side, 'event', EV.cur.title, { choice: choice[0] });
   toast((auto ? 'Personne n’a tranché : ' : '') + choice[0] + '.');
-  radioQueue.unshift(['neutre', 'Radio du port', EV.cur.title + ' : ' + choice[0].toLowerCase() + '.']);
+  SH.radioQueue.unshift(['neutre', 'Radio du port', EV.cur.title + ' : ' + choice[0].toLowerCase() + '.']);
   EV.cur = null; $('eventCard').hidden = true;
   for (const s of SIDES) ecoTally(s);
-  if (typeof renderHUD === 'function') renderHUD();
-  saveSoon();
+  if (typeof SH.renderHUD === 'function') SH.renderHUD();
+  SH.saveSoon();
 }
 $('evA').addEventListener('click', () => { if (EV.cur) resolveEvent(EV.cur.a); });
 $('evB').addEventListener('click', () => { if (EV.cur) resolveEvent(EV.cur.b); });
 
 /* ================= course a l'espace : avec une base de lancement, chaque palier de territoire fait decoller une fusee ================= */
-const SPACE = { usc: { stage: 0, launchT: null }, ccp: { stage: 0, launchT: null } };
-const SPACE_STEPS = [[.18, 'le premier satellite', 90], [.30, 'le premier chat en orbite', 160], [.42, 'le premier chat sur la Lune', 260]];
-let spaceCount = null;
-function stepSpace(t){
+export const SPACE = { usc: { stage: 0, launchT: null }, ccp: { stage: 0, launchT: null } };
+export const SPACE_STEPS = [[.18, 'le premier satellite', 90], [.30, 'le premier chat en orbite', 160], [.42, 'le premier chat sur la Lune', 260]];
+export let spaceCount = null;
+export function stepSpace(t){
   if (GAME.mode !== 'play') return;
   const gt = GAME.t;
   for (const side of SIDES){
@@ -301,12 +311,12 @@ function stepSpace(t){
     if (S.launchT && gt > S.launchT + 70) S.launchT = null;
     if (S.launchT || spaceCount) continue;
     const step = SPACE_STEPS[S.stage]; if (!step || terPct(side) < step[0]) continue;
-    const pad = BLD.find(l => l.side === side && l.type === 'fusee' && l.done && l.active);
+    const pad = SH.BLD.find(l => l.side === side && l.type === 'fusee' && l.done && l.active);
     if (!pad) continue;
     S.launchT = gt + 10; S.stage++;
     const first = SPACE[other(side)].stage < S.stage;
     spaceCount = { side, t0: gt, what: step[1], first, gain: Math.round(step[2] * (first ? 1.5 : 1)) };
-    radioQueue.unshift([side, side === 'ccp' ? 'Radio Miaou-Scou' : 'Radio Kutty Libre', 'Compte à rebours lancé : ' + step[1] + ' décolle dans dix secondes !']);
+    SH.radioQueue.unshift([side, side === 'ccp' ? 'Radio Miaou-Scou' : 'Radio Kutty Libre', 'Compte à rebours lancé : ' + step[1] + ' décolle dans dix secondes !']);
     if (side === GAME.side && !state.chatCat) cam.follow = [pad.ca - 20, pad.cb - 20];
   }
   if (spaceCount){
@@ -315,13 +325,16 @@ function stepSpace(t){
     else {
       el.hidden = true;
       const sc = spaceCount; spaceCount = null;
-      sfx('launch');
+      SH.sfx('launch');
       RES[sc.side].ron += sc.gain;
-      logDay(sc.side, 'space', sc.what, { first: sc.first });
-      fwSalvo(sc.side, 7);
+      SH.logDay(sc.side, 'space', sc.what, { first: sc.first });
+      SH.fwSalvo(sc.side, 7);
       toast((sc.side === 'ccp' ? 'La CCR' : 'L’USC') + ' envoie ' + sc.what + (sc.first ? ', avant l’autre camp !' : ', mais l’autre camp était déjà passé.') + (sc.side === GAME.side ? ' +' + sc.gain + ' ronrons.' : ''));
-      radioQueue.unshift([sc.side, sc.side === 'ccp' ? 'Radio Miaou-Scou' : 'Radio Kutty Libre', sc.side === 'ccp' ? 'Victoire de la science du peuple : ' + sc.what + ' ! La CCR touche les étoiles.' : 'Historique : ' + sc.what + ' ! L’USC monte jusqu’au ciel.']);
-      saveSoon();
+      SH.radioQueue.unshift([sc.side, sc.side === 'ccp' ? 'Radio Miaou-Scou' : 'Radio Kutty Libre', sc.side === 'ccp' ? 'Victoire de la science du peuple : ' + sc.what + ' ! La CCR touche les étoiles.' : 'Historique : ' + sc.what + ' ! L’USC monte jusqu’au ciel.']);
+      SH.saveSoon();
     }
   }
 }
+
+// appeles depuis des modules plus petits en numero
+Object.assign(SH, { ECO, CATS_MENU, taste, LVL_POP, LVL_MULT, lvlName, costOf, priceOf, costLabel, canAfford, upCost, popOf, RES, refreshAccess, canPay, pay, startBuilding, upgradeBuilding, demolishBuilding, siteDrawables, SPACE });

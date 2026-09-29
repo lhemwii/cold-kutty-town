@@ -1,5 +1,8 @@
+import { SH } from './00-shared.js';
+import { COLOR, CONST_SH, M, TAU, UP, blitAt, boxS, bz, clamp, dep, drawFace, drawFlagPole, drawStar, drawText, fillConvex, fput, gableRoof, hash2, line3, lineS, plateW, prj, textW, wallBitmap, wallFace, win, winColor } from './01-core.js';
+import { Lc, QUEUE_CAT, alongSh, antennaAt, artSprite, drawCar, drawChimney, drawHouse, facadePlate, frontVisible, houseGeo, houseLights, part, picket, sideLight, smokeAt, treeSpr, wallBase } from './03-buildings-base.js';
 /* ================= statues ================= */
-const STATUE_CCP = artSprite([
+export const STATUE_CCP = artSprite([
   '  # #        ',
   '  ###        ',
   '  #.#        ',
@@ -19,7 +22,7 @@ const STATUE_CCP = artSprite([
   ' ## ##       ',
   '### ###      '
 ]);
-const STATUE_USC = artSprite([
+export const STATUE_USC = artSprite([
   '      #  ',
   '     ### ',
   '      #  ',
@@ -42,8 +45,8 @@ const STATUE_USC = artSprite([
 ]);
 
 /* ================= les types de batiments ================= */
-function seedOf(lot){ return Math.abs(Math.round(lot.ca * 7 + lot.cb * 13)) % 97; }
-const TYPES = {
+export function seedOf(lot){ return Math.abs(Math.round(lot.ca * 7 + lot.cb * 13)) % 97; }
+export const TYPES = {
   maison: { name: 'Maison', fem: true, build(lot, seed){
     const lv = lot.lvl || 1;
     const la = 14 + (seed % 3) * 2 + (lv === 3 ? 6 : 0), lb = 12 + (lv === 3 ? 2 : 0), hh = 8 + (seed % 2) + (lv >= 2 ? 5 : 0), rh = 6;
@@ -55,7 +58,7 @@ const TYPES = {
     if (lv === 3){
       // piscine a l'ouest, potager a l'est
       const pa0 = lot.a0 + 3, pb0 = lot.b1 - 9;
-      decals.push(() => { const sv = CUR; CUR = usc ? M.WATER : M.FIELD; drawFace([pa0, pb0, 0, pa0 + 8, pb0, 0, pa0 + 8, pb0 + 5, 0, pa0, pb0 + 5, 0], UP, usc ? ((x, y) => bz(x, y) < 3 ? 1 : 0) : ((x, y) => (x + y) & 1), usc ? 1 : 0); CUR = sv; });
+      decals.push(() => { const sv = SH.CUR; SH.CUR = usc ? M.WATER : M.FIELD; drawFace([pa0, pb0, 0, pa0 + 8, pb0, 0, pa0 + 8, pb0 + 5, 0, pa0, pb0 + 5, 0], UP, usc ? ((x, y) => bz(x, y) < 3 ? 1 : 0) : ((x, y) => (x + y) & 1), usc ? 1 : 0); SH.CUR = sv; });
     }
     if (usc){
       const fb0 = lot.b1 - 2;
@@ -92,11 +95,11 @@ const TYPES = {
       return 0;
     }, 0);
     const sign = (t) => {
-      const on = (COLOR && DAY) || Math.floor(t * 2.5) % 5 !== 4;
+      const on = (COLOR && SH.DAY) || Math.floor(t * 2.5) % 5 !== 4;
       const p = prj(lot.ca, lot.cb, hh), bx = Math.round(p[0]);
-      CUR = M.METAL; line3(lot.ca - 6, lot.cb, hh, lot.ca - 6, lot.cb, hh + 3, 1); line3(lot.ca + 6, lot.cb, hh, lot.ca + 6, lot.cb, hh + 3, 1);
+      SH.CUR = M.METAL; line3(lot.ca - 6, lot.cb, hh, lot.ca - 6, lot.cb, hh + 3, 1); line3(lot.ca + 6, lot.cb, hh, lot.ca + 6, lot.cb, hh + 3, 1);
       const r = plateW('DINER', lot.ca, lot.cb, hh + 3, { off: !on });
-      CUR = M.SIGN; if (on) drawStar(fput, bx - 2, r[1] - 6, 1);
+      SH.CUR = M.SIGN; if (on) drawStar(fput, bx - 2, r[1] - 6, 1);
     };
     return { parts: [part(lot.ca, lot.cb, 0, body), part(lot.ca, lot.cb, .5, sign)],
       lights: [Lc(lot.ca, b1 + 7, 15, 1.45), sideLight(a0, a1, b0, b1, 1, 9, 1.2), sideLight(a0, a1, b0, b1, 3, 9, 1.2)] };
@@ -117,13 +120,13 @@ const TYPES = {
       boxS(a0 + 1, a1 - 1, b1, b1 + 4, 7, 10, 0, (x, y) => bz(x, y) < 6 ? 1 : 0);
       if (!frontVisible(0)) return;
       const ph = Math.floor(t * 4) & 1;
-      CUR = M.WIN;
+      SH.CUR = M.WIN;
       for (let u = 1; u < la - 2; u += 2){ const p = prj(a0 + 1 + u + .5, b1 + 4, 8.5); fput(Math.round(p[0]), Math.round(p[1]), ((u >> 1) & 1) === ph ? 1 : 0); }
     };
     const blade = (t) => {
       const p = prj(a1 - 3, b1 + 2, 10), bx = Math.round(p[0]), by = Math.round(p[1]);
       const word = 'CINE', h = word.length * 6 + 3, k = Math.floor(t * 6) % 5;
-      CUR = M.SIGN;
+      SH.CUR = M.SIGN;
       for (let y = by - h; y <= by; y++) for (let x = bx - 3; x <= bx + 3; x++){
         const edge = x === bx - 3 || x === bx + 3 || y === by - h || y === by;
         fput(x, y, edge ? (((y + x) >> 1) % 5 === k ? 0 : 1) : 0);
@@ -146,7 +149,7 @@ const TYPES = {
     };
     const sign = () => {
       const pp = prj(a0 + 27, b0 + 2, 0), px = Math.round(pp[0]), py = Math.round(pp[1]);
-      CUR = M.SIGN;
+      SH.CUR = M.SIGN;
       for (let k = 0; k < 19; k++) fput(px, py - k, 1);
       for (let dy = -7; dy <= 7; dy++) for (let dx = -7; dx <= 7; dx++){ const r = Math.hypot(dx, dy); if (r > 7.4) continue; fput(px + dx, py - 25 + dy, r > 6.3 ? 1 : 0); }
       drawText(fput, 'GAZ', px - 5, py - 27, 1);
@@ -163,10 +166,10 @@ const TYPES = {
       return wallBase(k, x, y);
     }, 0);
     const awning = () => {
-      const savedM = CUR; if (!ccp) CUR = M.FLAG_RED;
+      const savedM = SH.CUR; if (!ccp) SH.CUR = M.FLAG_RED;
       drawFace([a0 + 1, b1, 7, a1 - 1, b1, 7, a1 - 1, b1 + 4, 5, a0 + 1, b1 + 4, 5], [0, 2, 4],
         ccp ? ((x, y) => bz(x, y) < 3 ? 1 : 0) : alongSh(a0 + 1, b1 + 4, 5, a1 - 1, b1 + 4, 5, la - 2, (u) => (Math.floor(u / 1.5) & 1) ? 1 : 0), 1);
-      CUR = savedM;
+      SH.CUR = savedM;
       facadePlate(ccp ? 'GASTRONOM' : 'EPICERIE', lot.ca, b1, b0, hh + .5);
     };
     const parts = [part(lot.ca, lot.cb - 3, 0, body), part(lot.ca, lot.cb - 3, .3, awning)];
@@ -175,14 +178,14 @@ const TYPES = {
       const c = ((t + ph) % 7 + 7) % 7, p = Math.min(1, c / 1.2), slot = i + 1 - p;
       if (slot > 5 || (i === 5 && c < .15)) return;
       const hop = p < 1 ? Math.round(Math.abs(Math.sin(p * Math.PI * 3)) * -1) : 0;
-      CUR = M.CAT_BLACK; blitAt(QUEUE_CAT, a0 - 1 + slot * 3.4, qb, -hop);
+      SH.CUR = M.CAT_BLACK; blitAt(QUEUE_CAT, a0 - 1 + slot * 3.4, qb, -hop);
     })); }
     return { parts, lights: [Lc(lot.ca, b1 + 6, 12, 1.3)] };
   } },
   chateau: { name: 'Château d’eau', fem: false, build(lot, seed){
     const ca = lot.ca, cb = lot.cb, ccp = lot.side === 'ccp';
     const draw = () => {
-      CUR = M.METAL;
+      SH.CUR = M.METAL;
       const legs = [[-6,-6],[6,-6],[6,6],[-6,6]], at = (d, z) => d * (1 - .2 * z / 20);
       for (const [da, db] of legs) line3(ca + da, cb + db, 0, ca + da * .8, cb + db * .8, 20, 1);
       for (const z of [7, 14]) for (let i = 0; i < 4; i++){ const p = legs[i], q = legs[(i + 1) % 4]; line3(ca + at(p[0], z), cb + at(p[1], z), z, ca + at(q[0], z), cb + at(q[1], z), z, 1); }
@@ -205,7 +208,7 @@ const TYPES = {
   kiosque: { name: 'Kiosque à musique', fem: false, build(lot, seed){
     const ca = lot.ca, cb = lot.cb;
     const draw = () => {
-      CUR = M.NEUTRAL;
+      SH.CUR = M.NEUTRAL;
       const C = prj(ca, cb, 0), cx = Math.round(C[0]), cy = Math.round(C[1]);
       const rx = 14, ry = 7;
       for (let dx = -rx; dx <= rx; dx++){
@@ -231,10 +234,10 @@ const TYPES = {
   } },
   parc: { name: 'Parc', fem: false, build(lot, seed){
     const T = [[lot.ca - 8, lot.cb - 6, 5], [lot.ca + 9, lot.cb - 3, 4], [lot.ca - 2, lot.cb + 8, 5]];
-    const parts = T.map(([a, b, r]) => part(a, b, 0, () => { CUR = M.TREE; blitAt(treeSpr(r), a, b, 0); }));
+    const parts = T.map(([a, b, r]) => part(a, b, 0, () => { SH.CUR = M.TREE; blitAt(treeSpr(r), a, b, 0); }));
     const ba = lot.ca + 6, bb = lot.cb + 7;
     parts.push(part(ba + 3, bb, 0, () => {
-      CUR = M.PIER;
+      SH.CUR = M.PIER;
       line3(ba, bb, 2, ba + 6, bb, 2, 1); line3(ba, bb - 1, 4, ba + 6, bb - 1, 4, 1);
       line3(ba, bb, 0, ba, bb, 2, 1); line3(ba + 6, bb, 0, ba + 6, bb, 2, 1);
     }));
@@ -277,7 +280,7 @@ const TYPES = {
     const spire = (t) => {
       line3(ca, cb, 33, ca, cb, 45, 1);
       const p = prj(ca, cb, 45), x = Math.round(p[0]), y = Math.round(p[1]);
-      CUR = M.SIGN_CCP;
+      SH.CUR = M.SIGN_CCP;
       drawStar(fput, x - 3, y - 7, 1, true);
       if (Math.sin(t * 1.3) > .7) for (let k = 0; k < 4; k++){ fput(x - 5 - k, y - 4, 1); fput(x + 5 + k, y - 4, 1); }
     };
@@ -310,7 +313,7 @@ const TYPES = {
     const draw = () => {
       boxS(ca - 5, ca + 5, cb - 5, cb + 5, 0, 1.5, (u, h, x, y, k) => bz(x, y) < 5 ? 1 : 0, 0);
       boxS(ca - 3.5, ca + 3.5, cb - 3.5, cb + 3.5, 1.5, 9, (u, h, x, y, k) => { const kk = win(u, h, 1.5, 2.5, 4, 3); if (kk) return kk === 'frame' ? 1 : 0; return wallBase(k, x, y); }, 0);
-      CUR = M.STATUE; blitAt(ccp ? STATUE_CCP : STATUE_USC, ca, cb, 9);
+      SH.CUR = M.STATUE; blitAt(ccp ? STATUE_CCP : STATUE_USC, ca, cb, 9);
     };
     return { parts: [part(ca, cb, 0, draw)], lights: [Lc(ca, cb + 8, 13, 1.4)] };
   } },
@@ -318,9 +321,9 @@ const TYPES = {
     const ca = lot.ca, cb = lot.cb, ccp = lot.side === 'ccp';
     const L1 = ccp ? 'GLOIRE AU' : 'BOIS', L2 = ccp ? 'PLAN !' : 'KUTTY COLA';
     const draw = (t) => {
-      CUR = M.METAL;
+      SH.CUR = M.METAL;
       line3(ca - 12, cb, 0, ca - 12, cb, 9, 1); line3(ca + 12, cb, 0, ca + 12, cb, 9, 1);
-      CUR = ccp ? M.SIGN_CCP : M.SIGN;
+      SH.CUR = ccp ? M.SIGN_CCP : M.SIGN;
       // le panneau est dessine a plat puis pose debout entre ses deux poteaux : il tourne avec la ville
       const w = 45, h = 20, pix = new Int8Array(w * h).fill(-1), put = (x, y, v) => { if (x >= 0 && y >= 0 && x < w && y < h) pix[y * w + x] = v; };
       for (let yy = 0; yy < h; yy++) for (let xx = 0; xx < w; xx++){ const e = xx === 0 || xx === w - 1 || yy === 0 || yy === h - 1; put(xx, yy, e ? 1 : (ccp ? 1 : 0)); }

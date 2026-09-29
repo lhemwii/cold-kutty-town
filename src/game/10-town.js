@@ -1,18 +1,27 @@
+import { SH } from './00-shared.js';
+import { COLOR, HOOKS, M, MOON, PC, PS, SC, SUN, TAU, TX, TY, bay, blitAt, fb, fput, hash2, prj, setView } from './01-core.js';
+import { GA0, GB0, GH, GSC, GW, T_BEACH, T_ROCK, T_SEA, baseAt, landDAt, seaDAt } from './02-ground.js';
+import { LAMP_SPR, Lc, part } from './03-buildings-base.js';
+import { TYPES, seedOf } from './04-types.js';
+import { DIR_V } from './06-types-more.js';
+import { LAMP_POS, VEST, drawTower, drawWallPiece, peaksIn } from './07-world.js';
+import { sideAt } from './08-territory.js';
+import { RW, rectRoadDist } from './09-roads.js';
 /* ================= la ville : batiments poses librement, chats qui arrivent avec eux ================= */
 // un batiment : type, camp, emprise au sol (a0..a1, b0..b1), niveau, chantier en cours, direction de la mer pour la cote
-let BLD = [], BLD_ID = 1;
+SH.BLD = []; export let BLD_ID = 1;
 // emprise au sol de chaque type (largeur en a, profondeur en b) ; le reste prend un terrain de 36 x 31
-const FOOT = { statue: [16, 16], fontaine: [32, 32], panneau: [46, 10], drapeau: [18, 16], parc: [32, 28], kiosque: [32, 30], chateau: [18, 18],
+export const FOOT = { statue: [16, 16], fontaine: [32, 32], panneau: [46, 10], drapeau: [18, 16], parc: [32, 28], kiosque: [32, 30], chateau: [18, 18],
   phare: [18, 18], port: [32, 32], pecherie: [28, 28], checkpoint: [22, 18], maison: [28, 26], radio: [30, 28], epicerie: [26, 24], diner: [32, 22] };
-const footOf = (type) => FOOT[type] || [36, 31];
-function makeBuilding(type, side, ca, cb, dir){
+export const footOf = (type) => FOOT[type] || [36, 31];
+export function makeBuilding(type, side, ca, cb, dir){
   const [fa, fb] = (dir === 1 || dir === 3) && FOOT[type] ? [footOf(type)[1], footOf(type)[0]] : footOf(type);
   const l = { id: BLD_ID++, type, side, ca, cb, a0: ca - fa / 2, a1: ca + fa / 2, b0: cb - fb / 2, b1: cb + fb / 2, lvl: 1, dir: dir || 0, done: false, buildT: 0, bdur: 0, upT: 0, active: true };
   return l;
 }
-const bldAt = (a, b) => { for (let k = BLD.length - 1; k >= 0; k--){ const l = BLD[k]; if (a >= l.a0 && a < l.a1 && b >= l.b0 && b < l.b1) return l; } return null; };
+export const bldAt = (a, b) => { for (let k = SH.BLD.length - 1; k >= 0; k--){ const l = SH.BLD[k]; if (a >= l.a0 && a < l.a1 && b >= l.b0 && b < l.b1) return l; } return null; };
 // direction de la mer pour un batiment de la cote pose en (ca, cb) : celle ou l'eau est la plus profonde devant
-function coastDir(ca, cb){
+export function coastDir(ca, cb){
   let best = -1, bs = -1;
   for (let d = 0; d < 4; d++){
     const v = DIR_V[d], s1 = seaDAt(ca + v[0] * 24, cb + v[1] * 24), s2 = seaDAt(ca + v[0] * 38, cb + v[1] * 38);
@@ -22,8 +31,8 @@ function coastDir(ca, cb){
   return best;
 }
 // peut-on poser ce batiment ici ? renvoie '' si oui, sinon la raison
-function placeProblem(type, side, ca, cb, dir, free){
-  const e = ECO[type]; if (!e) return 'Bâtiment inconnu.';
+export function placeProblem(type, side, ca, cb, dir, free){
+  const e = SH.ECO[type]; if (!e) return 'Bâtiment inconnu.';
   const l = makeBuilding(type, side, ca, cb, dir);
   if (l.a0 < GA0 + 4 || l.b0 < GB0 + 4 || l.a1 > GA0 + GW / GSC - 4 || l.b1 > GB0 + GH / GSC - 4) return 'Trop près du bord de la carte.';
   let land = 0, n = 0, bad = '';
@@ -41,20 +50,20 @@ function placeProblem(type, side, ca, cb, dir, free){
     if (land < n * .6) return 'Pas assez de terre ferme ici.';
   } else if (land < n) return 'Pas de construction dans l’eau.';
   if (bad) return bad;
-  for (const o of BLD) if (l.a0 < o.a1 + 1 && l.a1 > o.a0 - 1 && l.b0 < o.b1 + 1 && l.b1 > o.b0 - 1) return 'Il y a déjà un bâtiment ici.';
+  for (const o of SH.BLD) if (l.a0 < o.a1 + 1 && l.a1 > o.a0 - 1 && l.b0 < o.b1 + 1 && l.b1 > o.b0 - 1) return 'Il y a déjà un bâtiment ici.';
   // les montagnes debordent de la roche : on ne bati pas sous leurs pentes
   let peak = false; peaksIn(l.a0 - 70, l.a1 + 70, l.b0 - 70, l.b1 + 70, (pk) => { const da = Math.max(l.a0 - pk.a, 0, pk.a - l.a1), db = Math.max(l.b0 - pk.b, 0, pk.b - l.b1); if (Math.hypot(da, db) < pk.R * .85) peak = true; });
   if (peak) return 'Une montagne se dresse ici.';
   for (const v of VEST) if (!v.looted && v.a > l.a0 - (v.kind === 'statue' ? 32 : 14) && v.a < l.a1 + 14 && v.b > l.b0 - (v.kind === 'statue' ? 16 : 14) && v.b < l.b1 + 14) return 'Des vestiges catzi sont ici : fouille-les d’abord.';
-  for (const r of ROADS) if (rectRoadDist(l, r) < RW + .5) return 'Une route passe ici.';
-  for (const w of WALLS){ const m = [(w.pa + w.qa) / 2, (w.pb + w.qb) / 2]; if (m[0] > l.a0 - 6 && m[0] < l.a1 + 6 && m[1] > l.b0 - 6 && m[1] < l.b1 + 6) return 'Le Rideau de Laine passe ici.'; }
-  if (type === 'checkpoint' && !WALLS.some(w => Math.hypot((w.pa + w.qa) / 2 - ca, (w.pb + w.qb) / 2 - cb) < 45)) return 'Le Checkpoint se pose à côté d’un Rideau de Laine.';
-  if (type === 'qg' && BLD.some(o => o.type === 'qg' && o.side === side)) return 'Un seul QG par camp.';
+  for (const r of SH.ROADS) if (rectRoadDist(l, r) < RW + .5) return 'Une route passe ici.';
+  for (const w of SH.WALLS){ const m = [(w.pa + w.qa) / 2, (w.pb + w.qb) / 2]; if (m[0] > l.a0 - 6 && m[0] < l.a1 + 6 && m[1] > l.b0 - 6 && m[1] < l.b1 + 6) return 'Le Rideau de Laine passe ici.'; }
+  if (type === 'checkpoint' && !SH.WALLS.some(w => Math.hypot((w.pa + w.qa) / 2 - ca, (w.pb + w.qb) / 2 - cb) < 45)) return 'Le Checkpoint se pose à côté d’un Rideau de Laine.';
+  if (type === 'qg' && SH.BLD.some(o => o.type === 'qg' && o.side === side)) return 'Un seul QG par camp.';
   return '';
 }
 // cherche un emplacement libre pres d'un point (pour les debarquements et l'IA)
-function findSpot(type, side, a, b, R, free){
-  const e = ECO[type];
+export function findSpot(type, side, a, b, R, free){
+  const e = SH.ECO[type];
   for (let r = 0; r <= R; r += 6){
     const n = Math.max(1, Math.round(r * .5));
     for (let k = 0; k < n; k++){
@@ -67,7 +76,7 @@ function findSpot(type, side, a, b, R, free){
 }
 
 /* ================= les chats qui ont un nom : chacun arrive quand son batiment est construit ================= */
-const CAT_DEFS = [
+export const CAT_DEFS = [
   { home: 'qg', name:'Minou Lavigne', job:'Maire du secteur USC', side:'usc', col:'white', look:'fedora', outfit:'veste', sp: 5,
     traits:'solennel mais gourmand, fait des discours pour tout, très fier de la démocratie des croquettes et de sa nouvelle télévision',
     hello:'Bonsoir, bonsoir ! Minou Lavigne, maire du secteur USC. Bienvenue du bon côté de la laine, mon ami !',
@@ -177,27 +186,27 @@ const CAT_DEFS = [
     hello:'Ah ! Un estomac vide ! Anatoli Bortchov, cantine du peuple. Aujourd’hui : soupe. Demain : soupe. C’est le plan.',
     facts:['Ma soupe de betterave est rouge. Comme tout le reste, remarque.', 'Babouchka dit que sa soupe est meilleure. Nous réglerons ça au prochain congrès.', 'Le secret d’une bonne cantine : une grande louche et beaucoup de patience.'] }
 ];
-let CATS = [];
-function spawnCats(){
-  const keep = new Set(CATS.map(c => c.name));
+SH.CATS = [];
+export function spawnCats(){
+  const keep = new Set(SH.CATS.map(c => c.name));
   for (const d of CAT_DEFS){
     if (keep.has(d.name)) continue;
     const want = d.side === 'neutre' ? null : d.side;
-    const home = BLD.find(l => l.done && l.type === d.home && (!want || l.side === want) && !CATS.some(c => c.homeId === l.id && c.name !== d.name && d.home !== 'qg'));
+    const home = SH.BLD.find(l => l.done && l.type === d.home && (!want || l.side === want) && !SH.CATS.some(c => c.homeId === l.id && c.name !== d.name && d.home !== 'qg'));
     if (!home) continue;
-    const c = Object.assign({}, d, { id: CATS.length, homeId: home.id, paused: false, t0: hash2(CATS.length, 77) * 50 });
+    const c = Object.assign({}, d, { id: SH.CATS.length, homeId: home.id, paused: false, t0: hash2(SH.CATS.length, 77) * 50 });
     placeCat(c, home);
-    CATS.push(c);
+    SH.CATS.push(c);
   }
 }
 // le chat fait les cent pas devant chez lui, ou reste assis a son poste
-function placeCat(c, l){
-  const fb = l.b1 + 4.5, k = CATS.filter(o => o.homeId === l.id).length;
+export function placeCat(c, l){
+  const fb = l.b1 + 4.5, k = SH.CATS.filter(o => o.homeId === l.id).length;
   if (c.guard) c.fixed = [l.a0 + 3, l.b1 + 2];
   else if (c.sit || !c.sp) c.fixed = [l.a0 + 4 + k * 5, fb];
   else { c.fixed = null; c.path = [[l.a0 + 1, fb + k * 2], [l.a1 - 1, fb + k * 2]]; }
 }
-function catPos(c, t){
+export function catPos(c, t){
   if (c.fixed) return { a: c.fixed[0], b: c.fixed[1], da: 0, db: 0, moving: false };
   if (c.paused && c.frozen) return c.frozen;
   const [p0, p1] = c.path;
@@ -208,10 +217,10 @@ function catPos(c, t){
   const da = (p1[0] - p0[0]) * (fwd ? 1 : -1), db = (p1[1] - p0[1]) * (fwd ? 1 : -1);
   return { a, b, da, db, moving: true };
 }
-const HATTED = ['ushanka', 'kepi', 'casque', 'fedora', 'foulard', 'cosmo', 'marin', 'bonnet', 'casquette', 'gavroche', 'beret', 'cowboy', 'chantier', 'toque', 'haut-de-forme', 'espion', 'bigoudis'];
-const catMat = (c) => c.col === 'tabby' ? M.CAT_OR : c.col === 'siamois' ? M.CAT_SIAM : c.col === 'gray' ? M.CAT_GRAY : c.col === 'black' ? M.CAT_BLACK : M.CAT;
+export const HATTED = ['ushanka', 'kepi', 'casque', 'fedora', 'foulard', 'cosmo', 'marin', 'bonnet', 'casquette', 'gavroche', 'beret', 'cowboy', 'chantier', 'toque', 'haut-de-forme', 'espion', 'bigoudis'];
+export const catMat = (c) => c.col === 'tabby' ? M.CAT_OR : c.col === 'siamois' ? M.CAT_SIAM : c.col === 'gray' ? M.CAT_GRAY : c.col === 'black' ? M.CAT_BLACK : M.CAT;
 // chat sur la carte : petit sprite, avec un bout de chapeau
-function catPixels(c, fr, f, lit){
+export function catPixels(c, fr, f, lit){
   const px = [];
   const S = (x, y, part) => px.push([x * f, y, part]);
   const hatted = HATTED.includes(c.look);
@@ -255,50 +264,50 @@ function catPixels(c, fr, f, lit){
 
 
 /* ================= reconstruction des objets ================= */
-let BUILT = [], STATIC_PARTS = [], DECALS = [], LIGHTS_STATIC = [], BEACONS = [];
-const USC_MATS = [M.USC, M.USC2, M.USC3, M.USC4, M.USC5], CCP_MATS = [M.CCP, M.CCP2, M.CCP3];
-const BUILD_MAT = { diner: M.CHROME, usine: M.BRICK, peuple: M.SANDSTONE, mairie: M.SANDSTONE, qg: M.SANDSTONE, cinema: M.BRICK, station: M.USC5, bowling: M.USC5, port: M.PIER, pecherie: M.PIER };
-const SHADOW_EXTRA = {
-  chateau: (l) => circ(l.ca, l.cb, 8, 31, 12).concat(circ(l.ca, l.cb, 6, 0, 4)),
-  kiosque: (l) => circ(l.ca, l.cb, 11, 12, 12).concat(circ(l.ca, l.cb, 9, 0, 8)),
-  cirque: (l) => circ(l.ca, l.cb - 2, 12, 7, 12).concat([l.ca, l.cb - 2, 27]),
-  radio: (l) => circ(l.ca - 5, l.cb - 3, 6, 0, 4).concat(circ(l.ca - 5, l.cb - 3, 1, 57, 4)),
-  fusee: (l) => circ(l.ca - 2, l.cb, 2.2, 36, 6).concat(circ(l.ca - 2, l.cb, 2.2, 2, 6), circ(l.ca + 6.5, l.cb - .5, 1.6, 36, 4)),
-  statue: (l) => circ(l.ca, l.cb, 1.6, 28, 6),
+export let BUILT = [], STATIC_PARTS = [], DECALS = [], LIGHTS_STATIC = [], BEACONS = [];
+export const USC_MATS = [M.USC, M.USC2, M.USC3, M.USC4, M.USC5], CCP_MATS = [M.CCP, M.CCP2, M.CCP3];
+export const BUILD_MAT = { diner: M.CHROME, usine: M.BRICK, peuple: M.SANDSTONE, mairie: M.SANDSTONE, qg: M.SANDSTONE, cinema: M.BRICK, station: M.USC5, bowling: M.USC5, port: M.PIER, pecherie: M.PIER };
+export const SHADOW_EXTRA = {
+  chateau: (l) => SH.circ(l.ca, l.cb, 8, 31, 12).concat(SH.circ(l.ca, l.cb, 6, 0, 4)),
+  kiosque: (l) => SH.circ(l.ca, l.cb, 11, 12, 12).concat(SH.circ(l.ca, l.cb, 9, 0, 8)),
+  cirque: (l) => SH.circ(l.ca, l.cb - 2, 12, 7, 12).concat([l.ca, l.cb - 2, 27]),
+  radio: (l) => SH.circ(l.ca - 5, l.cb - 3, 6, 0, 4).concat(SH.circ(l.ca - 5, l.cb - 3, 1, 57, 4)),
+  fusee: (l) => SH.circ(l.ca - 2, l.cb, 2.2, 36, 6).concat(SH.circ(l.ca - 2, l.cb, 2.2, 2, 6), SH.circ(l.ca + 6.5, l.cb - .5, 1.6, 36, 4)),
+  statue: (l) => SH.circ(l.ca, l.cb, 1.6, 28, 6),
   panneau: (l) => [l.ca - 22, l.cb, 29, l.ca + 22, l.cb, 29, l.ca - 12, l.cb, 0, l.ca + 12, l.cb, 0, l.ca - 22, l.cb + .4, 9, l.ca + 22, l.cb + .4, 9],
-  fontaine: (l) => circ(l.ca, l.cb, 8, 2, 10)
+  fontaine: (l) => SH.circ(l.ca, l.cb, 8, 2, 10)
 };
-let TOWN_VER = 0;
+SH.TOWN_VER = 0;
 // galons au-dessus de la porte : un par niveau gagne
-function levelBadge(l){
+export function levelBadge(l){
   const p = prj(l.ca, l.b1 + 1, 0), x = Math.round(p[0]) - (l.lvl - 1) * 3, y = Math.round(p[1]) + 3;
-  CUR = M.ICON_Y;
+  SH.CUR = M.ICON_Y;
   for (let k = 0; k < l.lvl - 1; k++) for (let d = 0; d < 3; d++){ fput(x + k * 6 + d, y - d, 1); fput(x + k * 6 + 4 - d, y - d, 1); }
 }
 /* ---- batiments tournes : on les construit face a +b, puis on les tourne d'un quart de tour autour de leur centre ---- */
 // le port et la pecherie gerent eux-memes leur direction (face a la mer)
-const SELF_DIR = { port: 1, pecherie: 1 };
-const DIR_ROT = [0, -Math.PI / 2, Math.PI, Math.PI / 2];
+export const SELF_DIR = { port: 1, pecherie: 1 };
+export const DIR_ROT = [0, -Math.PI / 2, Math.PI, Math.PI / 2];
 // dessin tourne : meme centre a l'ecran, projection tournee de l'angle, soleil et lune ramenes dans le repere du batiment
-function turnDraw(ca, cb, th, fn){
+export function turnDraw(ca, cb, th, fn){
   const c = Math.cos(th), s = Math.sin(th);
   return (t) => {
     const sv = [PC, PS, TX, TY], su = [SUN[0], SUN[1]], mo = [MOON[0], MOON[1]];
     const X = TX + ((ca * PC - cb * PS) - (ca * PS + cb * PC)) * SC, Y = TY + ((ca * PC - cb * PS) + (ca * PS + cb * PC)) * .5 * SC;
-    const pc = PC * c - PS * s, ps = PS * c + PC * s; PC = pc; PS = ps;
-    TX = Math.round(X - ((ca * PC - cb * PS) - (ca * PS + cb * PC)) * SC); TY = Math.round(Y - ((ca * PC - cb * PS) + (ca * PS + cb * PC)) * .5 * SC);
+    const pc = PC * c - PS * s, ps = PS * c + PC * s;
+    setView({ PC: pc, PS: ps, TX: Math.round(X - ((ca * pc - cb * ps) - (ca * ps + cb * pc)) * SC), TY: Math.round(Y - ((ca * pc - cb * ps) + (ca * ps + cb * pc)) * .5 * SC) });
     SUN[0] = su[0] * c + su[1] * s; SUN[1] = -su[0] * s + su[1] * c; MOON[0] = mo[0] * c + mo[1] * s; MOON[1] = -mo[0] * s + mo[1] * c;
-    const cap = CAPTURE ? CAPTURE.length : -1;
+    const cap = SH.CAPTURE ? SH.CAPTURE.length : -1;
     try { fn(t); }
     finally {
-      [PC, PS, TX, TY] = sv; SUN[0] = su[0]; SUN[1] = su[1]; MOON[0] = mo[0]; MOON[1] = mo[1];
-      if (CAPTURE && cap >= 0) for (let i = cap; i + 1 < CAPTURE.length; i += 3){ const a = CAPTURE[i] - ca, b = CAPTURE[i + 1] - cb; CAPTURE[i] = ca + a * c - b * s; CAPTURE[i + 1] = cb + a * s + b * c; }
+      setView({ PC: sv[0], PS: sv[1], TX: sv[2], TY: sv[3] }); SUN[0] = su[0]; SUN[1] = su[1]; MOON[0] = mo[0]; MOON[1] = mo[1];
+      if (SH.CAPTURE && cap >= 0) for (let i = cap; i + 1 < SH.CAPTURE.length; i += 3){ const a = SH.CAPTURE[i] - ca, b = SH.CAPTURE[i + 1] - cb; SH.CAPTURE[i] = ca + a * c - b * s; SH.CAPTURE[i + 1] = cb + a * s + b * c; }
     }
   };
 }
-const turnsItself = (l) => !l.dir || SELF_DIR[l.type] || (ECO[l.type] && ECO[l.type].coast);
+export const turnsItself = (l) => !l.dir || SELF_DIR[l.type] || (SH.ECO[l.type] && SH.ECO[l.type].coast);
 // construit le dessin d'un batiment dans sa direction
-function buildParts(l, seed){
+export function buildParts(l, seed){
   if (turnsItself(l)) return TYPES[l.type].build(l, seed);
   const [fa, fb] = footOf(l.type), th = DIR_ROT[l.dir], c = Math.cos(th), s = Math.sin(th), ca = l.ca, cb = l.cb;
   const lot = Object.assign({}, l, { a0: ca - fa / 2, a1: ca + fa / 2, b0: cb - fb / 2, b1: cb + fb / 2, dir: 0 });
@@ -313,37 +322,37 @@ function buildParts(l, seed){
   r.turned = R;
   return r;
 }
-function rebuildTown(){
-  TOWN_VER++;
+export function rebuildTown(){
+  SH.TOWN_VER++;
   BUILT = []; STATIC_PARTS = []; DECALS = []; LIGHTS_STATIC = []; BEACONS = [];
-  for (const l of BLD){
+  for (const l of SH.BLD){
     if (!l.done || !TYPES[l.type]) continue;
     const sd = seedOf(l), r = buildParts(l, sd);
     BUILT.push({ lot: l, r });
     const bm = BUILD_MAT[l.type] || (l.side === 'ccp' ? CCP_MATS[sd % 3] : USC_MATS[sd % 5]);
     for (const p of r.parts){ if (p.m == null) p.m = bm; p.side = l.side; p.lot = l; }
     if (r.parts[0]){ let ex = SHADOW_EXTRA[l.type] ? SHADOW_EXTRA[l.type](l) : []; if (r.turned){ ex = ex.slice(); for (let i = 0; i + 1 < ex.length; i += 3){ const q = r.turned(ex[i], ex[i + 1]); ex[i] = q[0]; ex[i + 1] = q[1]; } } const sh = ex.concat(r.shadowPts || []); if (sh.length) r.parts[0].shadow = sh; }
-    if (l.lvl > 1 && !LVL_POP[l.type] && l.type !== 'port') STATIC_PARTS.push(Object.assign(part(l.ca, l.b1 + 1, .05, () => levelBadge(l)), { side: l.side, lot: l }));
+    if (l.lvl > 1 && !SH.LVL_POP[l.type] && l.type !== 'port') STATIC_PARTS.push(Object.assign(part(l.ca, l.b1 + 1, .05, () => levelBadge(l)), { side: l.side, lot: l }));
     STATIC_PARTS.push(...r.parts); LIGHTS_STATIC.push(...(r.lights || []));
     if (r.beacon) BEACONS.push(r.beacon);
-    if (r.decals) DECALS.push(...r.decals.map(d => (t) => { CUR_SIDE = l.side; CUR = l.side === 'ccp' ? M.CCP : M.USC; d(t); }));
+    if (r.decals) DECALS.push(...r.decals.map(d => (t) => { SH.CUR_SIDE = l.side; SH.CUR = l.side === 'ccp' ? M.CCP : M.USC; d(t); }));
   }
-  for (const w of WALLS) STATIC_PARTS.push(Object.assign(part((w.pa + w.qa) / 2, (w.pb + w.qb) / 2, 0, () => drawWallPiece(w.pa, w.pb, w.qa, w.qb, w.g, w.side)), { side: w.side, m: M.WALL }));
-  for (const tw of WALL_TOWERS) STATIC_PARTS.push(Object.assign(part(tw.a, tw.b, .1, (t) => drawTower(tw, t)), { side: tw.side, m: M.METAL }));
-  for (const [a, b] of LAMP_POS){ const p = part(a, b, 0, () => { CUR = M.METAL; blitAt(LAMP_SPR, a, b, 0); }); p.shadow = circ(a, b, .25, 0, 4).concat(circ(a + 1, b, .3, 15, 4)); STATIC_PARTS.push(p); LIGHTS_STATIC.push(Lc(a, b, 13, 1.25)); }
+  for (const w of SH.WALLS) STATIC_PARTS.push(Object.assign(part((w.pa + w.qa) / 2, (w.pb + w.qb) / 2, 0, () => drawWallPiece(w.pa, w.pb, w.qa, w.qb, w.g, w.side)), { side: w.side, m: M.WALL }));
+  for (const tw of SH.WALL_TOWERS) STATIC_PARTS.push(Object.assign(part(tw.a, tw.b, .1, (t) => drawTower(tw, t)), { side: tw.side, m: M.METAL }));
+  for (const [a, b] of LAMP_POS){ const p = part(a, b, 0, () => { SH.CUR = M.METAL; blitAt(LAMP_SPR, a, b, 0); }); p.shadow = SH.circ(a, b, .25, 0, 4).concat(SH.circ(a + 1, b, .3, 15, 4)); STATIC_PARTS.push(p); LIGHTS_STATIC.push(Lc(a, b, 13, 1.25)); }
   for (const f of HOOKS.town) f(STATIC_PARTS, LIGHTS_STATIC);
   for (const p of STATIC_PARTS){ if (p.m == null) p.m = M.METAL; if (!p.side) p.side = 'usc'; }
   if (COLOR) buildShadows();
   spawnCats();
 }
-function buildShadows(){
-  SHADOWS = [];
+export function buildShadows(){
+  SH.SHADOWS = [];
   for (const p of STATIC_PARTS){
-    CAPTURE = [];
+    SH.CAPTURE = [];
     try { p.draw(0); } catch (_) {}
-    const pts = CAPTURE; CAPTURE = null;
+    const pts = SH.CAPTURE; SH.CAPTURE = null;
     if (p.shadow) for (const v of p.shadow) pts.push(v);
     if (pts.length < 9) continue;
-    const h = shadowHull(pts); if (h) SHADOWS.push(h);
+    const h = SH.shadowHull(pts); if (h) SH.SHADOWS.push(h);
   }
 }

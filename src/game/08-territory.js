@@ -1,17 +1,20 @@
+import { SH } from './00-shared.js';
+import { GAME, SIDES, clamp, hash2, other } from './01-core.js';
+import { GA0, GB0, GH, GSC, GW, T_SEA, baseAt } from './02-ground.js';
 /* ================= territoires : chaque camp etend sa couleur case par case, en direct ================= */
 // une case = TC x TC unites. own : 0 personne, 1 USC, 2 CCR. Seule la terre ferme se conquiert.
-const TC = 4, SID = { usc: 1, ccp: 2 }, SNAME = [null, 'usc', 'ccp'];
-const TER = { W: GW / GSC / TC, H: GH / GSC / TC, own: null, land: null, lock: null, tgt: { usc: null, ccp: null }, cnt: { usc: 0, ccp: 0 }, landN: 1,
+export const TC = 4, SID = { usc: 1, ccp: 2 }, SNAME = [null, 'usc', 'ccp'];
+export const TER = { W: GW / GSC / TC, H: GH / GSC / TC, own: null, land: null, lock: null, tgt: { usc: null, ccp: null }, cnt: { usc: 0, ccp: 0 }, landN: 1,
   ver: 0, srcVer: -1, acc: 0, fightAcc: 0, rate: { usc: 0, ccp: 0 }, fresh: null, lastGain: { usc: 0, ccp: 0 } };
 TER.N = TER.W * TER.H;
-const terIdx = (a, b) => { const x = Math.floor((a - GA0) / TC), y = Math.floor((b - GB0) / TC); return (x < 0 || y < 0 || x >= TER.W || y >= TER.H) ? -1 : y * TER.W + x; };
-const ownerAt = (a, b) => { const i = terIdx(a, b); return i < 0 ? 0 : TER.own[i]; };
-const sideAt = (a, b) => SNAME[ownerAt(a, b)] || null;
+export const terIdx = (a, b) => { const x = Math.floor((a - GA0) / TC), y = Math.floor((b - GB0) / TC); return (x < 0 || y < 0 || x >= TER.W || y >= TER.H) ? -1 : y * TER.W + x; };
+export const ownerAt = (a, b) => { const i = terIdx(a, b); return i < 0 ? 0 : TER.own[i]; };
+export const sideAt = (a, b) => SNAME[ownerAt(a, b)] || null;
 // rectangle ou chaque camp possede des cases : on n'y cherche que la (les grandes cartes ont plus d'un million de cases)
-function terGrow(side, i){ const x = i % TER.W, y = (i / TER.W) | 0, b = TER.box[side]; if (x < b[0]) b[0] = x; if (x > b[1]) b[1] = x; if (y < b[2]) b[2] = y; if (y > b[3]) b[3] = y; }
-function terBoxReset(){ TER.box = { usc: [1e9, -1, 1e9, -1], ccp: [1e9, -1, 1e9, -1] }; }
-function terBoxRebuild(){ terBoxReset(); for (let i = 0; i < TER.N; i++) if (TER.own[i]) terGrow(SNAME[TER.own[i]], i); }
-function initTerritory(){
+export function terGrow(side, i){ const x = i % TER.W, y = (i / TER.W) | 0, b = TER.box[side]; if (x < b[0]) b[0] = x; if (x > b[1]) b[1] = x; if (y < b[2]) b[2] = y; if (y > b[3]) b[3] = y; }
+export function terBoxReset(){ TER.box = { usc: [1e9, -1, 1e9, -1], ccp: [1e9, -1, 1e9, -1] }; }
+export function terBoxRebuild(){ terBoxReset(); for (let i = 0; i < TER.N; i++) if (TER.own[i]) terGrow(SNAME[TER.own[i]], i); }
+export function initTerritory(){
   terBoxReset();
   // la grille suit la taille de la carte
   TER.W = Math.round(GW / GSC / TC); TER.H = Math.round(GH / GSC / TC); TER.N = TER.W * TER.H;
@@ -27,17 +30,17 @@ function initTerritory(){
   TER.landN = Math.max(1, n); TER.cnt.usc = TER.cnt.ccp = 0; TER.ver++; TER.srcVer = -1;
 }
 // sources d'influence : chaque batiment rayonne autour de lui ; le QG rayonne d'autant plus que la ville est peuplee
-function influenceOf(l){
-  const E = ECO[l.type]; if (!E) return 0;
+export function influenceOf(l){
+  const E = SH.ECO[l.type]; if (!E) return 0;
   let r = E.rad || 0;
-  if (l.type === 'qg') r += Math.min(80, Math.sqrt(RES[l.side].pop || 0) * 5);
+  if (l.type === 'qg') r += Math.min(80, Math.sqrt(SH.RES[l.side].pop || 0) * 5);
   if (E.up && (l.lvl || 1) > 1) r *= 1 + .15 * ((l.lvl || 1) - 1);
   return r;
 }
 // distance normalisee a la source la plus proche (0 au centre, 250 au bord du rayon, 255 hors d'atteinte)
-function rebuildTargets(){
+export function rebuildTargets(){
   for (const s of SIDES) TER.tgt[s].fill(255);
-  for (const l of BLD){
+  for (const l of SH.BLD){
     if (!l.side || !TER.tgt[l.side]) continue;
     const r = influenceOf(l); if (r <= 0) continue;
     const T = TER.tgt[l.side];
@@ -49,33 +52,33 @@ function rebuildTargets(){
       if (d <= 1){ const v = Math.round(d * 250); if (v < T[i]) T[i] = v; }
     }
   }
-  TER.srcVer = TOWN_VER;
+  TER.srcVer = SH.TOWN_VER;
 }
 // verrous : sous un batiment ou pres d'un pan du Rideau de Laine, la case ne change plus de camp
-function lockCells(a0, a1, b0, b1, sid){
+export function lockCells(a0, a1, b0, b1, sid){
   const x0 = Math.max(0, Math.floor((a0 - GA0) / TC)), x1 = Math.min(TER.W - 1, Math.floor((a1 - GA0) / TC));
   const y0 = Math.max(0, Math.floor((b0 - GB0) / TC)), y1 = Math.min(TER.H - 1, Math.floor((b1 - GB0) / TC));
   for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) TER.lock[y * TER.W + x] = sid;
 }
-function rebuildLocks(){
+export function rebuildLocks(){
   TER.lock.fill(0);
-  for (const l of BLD) if (l.side) lockCells(l.a0, l.a1, l.b0, l.b1, SID[l.side]);
-  for (const w of WALLS){
+  for (const l of SH.BLD) if (l.side) lockCells(l.a0, l.a1, l.b0, l.b1, SID[l.side]);
+  for (const w of SH.WALLS){
     const L = Math.hypot(w.qa - w.pa, w.qb - w.pb) || 1;
     for (let s = 0; s <= L; s += TC / 2){ const a = w.pa + (w.qa - w.pa) * s / L, b = w.pb + (w.qb - w.pb) * s / L; lockCells(a - 8, a + 8, b - 8, b + 8, SID[w.side]); }
   }
 }
 // prendre une case (debarquement, drapeau pose par barge) : on ne vole jamais une case verrouillee
-function claimCell(i, sid, t){
+export function claimCell(i, sid, t){
   const o = TER.own[i]; if (o === sid || !TER.land[i]) return false;
   if (o && TER.lock[i] && TER.lock[i] !== sid) return false;
   if (o) TER.cnt[SNAME[o]]--;
   TER.own[i] = sid; TER.cnt[SNAME[sid]]++; TER.fresh[i] = t; TER.ver++;
   terGrow(SNAME[sid], i);
-  mapDirtyCell(i);
+  SH.mapDirtyCell(i);
   return true;
 }
-function claimDisc(a, b, r, side){
+export function claimDisc(a, b, r, side){
   const sid = SID[side], t = GAME.t;
   const x0 = Math.max(0, Math.floor((a - r - GA0) / TC)), x1 = Math.min(TER.W - 1, Math.floor((a + r - GA0) / TC));
   const y0 = Math.max(0, Math.floor((b - r - GB0) / TC)), y1 = Math.min(TER.H - 1, Math.floor((b + r - GB0) / TC));
@@ -85,16 +88,16 @@ function claimDisc(a, b, r, side){
   }
 }
 // vitesse de conquete, en cases par seconde : les ronrons font avancer la frontiere
-function claimRate(side){
-  const R = RES[side]; if (!R) return 0;
+export function claimRate(side){
+  const R = SH.RES[side]; if (!R) return 0;
   return clamp(14 + Math.max(0, R.rr) * .25 + R.pop * .05, 6, 60) * (R.short ? .45 : 1);
 }
 // force d'un camp sur une case disputee
-function pressureAt(side, i){ const d = TER.tgt[side][i]; if (d === 255) return 0; const R = RES[side]; return (1 - d / 255) * (1 + clamp((R.rr || 0) / 45, 0, 1.6)) * (R.short ? .6 : 1); }
-const CAND = new Int32Array(8192), CANDD = new Uint8Array(8192);
-function stepTerritory(dt){
+export function pressureAt(side, i){ const d = TER.tgt[side][i]; if (d === 255) return 0; const R = SH.RES[side]; return (1 - d / 255) * (1 + clamp((R.rr || 0) / 45, 0, 1.6)) * (R.short ? .6 : 1); }
+export const CAND = new Int32Array(8192), CANDD = new Uint8Array(8192);
+export function stepTerritory(dt){
   if (!TER.own || GAME.mode !== 'play') return;
-  if (TER.srcVer !== TOWN_VER){ rebuildTargets(); rebuildLocks(); }
+  if (TER.srcVer !== SH.TOWN_VER){ rebuildTargets(); rebuildLocks(); }
   TER.acc += dt; TER.fightAcc += dt;
   if (TER.acc < .25) return;
   const step = TER.acc; TER.acc = 0;
@@ -141,4 +144,4 @@ function stepTerritory(dt){
     }
   }
 }
-const terPct = (side) => TER.cnt[side] / TER.landN;
+export const terPct = (side) => TER.cnt[side] / TER.landN;

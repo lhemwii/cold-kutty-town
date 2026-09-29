@@ -3,12 +3,13 @@
 ## Démarrer
 
 ```bash
-npm run dev        # http://localhost:5173, reconstruit et recharge à chaque sauvegarde
-npm run build      # vérifie la syntaxe et écrit dist/
-npm run preview    # sert dist/ tel qu’il sera en ligne
+npm install        # une fois : installe Vite
+npm run dev        # http://localhost:5173, recharge à chaque sauvegarde
+npm run build      # construit le site dans dist/
+npm run preview    # sert dist/ tel qu’il sera en ligne (http://localhost:4173)
 ```
 
-Aucune dépendance : pas de `npm install` obligatoire, il suffit de Node.js 20+.
+Il faut Node.js 20.19 ou plus récent.
 
 ## Branches et déploiement
 
@@ -25,13 +26,17 @@ Pour l’instant, les chats et le journal utilisent des textes tout faits. `api/
 2. Donne-lui sa ligne dans `ECO` (`15-economy.js`) : catégorie du menu, coût, production et fonctionnement par minute, habitants, emplois, loisirs, rayon d’influence, `up` s’il s’améliore, `coast` s’il se pose face à l’eau, `noRoad` s’il n’a pas besoin de route. Il apparaît alors tout seul dans le menu.
 3. Si son emprise n’est pas 36 x 31, ajoute-la dans `FOOT` (`10-town.js`).
 
+## Modules et imports
+
+Un module importe ce qu’il utilise des modules plus petits en numéro (`import { cam, prj } from './01-core.js';`). Pour appeler une fonction d’un module plus grand en numéro, celui-ci l’enregistre dans `SH` à la fin de son fichier et on l’appelle par `SH.nom()`. Une variable que plusieurs modules modifient vit dans `SH` (voir [ARCHITECTURE.md](ARCHITECTURE.md)).
+
 ## Ajouter un effet ou un système
 
 Plutôt que de modifier la boucle, accroche-toi à `HOOKS` (voir [ARCHITECTURE.md](ARCHITECTURE.md)) :
 
 ```js
 HOOKS.step.push((dt, t) => { /* logique à chaque image */ });
-HOOKS.top.push((t) => { CUR = M.LAMP; fput(10, 10, 1); });
+HOOKS.top.push((t) => { SH.CUR = M.LAMP; fput(10, 10, 1); });
 ```
 
 ## Tester

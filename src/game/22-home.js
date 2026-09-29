@@ -1,23 +1,32 @@
+import { SH } from './00-shared.js';
+import { CAMP_SHORT, GAME, GLOBE_ON, HOOKS, RP, TAU, cam, other, reduceMotion, setProj, state } from './01-core.js';
+import { IS, MAP_CONFS, MAP_SIZES, mapScale } from './02-ground.js';
+import { terPct } from './08-territory.js';
+import { CLOCK, MAPV, centerOn, clampCam, setZoom } from './11-render.js';
+import { $, drag, setPaused, setSpeed, toast } from './13-ui.js';
+import { FLAG_HEX, FLAG_HI, flagSVG } from './14-hud.js';
+import { MONTHS } from './17-calendar.js';
+import { loadGame, newWorld, saveTimer, snapshot, startLanding } from './21-main.js';
 /* ================= accueil : menu du jeu, parties sauvegardees, profil, options ================= */
 // Tout est garde dans le navigateur (localStorage) : un index des parties, chaque partie a part, sa vignette,
 // le profil et les options. Rien ne part sur un serveur.
-const SAVES_KEY = 'ckt-saves', PROFILE_KEY = 'ckt-profil', OPT_KEY = 'ckt-options', OLD_SAVE_KEY = 'cold-kutty-town-8';
-const slotKey = (id) => 'ckt-partie-' + id, thumbKey = (id) => 'ckt-vignette-' + id;
-const store = {
+export const SAVES_KEY = 'ckt-saves', PROFILE_KEY = 'ckt-profil', OPT_KEY = 'ckt-options', OLD_SAVE_KEY = 'cold-kutty-town-8';
+export const slotKey = (id) => 'ckt-partie-' + id, thumbKey = (id) => 'ckt-vignette-' + id;
+export const store = {
   get(k, def){ try { const s = localStorage.getItem(k); return s == null ? def : JSON.parse(s); } catch (_) { return def; } },
   set(k, v){ try { localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v)); return true; } catch (_) { return false; } },
   raw(k){ try { return localStorage.getItem(k); } catch (_) { return null; } },
   del(k){ try { localStorage.removeItem(k); } catch (_) {} }
 };
-const OPT = Object.assign({ vol: 70, mus: 100, speed: 1, wx: 1 }, store.get(OPT_KEY, {}));
-const PROFILE = Object.assign({ name: '', side: 'usc', games: 0, wins: 0, losses: 0, secs: 0 }, store.get(PROFILE_KEY, {}));
-const saveOpt = () => store.set(OPT_KEY, OPT);
-const saveProfile = () => store.set(PROFILE_KEY, PROFILE);
+export const OPT = Object.assign({ vol: 70, mus: 100, speed: 1, wx: 1 }, store.get(OPT_KEY, {}));
+export const PROFILE = Object.assign({ name: '', side: 'usc', games: 0, wins: 0, losses: 0, secs: 0 }, store.get(PROFILE_KEY, {}));
+export const saveOpt = () => store.set(OPT_KEY, OPT);
+export const saveProfile = () => store.set(PROFILE_KEY, PROFILE);
 GAME.slot = null; GAME.name = '';
 
 /* ---- les parties ---- */
-const savesIndex = () => { const ix = store.get(SAVES_KEY, []); return Array.isArray(ix) ? ix : []; };
-const newSlotId = () => Date.now().toString(36) + Math.floor(Math.random() * 1296).toString(36);
+export const savesIndex = () => { const ix = store.get(SAVES_KEY, []); return Array.isArray(ix) ? ix : []; };
+export const newSlotId = () => Date.now().toString(36) + Math.floor(Math.random() * 1296).toString(36);
 // l'ancienne sauvegarde unique devient la premiere partie de la liste
 (function migrate(){
   const old = store.raw(OLD_SAVE_KEY); if (!old) return;
@@ -29,14 +38,14 @@ const newSlotId = () => Date.now().toString(36) + Math.floor(Math.random() * 129
   }
   store.del(OLD_SAVE_KEY);
 })();
-function mapThumb(){
+export function mapThumb(){
   if (!MAPV.cv) return null;
   const c = document.createElement('canvas'); c.width = 120; c.height = 81;
   const g = c.getContext('2d'); g.imageSmoothingEnabled = true; g.drawImage(MAPV.cv, 0, 0, 120, 81);
   try { return c.toDataURL('image/png'); } catch (_) { return null; }
 }
-let saveWarned = false, thumbAt = 0;
-function saveNow(){
+export let saveWarned = false, thumbAt = 0;
+export function saveNow(){
   if (GAME.mode !== 'play' && GAME.mode !== 'over') return;
   if (!GAME.slot) GAME.slot = newSlotId();
   const d = snapshot(); d.name = GAME.name;
@@ -45,25 +54,25 @@ function saveNow(){
     return;
   }
   const ix = savesIndex().filter(e => e.id !== GAME.slot);
-  ix.unshift({ id: GAME.slot, name: GAME.name, side: GAME.side, at: Date.now(), m: CAL.m, h: CLOCK.h, pct: [terPct('usc'), terPct('ccp')], seed: GAME.seed, size: GAME.size, conf: GAME.conf, won: GAME.winner || '' });
+  ix.unshift({ id: GAME.slot, name: GAME.name, side: GAME.side, at: Date.now(), m: SH.CAL.m, h: CLOCK.h, pct: [terPct('usc'), terPct('ccp')], seed: GAME.seed, size: GAME.size, conf: GAME.conf, won: GAME.winner || '' });
   store.set(SAVES_KEY, ix);
   const now2 = performance.now();
   if (now2 - thumbAt > 30000 || !store.raw(thumbKey(GAME.slot))){ thumbAt = now2; const u = mapThumb(); if (u) store.set(thumbKey(GAME.slot), u); }
 }
-function loadSlot(id){
+export function loadSlot(id){
   const d = store.get(slotKey(id), null), e = savesIndex().find(o => o.id === id);
   if (!d || !loadGame(d)){ toast('Cette sauvegarde est illisible.'); return false; }
   GAME.slot = id; GAME.name = d.name || (e && e.name) || 'Partie';
   closeHome(true);
   return true;
 }
-function deleteSlot(id){
+export function deleteSlot(id){
   store.del(slotKey(id)); store.del(thumbKey(id));
   store.set(SAVES_KEY, savesIndex().filter(e => e.id !== id));
   if (GAME.slot === id) GAME.slot = null;
 }
 // quand la partie a-t-elle ete jouee : sans annee, comme tout le reste du jeu
-function whenLabel(at){
+export function whenLabel(at){
   const d = Date.now() - at, m = Math.round(d / 60000);
   if (m < 1) return 'à l’instant';
   if (m < 60) return 'il y a ' + m + ' min';
@@ -76,10 +85,10 @@ function whenLabel(at){
 }
 
 /* ---- l'ecran d'accueil ---- */
-let homePage = null, homeWasPaused = false;
-const PAGES = { new: 'pageNew', load: 'pageLoad', profile: 'pageProfile', options: 'pageOptions', rules: 'pageRules' };
-const inGame = () => GAME.mode === 'play' || GAME.mode === 'over';
-function openIntro(page){
+export let homePage = null, homeWasPaused = false;
+export const PAGES = { new: 'pageNew', load: 'pageLoad', profile: 'pageProfile', options: 'pageOptions', rules: 'pageRules' };
+export const inGame = () => GAME.mode === 'play' || GAME.mode === 'over';
+export function openIntro(page){
   const el = $('intro'), wasOpen = !el.hidden;
   el.hidden = false; document.body.classList.add('home-open');
   if (inGame() && !wasOpen){ homeWasPaused = GAME.paused; setPaused(true); }
@@ -93,18 +102,18 @@ function openIntro(page){
   $('homeHello').textContent = PROFILE.name ? 'Bon retour sur l’île, ' + PROFILE.name + '.' : ''; $('homeHello').hidden = !PROFILE.name;
   showPage(page || null);
 }
-function closeHome(resume){
+export function closeHome(resume){
   $('intro').hidden = true; showPage(null); document.body.classList.remove('home-open');
   if (resume && inGame()) setPaused(homeWasPaused);
 }
-function showPage(p){
+export function showPage(p){
   homePage = p;
   for (const k in PAGES) $(PAGES[k]).hidden = k !== p;
   for (const b of document.querySelectorAll('.hm[data-page]')) b.setAttribute('aria-current', String(b.dataset.page === p));
   if (p === 'new') fillNew(); else if (p === 'load') fillLoad(); else if (p === 'profile') fillProfile(); else if (p === 'options') fillOptions();
 }
-for (const b of document.querySelectorAll('.hm[data-page]')) b.addEventListener('click', () => { sfx('click'); showPage(homePage === b.dataset.page ? null : b.dataset.page); });
-$('hmBack').addEventListener('click', () => { sfx('click'); closeHome(true); });
+for (const b of document.querySelectorAll('.hm[data-page]')) b.addEventListener('click', () => { SH.sfx('click'); showPage(homePage === b.dataset.page ? null : b.dataset.page); });
+$('hmBack').addEventListener('click', () => { SH.sfx('click'); closeHome(true); });
 $('hmContinue').addEventListener('click', () => { const last = savesIndex()[0]; if (last) loadSlot(last.id); });
 $('hmQuit').addEventListener('click', () => { saveNow(); leaveToHome(); });
 $('btnMenu').addEventListener('click', () => openIntro());
@@ -114,41 +123,41 @@ window.addEventListener('keydown', (e) => {
   e.stopPropagation();
 }, true);
 // quitter la partie : on revient a l'accueil, une ile tiree au sort en fond
-function leaveToHome(){
+export function leaveToHome(){
   clearTimeout(saveTimer);
   GAME.mode = 'menu'; GAME.slot = null; GAME.paused = false; homeWasPaused = false;
   for (const id of ['topbar', 'bottom', 'radio', 'landing', 'endBox', 'chat', 'paper', 'sel']) $(id).hidden = true;
   document.body.classList.remove('playing', 'sel-open');
-  state.sel = null; state.selV = null; if (state.chatCat) closeChat();
+  state.sel = null; state.selV = null; if (state.chatCat) SH.closeChat();
   setPaused(false);
   homeIsland(1 + Math.floor(Math.random() * 99999));
   openIntro();
 }
 
 /* ---- nouvelle partie ---- */
-let pickSide = PROFILE.side === 'ccp' ? 'ccp' : 'usc';
-function markSide(){ for (const o of document.querySelectorAll('#pageNew .side-card')) o.setAttribute('aria-checked', String(o.dataset.side === pickSide)); }
-for (const b of document.querySelectorAll('#pageNew .side-card')) b.addEventListener('click', () => { pickSide = b.dataset.side; markSide(); sfx(pickSide); });
-function fillNew(){ markSide(); markMap(); $('newName').value = 'Partie ' + (savesIndex().length + 1); $('newSeed').value = ''; }
+export let pickSide = PROFILE.side === 'ccp' ? 'ccp' : 'usc';
+export function markSide(){ for (const o of document.querySelectorAll('#pageNew .side-card')) o.setAttribute('aria-checked', String(o.dataset.side === pickSide)); }
+for (const b of document.querySelectorAll('#pageNew .side-card')) b.addEventListener('click', () => { pickSide = b.dataset.side; markSide(); SH.sfx(pickSide); });
+export function fillNew(){ markSide(); markMap(); $('newName').value = 'Partie ' + (savesIndex().length + 1); $('newSeed').value = ''; }
 // taille de la carte et forme du monde (retenues pour la prochaine partie)
-const MAP_KEY = 'ckt-carte';
-let pickSize = 'moyenne', pickConf = 'une';
+export const MAP_KEY = 'ckt-carte';
+export let pickSize = 'moyenne', pickConf = 'une';
 { const m = store.get(MAP_KEY, {}) || {}; if (MAP_SIZES[m.size]) pickSize = m.size; if (MAP_CONFS[m.conf]) pickConf = m.conf; }
-const MAP_NOTES = { une: 'Une grande île, les deux camps débarquent chacun d’un côté.', deux: 'Deux îles face à face, séparées par un détroit : chaque camp débarque sur la sienne. Les barges passent de l’une à l’autre.', quatre: 'Quatre îles séparées par des chenaux. Les barges vont de l’une à l’autre.', archipel: 'Une poignée d’îles de toutes les tailles. Il faudra des barges pour s’étendre.', atoll: 'Un anneau de terre autour d’un lagon, deux passes vers le large et un îlot au milieu.' };
-function markMap(){
+export const MAP_NOTES = { une: 'Une grande île, les deux camps débarquent chacun d’un côté.', deux: 'Deux îles face à face, séparées par un détroit : chaque camp débarque sur la sienne. Les barges passent de l’une à l’autre.', quatre: 'Quatre îles séparées par des chenaux. Les barges vont de l’une à l’autre.', archipel: 'Une poignée d’îles de toutes les tailles. Il faudra des barges pour s’étendre.', atoll: 'Un anneau de terre autour d’un lagon, deux passes vers le large et un îlot au milieu.' };
+export function markMap(){
   for (const b of $('newSize').children) b.setAttribute('aria-checked', String(b.dataset.v === pickSize));
   for (const b of $('newConf').children) b.setAttribute('aria-checked', String(b.dataset.v === pickConf));
   const m = MAP_SIZES[pickSize];
   $('newMapNote').textContent = MAP_NOTES[pickConf] + (pickSize === 'moyenne' ? '' : ' Carte ' + m.name.toLowerCase() + ' : ' + Math.round(m.w * m.h / (1600 * 1080) * 100) + ' % de la moyenne.');
 }
-function pickMap(size, conf){
+export function pickMap(size, conf){
   if (size) pickSize = size; if (conf) pickConf = conf;
   store.set(MAP_KEY, { size: pickSize, conf: pickConf });
-  markMap(); sfx('click');
+  markMap(); SH.sfx('click');
 }
 for (const b of $('newSize').children) b.addEventListener('click', () => pickMap(b.dataset.v, null));
 for (const b of $('newConf').children) b.addEventListener('click', () => pickMap(null, b.dataset.v));
-$('newDice').addEventListener('click', () => { $('newSeed').value = String(1 + Math.floor(Math.random() * 99999)); sfx('click'); });
+$('newDice').addEventListener('click', () => { $('newSeed').value = String(1 + Math.floor(Math.random() * 99999)); SH.sfx('click'); });
 $('introGo').addEventListener('click', () => {
   if (inGame()) saveNow();
   GAME.side = pickSide; GAME.rival = other(pickSide);
@@ -164,7 +173,7 @@ $('introGo').addEventListener('click', () => {
 });
 
 /* ---- charger ---- */
-function fillLoad(){
+export function fillLoad(){
   const box = $('saveList'); box.textContent = '';
   const ix = savesIndex();
   if (!ix.length){ const p = document.createElement('p'); p.className = 'field-note'; p.textContent = 'Aucune partie sauvegardée pour l’instant. Lance une nouvelle partie : elle se sauvegarde toute seule.'; box.append(p); return; }
@@ -184,15 +193,15 @@ function fillLoad(){
     const del = document.createElement('button'); del.className = 'btn danger'; del.type = 'button'; del.textContent = 'Supprimer';
     del.addEventListener('click', () => {
       if (del.dataset.sure !== '1'){ del.dataset.sure = '1'; del.textContent = 'Vraiment ?'; setTimeout(() => { del.dataset.sure = ''; del.textContent = 'Supprimer'; }, 2500); return; }
-      deleteSlot(e.id); sfx('demolish'); fillLoad(); openIntro('load');
+      deleteSlot(e.id); SH.sfx('demolish'); fillLoad(); openIntro('load');
     });
     act.append(go, del); info.append(act); card.append(info); box.append(card);
   }
 }
 
 /* ---- profil ---- */
-function fmtDuration(s){ const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60); return h ? h + ' h ' + String(m).padStart(2, '0') : m + ' min'; }
-function fillProfile(){
+export function fmtDuration(s){ const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60); return h ? h + ' h ' + String(m).padStart(2, '0') : m + ' min'; }
+export function fillProfile(){
   $('profName').value = PROFILE.name || '';
   for (const b of $('profSide').children) b.setAttribute('aria-checked', String(b.dataset.side === PROFILE.side));
   const box = $('profStats'); box.textContent = '';
@@ -201,9 +210,9 @@ function fillProfile(){
   }
 }
 $('profName').addEventListener('input', () => { PROFILE.name = $('profName').value.trim().slice(0, 20); saveProfile(); });
-for (const b of $('profSide').children) b.addEventListener('click', () => { PROFILE.side = b.dataset.side; pickSide = PROFILE.side; saveProfile(); fillProfile(); sfx(PROFILE.side); });
+for (const b of $('profSide').children) b.addEventListener('click', () => { PROFILE.side = b.dataset.side; pickSide = PROFILE.side; saveProfile(); fillProfile(); SH.sfx(PROFILE.side); });
 // fin de partie : une victoire ou une defaite, une seule fois par partie
-function profileResult(winner){
+export function profileResult(winner){
   if (!GAME.slot || GAME.counted === GAME.slot) return;
   GAME.counted = GAME.slot;
   if (winner === GAME.side) PROFILE.wins++; else PROFILE.losses++;
@@ -211,7 +220,7 @@ function profileResult(winner){
 }
 
 /* ---- options ---- */
-function fillOptions(){
+export function fillOptions(){
   $('optVol').value = OPT.vol; $('optVolV').textContent = OPT.vol + ' %';
   $('optMus').value = OPT.mus; $('optMusV').textContent = OPT.mus + ' %';
   for (const b of $('optSpeed').children) b.setAttribute('aria-checked', String(+b.dataset.v === OPT.speed));
@@ -219,8 +228,8 @@ function fillOptions(){
 }
 $('optVol').addEventListener('input', () => { OPT.vol = +$('optVol').value; saveOpt(); fillOptions(); });
 $('optMus').addEventListener('input', () => { OPT.mus = +$('optMus').value; saveOpt(); fillOptions(); });
-for (const b of $('optSpeed').children) b.addEventListener('click', () => { OPT.speed = +b.dataset.v; saveOpt(); fillOptions(); sfx('click'); });
-for (const b of $('optWx').children) b.addEventListener('click', () => { OPT.wx = +b.dataset.v; saveOpt(); fillOptions(); sfx('click'); });
+for (const b of $('optSpeed').children) b.addEventListener('click', () => { OPT.speed = +b.dataset.v; saveOpt(); fillOptions(); SH.sfx('click'); });
+for (const b of $('optWx').children) b.addEventListener('click', () => { OPT.wx = +b.dataset.v; saveOpt(); fillOptions(); SH.sfx('click'); });
 $('optWipe').addEventListener('click', () => {
   const b = $('optWipe');
   if (b.dataset.sure !== '1'){ b.dataset.sure = '1'; b.textContent = 'Sûr ? Tout sera perdu'; setTimeout(() => { b.dataset.sure = ''; b.textContent = 'Effacer parties, profil et options'; }, 3000); return; }
@@ -233,14 +242,14 @@ $('optWipe').addEventListener('click', () => {
 });
 
 /* ---- le fond de l'accueil : l'ile de loin (ou la planete, avec GLOBE_ON), qui tourne doucement sur elle-meme ---- */
-const HOME = { last: 0, acc: 0 };
-function homeIsland(seed){
+export const HOME = { last: 0, acc: 0 };
+export function homeIsland(seed){
   // en fond de l'accueil : une carte moyenne, d'une forme tiree au sort
   const confs = Object.keys(MAP_CONFS);
   newWorld(seed, 'moyenne', confs[seed % confs.length]);
   centerOn(IS.ca, IS.cb); cam.phiT = null; cam.follow = null; cam.phi = 0;
   if (GLOBE_ON) cam.a = IS.ca - .6 * RP;
-  setZoom(KMIN * (GLOBE_ON ? .06 : .16) / mapScale(), null, null, true);
+  setZoom(SH.KMIN * (GLOBE_ON ? .06 : .16) / mapScale(), null, null, true);
 }
 HOOKS.after.push(() => {
   const now2 = performance.now(), dt = HOME.last ? Math.min(.1, (now2 - HOME.last) / 1000) : 0; HOME.last = now2;
@@ -254,8 +263,8 @@ HOOKS.after.push(() => {
 
 /* ---- les drapeaux de l'accueil : ils flottent vraiment au vent ---- */
 // chaque colonne de pixels ondule (plus fort loin du mat), avec des plis plus clairs et plus sombres
-const FLAGW = { els: [], s: 3, last: 0, still: reduceMotion };
-function flagWaveInit(){
+export const FLAGW = { els: [], s: 3, last: 0, still: reduceMotion };
+export function flagWaveInit(){
   for (const el of document.querySelectorAll('.home-flags [data-flag]')){
     const art = FLAG_HI[el.dataset.flag], fw = art[0].length, fh = art.length, s = FLAGW.s;
     const cv = document.createElement('canvas'); cv.width = (fw + 3) * s; cv.height = (fh + 16) * s;
@@ -266,7 +275,7 @@ function flagWaveInit(){
   }
   flagWaveDraw(0);
 }
-function flagWaveDraw(t){
+export function flagWaveDraw(t){
   const s = FLAGW.s;
   for (const F of FLAGW.els){
     const { art, fw, fh, px, pal } = F, W2 = (fw + 3) * s, H2 = (fh + 16) * s, top = 4;
@@ -296,3 +305,6 @@ HOOKS.after.push(() => {
   const now2 = performance.now(); if (now2 - FLAGW.last < 30) return; FLAGW.last = now2;
   flagWaveDraw(now2 / 1000);
 });
+
+// appeles depuis des modules plus petits en numero
+Object.assign(SH, { OPT, saveNow, openIntro, profileResult, homeIsland });

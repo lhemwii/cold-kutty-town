@@ -4,9 +4,18 @@ Cold Kutty Town tourne entièrement dans le navigateur, sans framework ni image.
 
 ## Le build
 
-Les modules de `src/game/` partagent **une seule portée** : `scripts/build.mjs` les colle dans l’ordre de leur numéro, à l’intérieur d’une fonction, et vérifie la syntaxe. Une variable déclarée dans `01-core.js` est donc visible dans `21-main.js`. C’est simple et rapide, mais l’ordre compte : un module ne peut exécuter du code au chargement qu’avec ce que les modules précédents ont déjà défini (les fonctions, elles, sont connues partout). La feuille de route prévoit de passer à de vrais modules ES avec des `import`.
+Le jeu est construit par **Vite** (`vite.config.js`). La page est `src/index.html`, le point d’entrée `src/main.js` : il charge l’adaptateur de plateforme, puis les modules de `src/game/` dans l’ordre de leur numéro.
 
-Le résultat est un site statique dans `dist/` : `index.html`, un CSS et deux scripts avec une empreinte dans le nom, pour que les navigateurs les gardent en cache longtemps.
+Les modules sont de **vrais modules ES**, avec trois règles :
+
+- **Tout ce qui est déclaré au niveau d’un module est exporté.**
+- **Un module n’importe que des modules plus petits en numéro.** L’ordre d’exécution au chargement reste donc celui des numéros, comme avant : un module peut utiliser au chargement tout ce que les modules précédents ont défini.
+- **La vue** (projection `PC`, `PS`, `TX`, `TY`, échelle `SC`, taille `W`, `H`, `N`, tampons `fb`, `mb`, `lb`, `px32`) reste faite de variables de `01-core.js`, importées partout : elles sont lues à chaque pixel, et une variable de module est bien plus rapide qu’une propriété d’objet. Un autre module la change par `setView({ … })`, et la garde par `getView()` pour la remettre ensuite (dessin des vignettes, dessin d’un objet de loin).
+- **L’objet partagé `SH` (`00-shared.js`)** porte le reste. D’abord les variables que plusieurs modules modifient : le zoom (`SH.Z`, `SH.K`, `SH.KMIN`…), le dessin en cours (`SH.CUR`, `SH.CUR_SIDE`, `SH.LV`) et les listes du monde (`SH.BLD`, `SH.ROADS`, `SH.BOATS`…). Ensuite ce qu’un module appelle dans un module plus grand en numéro : celui-ci s’y enregistre à la fin de son chargement (`Object.assign(SH, { saveSoon, … })`), et l’appelant écrit `SH.saveSoon()`. Ces appels ne se font jamais au chargement.
+
+La conversion depuis l’ancienne portée unique a été faite par un script (analyse des portées avec eslint-scope), sans toucher à la logique.
+
+`npm run dev` sert le jeu avec rechargement à chaud (et `/api/claude` en local), `npm run build` écrit un site statique dans `dist/` (une page, un CSS et un script avec une empreinte dans le nom, pour un cache long), `npm run preview` le sert tel qu’il sera en ligne.
 
 ## Les modules
 
