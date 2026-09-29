@@ -89,7 +89,8 @@ function openIntro(page){
   if (last && !inGame()) document.body.dataset.side = last.side;
   if (last) $('hmContinueSub').textContent = last.name + ' · ' + CAMP_SHORT[last.side] + ' · ' + whenLabel(last.at);
   $('hmLoadSub').textContent = ix.length ? ix.length + (ix.length > 1 ? ' parties' : ' partie') : '';
-  $('homeHello').textContent = PROFILE.name ? 'Bon retour sur l’île, ' + PROFILE.name + '.' : 'Bienvenue sur l’île, camarade chat.';
+  // un mot d'accueil seulement quand on connait le nom du joueur
+  $('homeHello').textContent = PROFILE.name ? 'Bon retour sur l’île, ' + PROFILE.name + '.' : ''; $('homeHello').hidden = !PROFILE.name;
   showPage(page || null);
 }
 function closeHome(resume){
@@ -138,7 +139,7 @@ function markMap(){
   for (const b of $('newSize').children) b.setAttribute('aria-checked', String(b.dataset.v === pickSize));
   for (const b of $('newConf').children) b.setAttribute('aria-checked', String(b.dataset.v === pickConf));
   const m = MAP_SIZES[pickSize];
-  $('newMapNote').textContent = MAP_NOTES[pickConf] + ' Carte ' + m.name.toLowerCase() + ' : ' + Math.round(m.w * m.h / (1600 * 1080) * 100) + ' % de la moyenne.';
+  $('newMapNote').textContent = MAP_NOTES[pickConf] + (pickSize === 'moyenne' ? '' : ' Carte ' + m.name.toLowerCase() + ' : ' + Math.round(m.w * m.h / (1600 * 1080) * 100) + ' % de la moyenne.');
 }
 function pickMap(size, conf){
   if (size) pickSize = size; if (conf) pickConf = conf;
@@ -249,4 +250,49 @@ HOOKS.after.push(() => {
   // en fond : l'ile tourne doucement sur elle-meme (avec le globe : la planete tourne, la camera en fait le tour)
   if (drag && drag.moved) return;
   if (GLOBE_ON){ cam.a += dt * .05 * RP; clampCam(); } else { cam.phi = (cam.phi + dt * .06) % TAU; setProj(); }
+});
+
+/* ---- les drapeaux de l'accueil : ils flottent vraiment au vent ---- */
+// chaque colonne de pixels ondule (plus fort loin du mat), avec des plis plus clairs et plus sombres
+const FLAGW = { els: [], s: 3, last: 0, still: reduceMotion };
+function flagWaveInit(){
+  for (const el of document.querySelectorAll('.home-flags [data-flag]')){
+    const art = FLAG_HI[el.dataset.flag], fw = art[0].length, fh = art.length, s = FLAGW.s;
+    const cv = document.createElement('canvas'); cv.width = (fw + 3) * s; cv.height = (fh + 16) * s;
+    el.innerHTML = ''; el.appendChild(cv);
+    const g = cv.getContext('2d'), img = g.createImageData(cv.width, cv.height);
+    const pal = {}; for (const k in FLAG_HEX){ const v = parseInt(FLAG_HEX[k].slice(1), 16); pal[k] = [v >> 16, (v >> 8) & 255, v & 255]; }
+    FLAGW.els.push({ art, fw, fh, g, img, px: new Uint32Array(img.data.buffer), pal, ph: el.classList.contains('slow') ? 2.1 : 0, sp: el.classList.contains('slow') ? 2.6 : 3.1 });
+  }
+  flagWaveDraw(0);
+}
+function flagWaveDraw(t){
+  const s = FLAGW.s;
+  for (const F of FLAGW.els){
+    const { art, fw, fh, px, pal } = F, W2 = (fw + 3) * s, H2 = (fh + 16) * s, top = 4;
+    px.fill(0);
+    const put = (x, y, r, g, b) => { if (x >= 0 && y >= 0 && x < W2 && y < H2) px[y * W2 + x] = (255 << 24) | (b << 16) | (g << 8) | r; };
+    // le mat, et sa boule
+    for (let y = 1 * s; y < H2; y++) for (let x = 0; x < 2 * s; x++) put(x, y, x < s ? 70 : 31, x < s ? 66 : 29, x < s ? 76 : 36);
+    for (let y = 0; y < s * 2; y++) for (let x = -1; x < 2 * s + 1; x++) put(x, y, 217, 162, 30);
+    for (let x = 0; x < fw; x++){
+      const u = x / (fw - 1), ph = x * .23 - t * F.sp + F.ph;
+      const dy = Math.sin(ph) * 1.9 * Math.pow(u, .85) + Math.sin(ph * .5 + 1.3) * .6 * u;
+      const lit = 1 + Math.cos(ph) * .2 * Math.pow(u, .7);
+      for (let y = 0; y < fh; y++){
+        const c = pal[art[y][x]]; if (!c) continue;
+        const r = Math.min(255, c[0] * lit) | 0, g = Math.min(255, c[1] * lit) | 0, b = Math.min(255, c[2] * lit) | 0;
+        const y0 = Math.round((top + y + dy) * s), x0 = (x + 2) * s;
+        for (let yy = 0; yy < s; yy++) for (let xx = 0; xx < s; xx++) put(x0 + xx, y0 + yy, r, g, b);
+      }
+    }
+    F.g.putImageData(F.img, 0, 0);
+  }
+}
+flagWaveInit();
+HOOKS.after.push(() => {
+  // seulement quand l'accueil est a l'ecran, et une image sur deux suffit
+  if (FLAGW.still || !document.body.classList.contains('home-open') || document.body.classList.contains('playing')) return;
+  const now2 = performance.now(); if (now2 - FLAGW.last < 30) return; FLAGW.last = now2;
+  flagWaveDraw(now2 / 1000);
 });

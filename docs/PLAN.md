@@ -142,6 +142,13 @@ Au lancement d’une partie, on choisit la taille de la carte et la forme du mon
 - [x] Performances : de très loin, on ne parcourt plus chaque arbre (la forêt se voit par le sol), arbres et montagnes ne sont cherchés que sur la carte, le territoire ne cherche que dans la zone de chaque camp ; création de la carte immense en 2 s environ.
 - [ ] À régler en jouant : l’objectif de 60 % du territoire est très long à atteindre sur les grandes cartes.
 
+## Étape 0.18. Accueil : drapeaux au vent, texte noir, nouvelle police (fait)
+
+- [x] Les deux drapeaux de l’accueil flottent vraiment au vent : dessinés pixel par pixel, chaque colonne ondule, plus fort loin du mât, avec des plis clairs et sombres.
+- [x] Plus de texte gris dans l’interface : tout le texte est noir.
+- [x] Police de texte : Bricolage Grotesque (au lieu d’Archivo). Les titres gardent la police pixel.
+- [x] Accueil épuré : plus de ligne « Île de Kutty · La guerre froide », plus de « Bienvenue sur l’île, camarade chat » (le mot d’accueil n’apparaît que quand on a un nom de profil).
+
 ## Étape 1. Fiabiliser ce qui existe
 
 - [ ] Jouer une vraie partie à la souris et noter chaque bug d’interface.

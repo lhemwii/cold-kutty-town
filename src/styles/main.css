@@ -3,7 +3,7 @@
   color-scheme: light;
   --ink:#fbf7ee;
   --paper:#1f1d24;
-  --mute:rgba(31,29,36,.62);
+  --mute:#1f1d24;
   --faint:rgba(31,29,36,.16);
   --usc:#2a45a6;
   --ccp:#c8283a;
@@ -11,7 +11,7 @@
   --me:var(--usc);
   --display:'Silkscreen', ui-monospace, 'Courier New', monospace;
   --script:'Yellowtail', 'Brush Script MT', cursive;
-  --text:'Archivo', 'Helvetica Neue', Arial, sans-serif;
+  --text:'Bricolage Grotesque', 'Helvetica Neue', Arial, sans-serif;
   --mono:'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
   --shadow:4px 4px 0 rgba(31,29,36,.9);
 }
@@ -194,7 +194,6 @@ body.sel-open .bottom,body.chat-open .bottom{right:322px}
 /* ecran d'accueil */
 .intro{position:fixed;inset:0;z-index:40;display:grid;place-items:center;padding:16px;background:rgba(15,32,58,.35);overflow:auto}
 .intro-card{position:relative;width:min(560px,100%);padding:22px 24px 20px;display:grid;gap:14px}
-.intro-kicker{font-family:var(--display);font-size:8px;letter-spacing:.12em;color:var(--mute)}
 .intro-title{display:flex;align-items:baseline;gap:10px;margin:0;line-height:1}
 .intro-title .brand-old{font-size:48px}
 .intro-title .brand-name{font-size:24px}
@@ -397,10 +396,9 @@ body.photo .topbar,body.photo .radio,body.photo .bottom,body.photo .sel,body.pho
 .stat b{font:600 22px/1 var(--mono)}
 .stat span{font-size:11px;color:var(--mute)}
 .home-flags{position:fixed;right:max(16px,4vw);top:24px;display:flex;gap:18px;pointer-events:none;z-index:41}
-.home-flags .flag{width:130px;aspect-ratio:48/26;outline:3px solid var(--ink);box-shadow:var(--shadow);animation:flagwave 3.2s ease-in-out infinite;transform-origin:0 50%}
-.home-flags .flag.slow{animation-duration:3.9s;animation-delay:-1.1s}
-@keyframes flagwave{0%,100%{transform:perspective(320px) rotateY(-10deg) skewY(1.5deg)}50%{transform:perspective(320px) rotateY(9deg) skewY(-1.5deg)}}
-@media (prefers-reduced-motion:reduce){.home-flags .flag{animation:none}}
+.home-flags .flag{width:150px}
+/* les drapeaux de l'accueil flottent au vent : dessines pixel par pixel dans un canvas (22-home.js) */
+.home-flags canvas{display:block;width:150px;height:auto;image-rendering:pixelated;filter:drop-shadow(4px 4px 0 rgba(31,29,36,.9))}
 @media (max-width:860px){
   .home{flex-direction:column;align-items:stretch;background:rgba(12,26,48,.45)}
   .home-col,.home-page{width:100%;align-self:stretch}
