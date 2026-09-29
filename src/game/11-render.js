@@ -187,7 +187,8 @@ function layout(){
   KDEF = Math.max(2, Math.round(Math.min(devW, devH) / 290));
   KMIN = Math.min(KDEF, Math.max(1, Math.ceil(Math.sqrt(devW * devH / PIX_BUDGET))));
   KMAX = KDEF * 4;
-  ZLEVELS = [KMIN * .16, KMIN * .24, KMIN * .36, KMIN * .52, KMIN * .74];
+  // tout au bout du dezoom, trois paliers de planete (voir 23-planet.js), puis l'ile de loin, puis la vue rapprochee
+  ZLEVELS = [KMIN * .035, KMIN * .06, KMIN * .1, KMIN * .16, KMIN * .24, KMIN * .36, KMIN * .52, KMIN * .74];
   for (let k = KMIN; k <= KMAX; k = Math.max(k + 1, Math.round(k * 1.2))) ZLEVELS.push(k);
   if (ZLEVELS[ZLEVELS.length - 1] !== KMAX) ZLEVELS.push(KMAX);
   if (!ZLEVELS.includes(KDEF)){ ZLEVELS.push(KDEF); ZLEVELS.sort((x, y) => x - y); }
@@ -514,6 +515,7 @@ let DYN_SHADOWS = [];
 function dynamicDrawables(t){ const out = []; DYN_SHADOWS = []; for (const f of HOOKS.dyn) f(t, out); return out; }
 // De pres, chaque objet se dessine directement dans le tampon. De loin (SC < 1), il passe par farDraw : dessine a l'echelle 1 a part, puis recopie en petit.
 function render(t){
+  if (planetOn()){ renderPlanet(t); return; }
   const far = SC < .999;
   setProj();
   renderGround(t);

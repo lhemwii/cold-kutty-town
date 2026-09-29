@@ -52,6 +52,7 @@ function saveNow(){
 }
 function loadSlot(id){
   const d = store.get(slotKey(id), null), e = savesIndex().find(o => o.id === id);
+  PLANET.spin = 0;
   if (!d || !loadGame(d)){ toast('Cette sauvegarde est illisible.'); return false; }
   GAME.slot = id; GAME.name = d.name || (e && e.name) || 'Partie';
   closeHome(true);
@@ -138,7 +139,7 @@ $('introGo').addEventListener('click', () => {
   const typed = parseInt(($('newSeed').value || '').replace(/\D/g, ''), 10);
   const seed = typed > 0 ? Math.min(99999, typed) : 1 + Math.floor(Math.random() * 99999);
   PROFILE.games++; saveProfile();
-  closeHome(false); setPaused(false); GAME.winner = null;
+  closeHome(false); setPaused(false); GAME.winner = null; PLANET.spin = 0;
   newWorld(seed);
   setSpeed(OPT.speed);
   startLanding();
@@ -213,24 +214,18 @@ $('optWipe').addEventListener('click', () => {
   toast('Tout est effacé.'); openIntro('options');
 });
 
-/* ---- le fond de l'accueil : une ile vue de loin, qui tourne doucement, et qui change de temps en temps ---- */
-const HOME = { t: 0, last: 0, next: 40, fading: 0 };
+/* ---- le fond de l'accueil : la planete dans l'espace, qui tourne doucement sur elle-meme ---- */
+const HOME = { last: 0, acc: 0 };
 function homeIsland(seed){
   newWorld(seed);
-  centerOn(IS.ca, IS.cb); cam.phiT = null; cam.follow = null;
-  setZoom(ZLEVELS[2], null, null, true);
-  HOME.t = 0; HOME.next = 40;
+  centerOn(IS.ca, IS.cb); cam.phiT = null; cam.follow = null; cam.phi = 0;
+  PLANET.spin = -.6;
+  setZoom(KMIN * .06, null, null, true);
 }
 HOOKS.after.push(() => {
   const now2 = performance.now(), dt = HOME.last ? Math.min(.1, (now2 - HOME.last) / 1000) : 0; HOME.last = now2;
-  // temps de jeu du profil, en vrai temps, gardé toutes les 30 s
-  if (GAME.mode === 'play' && !GAME.paused && !document.hidden){ PROFILE.secs += dt; HOME.acc = (HOME.acc || 0) + dt; if (HOME.acc > 30){ HOME.acc = 0; saveProfile(); } }
+  // temps de jeu du profil, en vrai temps, garde toutes les 30 s
+  if (GAME.mode === 'play' && !GAME.paused && !document.hidden){ PROFILE.secs += dt; HOME.acc += dt; if (HOME.acc > 30){ HOME.acc = 0; saveProfile(); } }
   if (GAME.mode !== 'menu') return;
-  HOME.t += dt;
-  cam.phi += dt * .04;
-  cam.a = IS.ca + Math.cos(HOME.t * .025) * IS.ra * .3; cam.b = IS.cb + Math.sin(HOME.t * .025) * IS.rb * .3;
-  if (HOME.t > HOME.next && !HOME.fading){
-    HOME.fading = 1; $('homeFade').classList.add('on');
-    setTimeout(() => { if (GAME.mode === 'menu') homeIsland(1 + Math.floor(Math.random() * 99999)); $('homeFade').classList.remove('on'); HOME.fading = 0; }, 700);
-  }
+  PLANET.spin += dt * .05;
 });

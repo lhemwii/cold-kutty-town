@@ -102,6 +102,16 @@ Les demandes qui arrivent en cours de route et ne rentrent dans aucune étape de
 - [x] Quitter la partie (depuis le bouton Menu en jeu) : sauvegarde et retour à l’accueil. L’ancienne sauvegarde unique est reprise comme première partie.
 - [x] Bug vu en passant : une partie sauvegardée pendant le débarquement revenait sans QG. Les plages choisies sont gardées et le QG se pose au chargement.
 
+## Étape 0.13. La planète (en cours)
+
+- [x] Tout au bout du dézoom, trois paliers de planète (10 %, 6 %, 3,5 % de KMIN) : l’île sur son globe, l’espace et les étoiles derrière. Le globe garde la vraie carte de l’île (territoires, bâtiments), avec autour des océans, d’autres continents, la banquise et des nuages qui dérivent.
+- [x] Jour et nuit sur le globe selon l’heure de la partie, saisons selon le mois.
+- [x] L’accueil montre la planète qui tourne dans l’espace (fin du changement d’île toutes les 40 s, qui figeait l’écran une seconde). En lançant une partie, on descend de l’espace jusqu’à l’île.
+- [ ] Choisir sa planète dans le menu (taille, climat, nombre d’îles).
+- [ ] Faire tout le tour du globe en glissant (aujourd’hui on reste autour de l’île).
+- [ ] Lumières des villes sur la face de nuit, satellite et fusées de la course à l’espace visibles en orbite.
+- [ ] Plus tard : l’espace autour (lune, autres planètes) et passer de l’une à l’autre.
+
 ## Étape 1. Fiabiliser ce qui existe
 
 - [ ] Jouer une vraie partie à la souris et noter chaque bug d’interface.

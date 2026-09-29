@@ -32,6 +32,7 @@ Le résultat est un site statique dans `dist/` : `index.html`, un CSS et deux sc
 | `20-rival.js` | IA adverse (ébauche, à finir en dernier). |
 | `21-main.js` | Radio, conversation, sauvegarde, déroulé de la partie (accueil, plage, victoire), boucle de jeu. |
 | `22-home.js` | Accueil du jeu : menu, parties sauvegardées par emplacements (`ckt-saves`, `ckt-partie-*`, vignettes), profil, options, île qui tourne en fond. |
+| `23-planet.js` | La planète tout au bout du dézoom : globe dessiné au pixel (carte de l’île + texture tirée au sort : océans, continents, banquise, nuages), jour et nuit, étoiles. Sert aussi de fond à l’accueil. |
 
 ## Le rendu
 

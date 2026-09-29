@@ -401,8 +401,6 @@ body.photo .topbar,body.photo .radio,body.photo .bottom,body.photo .sel,body.pho
 .home-flags .flag.slow{animation-duration:3.9s;animation-delay:-1.1s}
 @keyframes flagwave{0%,100%{transform:perspective(320px) rotateY(-10deg) skewY(1.5deg)}50%{transform:perspective(320px) rotateY(9deg) skewY(-1.5deg)}}
 @media (prefers-reduced-motion:reduce){.home-flags .flag{animation:none}}
-.home-fade{position:fixed;inset:0;z-index:39;background:#0c1a30;opacity:0;pointer-events:none;transition:opacity .6s}
-.home-fade.on{opacity:1}
 @media (max-width:860px){
   .home{flex-direction:column;align-items:stretch;background:rgba(12,26,48,.45)}
   .home-col,.home-page{width:100%;align-self:stretch}

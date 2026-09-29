@@ -261,7 +261,9 @@ function startLanding(){
   $('intro').hidden = true; $('landing').hidden = false; $('topbar').hidden = true; $('bottom').hidden = true; $('radio').hidden = true;
   document.body.dataset.side = GAME.side;
   centerOn(IS.ca, IS.cb); cam.phi = 0; cam.phiT = null;
-  setZoom(ZLEVELS[0], null, null, true);
+  // on descend de l'espace jusqu'a l'ile entiere
+  PLANET.spin = 0;
+  setZoom(KMIN * .16, null, null, false);
   setTool('landing');
 }
 function chooseLanding(a, b){
