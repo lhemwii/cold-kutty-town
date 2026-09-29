@@ -126,6 +126,21 @@ Les demandes qui arrivent en cours de route et ne rentrent dans aucune étape de
 - [x] L’accueil montre de nouveau l’île qui tourne doucement sur elle-même, de loin.
 - [x] On garde des étapes 0.13 et 0.14 les arbres à leur vraie taille de très loin : l’herbe et les montagnes restent visibles.
 
+## Étape 0.16. Les vagues de loin (fait)
+
+- [x] Les vagues restent visibles à tous les zooms, avec autant de vagues à l’écran que de près : la mer vit et on sent qu’on se déplace. En dézoomant, on garde une partie des mêmes vagues (une case sur 2, 4, 8…).
+
+## Étape 0.17. Tailles de carte et configurations d’îles
+
+Au lancement d’une partie, on choisit la taille de la carte et la forme du monde.
+
+- [ ] Six tailles : petite, moyenne (la carte actuelle), grande, très grande, très très grande, immense (environ 3,4 fois plus large que la moyenne). Au-delà de « grande », le sol passe à une case par unité au lieu de deux, pour tenir en mémoire.
+- [ ] Cinq configurations : une île, deux îles face à face (un camp sur chacune), quatre îles, archipel, atoll autour d’un lagon. On passe d’une île à l’autre en barge.
+- [ ] Le choix se fait dans « Nouvelle partie », il est gardé dans la sauvegarde et affiché dans la liste des parties.
+- [ ] Le recul maximal, la vue du débarquement et le fond de l’accueil s’adaptent à la taille de la carte.
+- [ ] Débarquement de l’adversaire : loin du joueur, sur une autre île quand il y en a plusieurs.
+- [ ] Performances : de très loin, on ne parcourt plus chaque arbre (la forêt se voit par le sol) ; création du monde en moins de 2 s pour la plus grande carte.
+
 ## Étape 1. Fiabiliser ce qui existe
 
 - [ ] Jouer une vraie partie à la souris et noter chaque bug d’interface.

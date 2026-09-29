@@ -476,19 +476,19 @@ function drawWaves(t){
   let a0 = 1e9, a1 = -1e9, b0 = 1e9, b1 = -1e9;
   for (const [a, b] of cs){ a0 = Math.min(a0, a); a1 = Math.max(a1, a); b0 = Math.min(b0, b); b1 = Math.max(b1, b); }
   const CW = 12;
-  // tout au fond du dezoom, l'ecume ne ferait plus que des points blancs isoles
-  if (SC < .3) return;
   CUR = M.FOAM;
-  // de loin, une case sur k dans chaque sens : autant de vagues a l'ecran qu'en vue rapprochee
-  const st = Math.max(1, Math.round(1 / SC));
+  // de loin, une case sur st dans chaque sens (st en puissance de 2 : en dezoomant, on garde une partie des memes vagues,
+  // sans saut) : autant de vagues a l'ecran qu'en vue rapprochee, et elles restent accrochees a la mer quand on se deplace
+  const st = SC >= .75 ? 1 : Math.pow(2, Math.round(Math.log2(1 / SC)));
   for (let j = Math.floor(b0 / CW / st) * st - st; j <= Math.floor(b1 / CW) + st; j += st) for (let i = Math.floor(a0 / CW / st) * st - st; i <= Math.floor(a1 / CW) + st; i += st){
     if (hash2(i * 3 + 1, j * 7 + 2) < 0.2) continue;
-    const ga = i * CW + hash2(i + 11, j - 5) * CW, gb = j * CW + hash2(i - 7, j + 13) * CW;
+    const ga = i * CW + hash2(i + 11, j - 5) * CW * st, gb = j * CW + hash2(i - 7, j + 13) * CW * st;
     const ci = cellOf(ga, gb);
     if (ci >= 0 && (gType[ci] !== T_SEA || gSea[ci] < 14)) continue;
     const ph = hash2(i - 31, j - 17) * TAU, sp = 0.55 + hash2(i + 5, j + 41) * 0.9;
     const amp = Math.sin(t * sp + ph); if (amp < 0.15) continue;
-    const Lw = 2 + ((hash2(i + 23, j + 3) * 5) | 0), len = Math.max(1, Math.round(Lw * amp * SC));
+    // de loin, la vague garde au moins un trait de 2 pixels quand elle se leve
+    const Lw = 2 + ((hash2(i + 23, j + 3) * 5) | 0), len = Math.max(SC < .5 && amp > .45 ? 2 : 1, Math.round(Lw * amp * SC));
     const p = prj(ga, gb, 0), x0 = Math.round(p[0] + Math.sin(t * .35 + ph) * 1.5 * SC), y0 = Math.round(p[1]);
     if (x0 < -10 || y0 < -2 || x0 > W + 2 || y0 > H + 2) continue;
     for (let k = 0; k < len; k++) fput(x0 + k, y0, 1);
