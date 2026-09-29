@@ -80,6 +80,8 @@ const CAMP_SHORT = { usc: 'USC', ccp: 'CCR' };
 // Vue de loin courbee : tout au bout du dezoom, le monde est pose sur une sphere de rayon GR (immense juste sous la vue rapprochee,
 // le rayon de la planete RP tout au bout). CURV va de 0 (plat) a 1 (la planete entiere). Le jeu se dessine toujours a plat (prj, unprj) ;
 // une derniere passe (planetWarp, 23-planet.js) pose l'image sur la sphere. geoCast et geoProj font le lien entre l'ecran et la sphere.
+// GLOBE_ON : le globe est garde pour le futur mode espace (voir docs/PLAN.md), mais eteint pour l'instant : le jeu reste a plat.
+const GLOBE_ON = false;
 const RP = 2600, SQ3 = Math.sqrt(3);
 let CURV = 0, GR = Infinity;
 // oy : de combien (en unites du monde) le point vise remonte a l'ecran, pour que la planete finisse centree

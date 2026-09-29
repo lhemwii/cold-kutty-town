@@ -213,19 +213,20 @@ $('optWipe').addEventListener('click', () => {
   toast('Tout est effacé.'); openIntro('options');
 });
 
-/* ---- le fond de l'accueil : la planete dans l'espace, qui tourne doucement sur elle-meme ---- */
+/* ---- le fond de l'accueil : l'ile de loin (ou la planete, avec GLOBE_ON), qui tourne doucement sur elle-meme ---- */
 const HOME = { last: 0, acc: 0 };
 function homeIsland(seed){
   newWorld(seed);
   centerOn(IS.ca, IS.cb); cam.phiT = null; cam.follow = null; cam.phi = 0;
-  cam.a = IS.ca - .6 * RP;
-  setZoom(KMIN * .06, null, null, true);
+  if (GLOBE_ON) cam.a = IS.ca - .6 * RP;
+  setZoom(KMIN * (GLOBE_ON ? .06 : .16), null, null, true);
 }
 HOOKS.after.push(() => {
   const now2 = performance.now(), dt = HOME.last ? Math.min(.1, (now2 - HOME.last) / 1000) : 0; HOME.last = now2;
   // temps de jeu du profil, en vrai temps, garde toutes les 30 s
   if (GAME.mode === 'play' && !GAME.paused && !document.hidden){ PROFILE.secs += dt; HOME.acc += dt; if (HOME.acc > 30){ HOME.acc = 0; saveProfile(); } }
   if (GAME.mode !== 'menu') return;
-  // la planete tourne doucement sur elle-meme (la camera fait le tour, le soleil reste en place)
-  if (!drag || !drag.moved){ cam.a += dt * .05 * RP; clampCam(); }
+  // en fond : l'ile tourne doucement sur elle-meme (avec le globe : la planete tourne, la camera en fait le tour)
+  if (drag && drag.moved) return;
+  if (GLOBE_ON){ cam.a += dt * .05 * RP; clampCam(); } else { cam.phi = (cam.phi + dt * .06) % TAU; setProj(); }
 });

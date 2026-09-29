@@ -190,7 +190,8 @@ function layout(){
   KMIN = Math.min(KDEF, Math.max(1, Math.ceil(Math.sqrt(devW * devH / PIX_BUDGET))));
   KMAX = KDEF * 4;
   // tout au bout du dezoom, trois paliers de planete (voir 23-planet.js), puis l'ile de loin, puis la vue rapprochee
-  ZLEVELS = [KMIN * .035, KMIN * .06, KMIN * .1, KMIN * .16, KMIN * .24, KMIN * .36, KMIN * .52, KMIN * .74];
+  // a plat (globe eteint), deux paliers de recul en plus sous l'ile entiere : l'ile au milieu de la mer
+  ZLEVELS = [...(GLOBE_ON ? [KMIN * .035] : []), KMIN * .06, KMIN * .1, KMIN * .16, KMIN * .24, KMIN * .36, KMIN * .52, KMIN * .74];
   for (let k = KMIN; k <= KMAX; k = Math.max(k + 1, Math.round(k * 1.2))) ZLEVELS.push(k);
   if (ZLEVELS[ZLEVELS.length - 1] !== KMAX) ZLEVELS.push(KMAX);
   if (!ZLEVELS.includes(KDEF)){ ZLEVELS.push(KDEF); ZLEVELS.sort((x, y) => x - y); }
@@ -201,6 +202,7 @@ function layout(){
 const ZMIN = () => ZLEVELS[0];
 // courbure du monde selon le zoom : nulle en vue rapprochee, elle monte en continu jusqu'a la planete entiere (a KMIN * .1)
 function curvOf(z){
+  if (!GLOBE_ON) return 0;
   const z0 = KMIN * FAR_T, z1 = KMIN * .1;
   if (z >= z0 - 1e-6) return 0;
   const s = clamp(Math.log(z0 / z) / Math.log(z0 / z1), 0, 1), c = s * s * (3 - 2 * s);
@@ -758,5 +760,5 @@ function farDraw(it, t){
   if (!S) return;
   const q = prj(it.a, it.b, 0);
   // les bateaux restent lisibles de loin (jusqu'a la planete, ou ils reprennent leur vraie taille)
-  sprBlit(S, q[0], q[1], it.big ? Math.max(SC, .5 - .46 * CURV) : SC);
+  sprBlit(S, q[0], q[1], it.big ? Math.max(SC, Math.min(.5, SC * 3) * (1 - CURV)) : SC);
 }

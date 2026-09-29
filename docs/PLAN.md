@@ -102,17 +102,15 @@ Les demandes qui arrivent en cours de route et ne rentrent dans aucune étape de
 - [x] Quitter la partie (depuis le bouton Menu en jeu) : sauvegarde et retour à l’accueil. L’ancienne sauvegarde unique est reprise comme première partie.
 - [x] Bug vu en passant : une partie sauvegardée pendant le débarquement revenait sans QG. Les plages choisies sont gardées et le QG se pose au chargement.
 
-## Étape 0.13. La planète (en cours)
+## Étape 0.13. La planète (mise de côté pour le mode espace, voir l’étape 10.1)
 
 - [x] Tout au bout du dézoom, trois paliers de planète (10 %, 6 %, 3,5 % de KMIN) : l’île sur son globe, l’espace et les étoiles derrière. Le globe garde la vraie carte de l’île (territoires, bâtiments), avec autour des océans, d’autres continents, la banquise et des nuages qui dérivent.
 - [x] Jour et nuit sur le globe selon l’heure de la partie, saisons selon le mois.
 - [x] L’accueil montre la planète qui tourne dans l’espace (fin du changement d’île toutes les 40 s, qui figeait l’écran une seconde). En lançant une partie, on descend de l’espace jusqu’à l’île.
-- [ ] Choisir sa planète dans le menu (taille, climat, nombre d’îles).
 - [x] Faire tout le tour du globe en glissant (étape 0.14).
-- [ ] Lumières des villes sur la face de nuit, satellite et fusées de la course à l’espace visibles en orbite.
-- [ ] Plus tard : l’espace autour (lune, autres planètes) et passer de l’une à l’autre.
+- La suite (choisir sa planète, lumières des villes, satellites, lune) passe dans le mode espace, étape 10.1.
 
-## Étape 0.14. Un vrai globe, sans transition
+## Étape 0.14. Un vrai globe, sans transition (fait, puis éteint à l’étape 0.15)
 
 - [x] Plus de disque plaqué au bout du dézoom : le monde se courbe en continu. Juste sous la vue rapprochée, le sol est posé sur une sphère immense ; son rayon descend en dézoomant jusqu’à celui de la planète. On passe de l’île au globe sans changement d’image.
 - [x] Le jeu se dessine toujours à plat, en direct (bâtiments, bateaux, territoires) ; une dernière passe pose cette image sur la sphère. Hors de l’image plate, la carte de l’île, puis les océans et continents de la planète.
@@ -120,6 +118,13 @@ Les demandes qui arrivent en cours de route et ne rentrent dans aucune étape de
 - [x] Tout au bout, la planète se centre à l’écran. En glissant, on fait le tour du globe ; en revenant, la caméra est ramenée doucement vers l’île.
 - [x] L’accueil fait tourner le globe en déplaçant la caméra ; en lançant une partie, la planète tourne par le plus court chemin jusqu’à l’île pendant la descente.
 - [x] De très haut, les arbres gardent leur vraie taille (un point, puis rien) au lieu d’un minimum de 3 × 5 pixels : on revoit l’herbe, les côtes et les montagnes en relief, la forêt ne recouvre plus tout.
+
+## Étape 0.15. Retour à la vue plate, avec plus de recul (fait)
+
+- [x] Le globe est gardé dans le code mais éteint (`GLOBE_ON = false` dans 01-core.js) : le jeu reste une île vue de dessus, sans planète. Il reviendra avec le mode espace (étape 10.1).
+- [x] Deux paliers de recul en plus sous l’île entière (10 % et 6 % de KMIN) : l’île au milieu de la mer.
+- [x] L’accueil montre de nouveau l’île qui tourne doucement sur elle-même, de loin.
+- [x] On garde des étapes 0.13 et 0.14 les arbres à leur vraie taille de très loin : l’herbe et les montagnes restent visibles.
 
 ## Étape 1. Fiabiliser ce qui existe
 
@@ -201,3 +206,14 @@ L’ébauche actuelle débarque loin du joueur, construit par ordre de besoins, 
 - [ ] Multijoueur hors de claude.ai (service temps réel).
 - [ ] Rendu HD (atlas de bâtiments ou WebGL).
 - [ ] Version Steam : empaquetage, succès, sauvegardes en fichiers.
+
+## Étape 10.1. Mode espace (extension, plus tard)
+
+Le globe existe déjà dans le code (23-planet.js), éteint. L’idée : prendre de la hauteur jusqu’à l’espace, puis jouer à l’échelle de la carte du monde.
+
+- [ ] Rallumer le globe (`GLOBE_ON`) : dézoom continu de l’île jusqu’à la planète, tour du globe en glissant.
+- [ ] Lumières des villes sur la face de nuit (bâtiments et lampadaires de l’île, villes des autres continents).
+- [ ] Satellites et fusées de la course à l’espace visibles en orbite ; ce qu’ils apportent au jeu.
+- [ ] Jouer la carte du monde : plusieurs îles, les autres continents.
+- [ ] Choisir sa planète dans le menu (taille, climat, nombre d’îles).
+- [ ] L’espace autour (lune, autres planètes) et passer de l’une à l’autre.
