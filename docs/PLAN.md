@@ -119,6 +119,7 @@ Les demandes qui arrivent en cours de route et ne rentrent dans aucune étape de
 - [x] Espace, étoiles fixes dans le ciel (elles défilent quand on tourne), halo de l’atmosphère, jour et nuit, nuages qui apparaissent en montant. La nuit de la palette laisse la place à l’ombre de la planète.
 - [x] Tout au bout, la planète se centre à l’écran. En glissant, on fait le tour du globe ; en revenant, la caméra est ramenée doucement vers l’île.
 - [x] L’accueil fait tourner le globe en déplaçant la caméra ; en lançant une partie, la planète tourne par le plus court chemin jusqu’à l’île pendant la descente.
+- [x] De très haut, les arbres gardent leur vraie taille (un point, puis rien) au lieu d’un minimum de 3 × 5 pixels : on revoit l’herbe, les côtes et les montagnes en relief, la forêt ne recouvre plus tout.
 
 ## Étape 1. Fiabiliser ce qui existe
 

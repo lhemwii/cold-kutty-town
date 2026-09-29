@@ -101,7 +101,11 @@ function treeDrawables(out, t, withShadows){
     const q = prj(tr.a, tr.b, 0);
     if (q[0] < -14 * s || q[0] > W + 14 * s || q[1] < -4 * s || q[1] > H + 26 * s) return;
     // de loin, l'arbre est recopie en petit directement (il est le meme sous tous les angles)
-    if (far){ if (farShade) treeShadow(tr, q, s); out.push({ d: dep(tr.a, tr.b), m: M.TREE, raw: true, f: () => { CUR = M.TREE; blit(treeSprSc(tr.r, s), Math.round(q[0]), Math.round(q[1])); } }); return; }
+    if (far){
+      // a sa vraie taille, un arbre peut faire moins d'un pixel : on n'en dessine qu'une part, selon la surface de son feuillage
+      const rx = (tr.r + 1) * s; if (rx < 1.1 && hash2(tr.a * 1.7 + 3, tr.b * .9 - 5) > Math.PI * rx * tr.r * s) return;
+      if (farShade && s > .3) treeShadow(tr, q, s);
+      out.push({ d: dep(tr.a, tr.b), m: M.TREE, raw: true, f: () => { CUR = M.TREE; blit(treeSprSc(tr.r, s), Math.round(q[0]), Math.round(q[1])); } }); return; }
     if (withShadows) treeShadow(tr, q);
     const deco = xmas && hash2(tr.a, tr.b) < .3;
     out.push({ d: dep(tr.a, tr.b), m: M.TREE, f: (tt) => { CUR = M.TREE; blitAt(treeSpr(tr.r), tr.a, tr.b, 0); if (deco) drawTreeLights(tr.a, tr.b, tr.r, tt); } });

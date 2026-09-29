@@ -48,6 +48,9 @@ const TREE_SPR_SC = {};
 function treeSprSc(r, s){
   const q = Math.max(1, Math.round(s * 20)), key = r + ':' + q; if (TREE_SPR_SC[key]) return TREE_SPR_SC[key];
   s = q / 20;
+  // tres loin, l'arbre garde sa vraie taille : un point de feuillage (et un pixel de tronc tant qu'il en a la hauteur),
+  // sinon la foret recouvrirait l'herbe, les cotes et les montagnes (treeDrawables n'en garde qu'une part, selon sa surface)
+  if ((r + 1) * s < 1.1) return TREE_SPR_SC[key] = makeSprite(put => { const th = Math.round(4 * s); if (th > 0) put(0, 0, 0); put(0, -Math.min(th, 1), r === 4 ? 1 : 0); });
   return TREE_SPR_SC[key] = makeSprite(put => {
     const tw = Math.max(1, Math.round(2 * s)), th = Math.max(2, Math.round(4 * s));
     for (let y = -th + 1; y <= 0; y++) for (let x = 0; x < tw; x++) put(x, y, tw === 1 ? 0 : (x === 0 ? 1 : 0));
