@@ -12,7 +12,7 @@ Au lancement, un vrai menu de jeu devant la planète qui tourne dans l’espace 
 
 ## La planète
 
-Dézoome tout au bout : on quitte l’île pour voir la planète entière, avec l’espace et les étoiles derrière, le jour et la nuit qui tournent, les nuages. Zoome pour redescendre.
+Dézoome tout au bout : le sol se courbe peu à peu, l’horizon apparaît, puis la planète entière, avec l’espace et les étoiles derrière, le jour et la nuit qui tournent, les nuages. Aucune coupure : c’est le même monde, en direct, de l’île jusqu’au globe. De loin, glisse pour faire le tour de la planète ; zoome pour redescendre, la caméra te ramène vers l’île.
 
 ## Le déroulé
 

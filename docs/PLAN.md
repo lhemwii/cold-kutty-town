@@ -108,9 +108,17 @@ Les demandes qui arrivent en cours de route et ne rentrent dans aucune étape de
 - [x] Jour et nuit sur le globe selon l’heure de la partie, saisons selon le mois.
 - [x] L’accueil montre la planète qui tourne dans l’espace (fin du changement d’île toutes les 40 s, qui figeait l’écran une seconde). En lançant une partie, on descend de l’espace jusqu’à l’île.
 - [ ] Choisir sa planète dans le menu (taille, climat, nombre d’îles).
-- [ ] Faire tout le tour du globe en glissant (aujourd’hui on reste autour de l’île).
+- [x] Faire tout le tour du globe en glissant (étape 0.14).
 - [ ] Lumières des villes sur la face de nuit, satellite et fusées de la course à l’espace visibles en orbite.
 - [ ] Plus tard : l’espace autour (lune, autres planètes) et passer de l’une à l’autre.
+
+## Étape 0.14. Un vrai globe, sans transition
+
+- [x] Plus de disque plaqué au bout du dézoom : le monde se courbe en continu. Juste sous la vue rapprochée, le sol est posé sur une sphère immense ; son rayon descend en dézoomant jusqu’à celui de la planète. On passe de l’île au globe sans changement d’image.
+- [x] Le jeu se dessine toujours à plat, en direct (bâtiments, bateaux, territoires) ; une dernière passe pose cette image sur la sphère. Hors de l’image plate, la carte de l’île, puis les océans et continents de la planète.
+- [x] Espace, étoiles fixes dans le ciel (elles défilent quand on tourne), halo de l’atmosphère, jour et nuit, nuages qui apparaissent en montant. La nuit de la palette laisse la place à l’ombre de la planète.
+- [x] Tout au bout, la planète se centre à l’écran. En glissant, on fait le tour du globe ; en revenant, la caméra est ramenée doucement vers l’île.
+- [x] L’accueil fait tourner le globe en déplaçant la caméra ; en lançant une partie, la planète tourne par le plus court chemin jusqu’à l’île pendant la descente.
 
 ## Étape 1. Fiabiliser ce qui existe
 

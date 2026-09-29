@@ -52,7 +52,6 @@ function saveNow(){
 }
 function loadSlot(id){
   const d = store.get(slotKey(id), null), e = savesIndex().find(o => o.id === id);
-  PLANET.spin = 0;
   if (!d || !loadGame(d)){ toast('Cette sauvegarde est illisible.'); return false; }
   GAME.slot = id; GAME.name = d.name || (e && e.name) || 'Partie';
   closeHome(true);
@@ -139,7 +138,7 @@ $('introGo').addEventListener('click', () => {
   const typed = parseInt(($('newSeed').value || '').replace(/\D/g, ''), 10);
   const seed = typed > 0 ? Math.min(99999, typed) : 1 + Math.floor(Math.random() * 99999);
   PROFILE.games++; saveProfile();
-  closeHome(false); setPaused(false); GAME.winner = null; PLANET.spin = 0;
+  closeHome(false); setPaused(false); GAME.winner = null;
   newWorld(seed);
   setSpeed(OPT.speed);
   startLanding();
@@ -219,7 +218,7 @@ const HOME = { last: 0, acc: 0 };
 function homeIsland(seed){
   newWorld(seed);
   centerOn(IS.ca, IS.cb); cam.phiT = null; cam.follow = null; cam.phi = 0;
-  PLANET.spin = -.6;
+  cam.a = IS.ca - .6 * RP;
   setZoom(KMIN * .06, null, null, true);
 }
 HOOKS.after.push(() => {
@@ -227,5 +226,6 @@ HOOKS.after.push(() => {
   // temps de jeu du profil, en vrai temps, garde toutes les 30 s
   if (GAME.mode === 'play' && !GAME.paused && !document.hidden){ PROFILE.secs += dt; HOME.acc += dt; if (HOME.acc > 30){ HOME.acc = 0; saveProfile(); } }
   if (GAME.mode !== 'menu') return;
-  PLANET.spin += dt * .05;
+  // la planete tourne doucement sur elle-meme (la camera fait le tour, le soleil reste en place)
+  if (!drag || !drag.moved){ cam.a += dt * .05 * RP; clampCam(); }
 });

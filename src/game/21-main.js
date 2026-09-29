@@ -260,9 +260,11 @@ function startLanding(){
   GAME.mode = 'landing';
   $('intro').hidden = true; $('landing').hidden = false; $('topbar').hidden = true; $('bottom').hidden = true; $('radio').hidden = true;
   document.body.dataset.side = GAME.side;
-  centerOn(IS.ca, IS.cb); cam.phi = 0; cam.phiT = null;
-  // on descend de l'espace jusqu'a l'ile entiere
-  PLANET.spin = 0;
+  // on descend de l'espace jusqu'a l'ile entiere : la planete tourne pour ramener l'ile au milieu, par le plus court chemin
+  if (CURV > 0){
+    const P2 = TAU * RP; cam.a = IS.ca + (cam.a - IS.ca) - Math.round((cam.a - IS.ca) / P2) * P2;
+    cam.follow = [IS.ca, IS.cb]; cam.phiT = 0;
+  } else { centerOn(IS.ca, IS.cb); cam.phi = 0; cam.phiT = null; }
   setZoom(KMIN * .16, null, null, false);
   setTool('landing');
 }
@@ -399,7 +401,7 @@ function start(){
   window.__okt = { state, cam, GAME, RES, BLD: () => BLD, ROADS: () => ROADS, WALLS: () => WALLS, BOATS: () => BOATS, CATS: () => CATS, TER, TREES, MAPV, get VEST(){ return VEST; }, lootVestige, SPACE, EV, RIVAL, CLOCK, CAL, TYPES, ECO, PEAKS,
     setZoom, centerOn, unprj, prj, worldToScreen, screenToWorld, placeProblem, findSpot, makeBuilding, startBuilding, addRoad, roadProblem, sampleLine, sampleCurve, addWall, sendBarge, chooseLanding, terPct, claimDisc,
     render, FAR, rebuildTown, snapshot, loadGame, newWorld, enterPlay, applySeason, updateCalUI, deliverPaper, forceEvent: () => { EV.next = 0; }, autoBoth: () => { RIVAL.auto = { usc: true, ccp: true }; }, selectBuilding, setTool, upgradeBuilding, rivalStep: stepRival,
-    get Z(){ return Z; }, get K(){ return K; }, get KMIN(){ return KMIN; }, get KDEF(){ return KDEF; }, get ZLEVELS(){ return ZLEVELS; }, get OV_ON(){ return OV_ON; }, get view(){ return [W, H]; }, get NIGHT(){ return NIGHT; } };
+    get Z(){ return Z; }, get K(){ return K; }, get KMIN(){ return KMIN; }, get KDEF(){ return KDEF; }, get ZLEVELS(){ return ZLEVELS; }, get OV_ON(){ return OV_ON; }, get view(){ return [W, H]; }, get NIGHT(){ return NIGHT; }, get CURV(){ return CURV; }, geoCast, geoProj, WARP, get SC(){ return SC; } };
   requestAnimationFrame(frame);
 }
 setTimeout(start, 30);

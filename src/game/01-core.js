@@ -77,16 +77,63 @@ const SIDES = ['usc', 'ccp'];
 const other = (s) => s === 'usc' ? 'ccp' : 'usc';
 const CAMP_FULL = { usc: 'United Sands of Cats', ccp: 'Cats Communist Republic' };
 const CAMP_SHORT = { usc: 'USC', ccp: 'CCR' };
+// Vue de loin courbee : tout au bout du dezoom, le monde est pose sur une sphere de rayon GR (immense juste sous la vue rapprochee,
+// le rayon de la planete RP tout au bout). CURV va de 0 (plat) a 1 (la planete entiere). Le jeu se dessine toujours a plat (prj, unprj) ;
+// une derniere passe (planetWarp, 23-planet.js) pose l'image sur la sphere. geoCast et geoProj font le lien entre l'ecran et la sphere.
+const RP = 2600, SQ3 = Math.sqrt(3);
+let CURV = 0, GR = Infinity;
+// oy : de combien (en unites du monde) le point vise remonte a l'ecran, pour que la planete finisse centree
+const GEO = { on: false, gr: 1, lon0: 0, ex: 0, ey: 0, nx: 0, ny: 0, nz: 0, ux: 0, uy: 0, uz: 0, p: 1, q: 1, k: 1, oy: 0, dx: 0, dy: 0, dz: 0 };
+function geoSet(c, w){
+  const g = GEO;
+  g.on = c > 0; if (!g.on) return;
+  const gr = RP / c, lon0 = cam.a / gr, lat0 = -cam.b / gr, so = Math.sin(lon0), co = Math.cos(lon0), sa = Math.sin(lat0), ca = Math.cos(lat0);
+  g.gr = gr; g.lon0 = lon0;
+  g.ex = -so; g.ey = co;
+  g.nx = -sa * co; g.ny = -sa * so; g.nz = ca;
+  g.ux = ca * co; g.uy = ca * so; g.uz = sa;
+  g.p = Math.cos(cam.phi) - Math.sin(cam.phi); g.q = Math.sin(cam.phi) + Math.cos(cam.phi);
+  // de loin, la hauteur de l'ecran s'allonge un peu : la projection du jeu tasse la verticale, la planete doit rester ronde
+  g.k = 1 + c * .1547;
+  g.oy = (w || 0) * gr;
+  // direction du regard (vers le sol) : -q e + p n - u, normalisee
+  g.dx = (-g.q * g.ex + g.p * g.nx - g.ux) / SQ3; g.dy = (-g.q * g.ey + g.p * g.ny - g.uy) / SQ3; g.dz = (g.p * g.nz - g.uz) / SQ3;
+}
+// point de l'ecran (u, v : ecart au centre en unites du monde, v deja divise par k) vers le sol de la sphere : [a, b], ou null si on vise l'espace
+// (RAYHIT.miss : distance au bord de la planete, en rayons, pour le halo)
+const RAYHIT = { miss: 0 };
+function geoCast(u, v){
+  const g = GEO, gr = g.gr; v += g.oy;
+  const al = g.p * u * .5 + g.q * v, be = g.q * u * .5 - g.p * v;
+  const cd = (-gr - al * g.q + be * g.p) / SQ3, ab = al * al + be * be, disc = cd * cd - ab;
+  if (disc < 0){ RAYHIT.miss = Math.sqrt(Math.max(0, gr * gr + ab - cd * cd)) / gr - 1; return null; }
+  const t = -cd - Math.sqrt(disc);
+  const Px = gr * g.ux + al * g.ex + be * g.nx + t * g.dx, Py = gr * g.uy + al * g.ey + be * g.ny + t * g.dy, Pz = gr * g.uz + be * g.nz + t * g.dz;
+  let dl = Math.atan2(Py, Px) - g.lon0; dl -= Math.round(dl / TAU) * TAU;
+  return [cam.a + dl * gr, -Math.asin(clamp(Pz / gr, -1, 1)) * gr];
+}
+// et l'inverse : [u, v] (meme echelle), ou null si le point est sur la face cachee
+function geoProj(a, b, z){
+  const g = GEO, gr = g.gr, lon = a / gr, lat = -b / gr, cl = Math.cos(lat), r = gr + (z || 0);
+  const Px = r * cl * Math.cos(lon), Py = r * cl * Math.sin(lon), Pz = r * Math.sin(lat);
+  if (Px * g.dx + Py * g.dy + Pz * g.dz >= 0) return null;
+  const Dx = Px - gr * g.ux, Dy = Py - gr * g.uy, Dz = Pz - gr * g.uz;
+  const de = Dx * g.ex + Dy * g.ey, dn = Dx * g.nx + Dy * g.ny + Dz * g.nz, du = Dx * g.ux + Dy * g.uy + Dz * g.uz;
+  return [g.p * de + g.q * dn, g.q * .5 * de - g.p * .5 * dn - du - g.oy];
+}
 function setProj(){
   PC = Math.cos(cam.phi); PS = Math.sin(cam.phi);
   if (PROJ_FIX){ TX = PROJ_FIX[0]; TY = PROJ_FIX[1]; return; }
   const car = cam.a * PC - cam.b * PS, cbr = cam.a * PS + cam.b * PC;
   TX = Math.round(Math.floor(W / 2) - (car - cbr) * SC);
   TY = Math.round(Math.floor(H / 2) - (car + cbr) * .5 * SC);
+  geoSet(CURV, CURV > 0 ? centerOf(Z) : 0);
 }
 function prj(a, b, z){ const ar = a * PC - b * PS, br = a * PS + b * PC; return [TX + (ar - br) * SC, TY + ((ar + br) * .5 - (z || 0)) * SC]; }
 const dep = (a, b) => a * (PC + PS) + b * (PC - PS);
-function unprj(x, y){ const X = (x - TX) / SC, Y = (y - TY) / SC, ar = (X + 2 * Y) * .5, br = (2 * Y - X) * .5; return [ar * PC + br * PS, -ar * PS + br * PC]; }
+function unprj(x, y){
+  const X = (x - TX) / SC, Y = (y - TY) / SC, ar = (X + 2 * Y) * .5, br = (2 * Y - X) * .5; return [ar * PC + br * PS, -ar * PS + br * PC];
+}
 function groundDelta(dx, dy){ const ar = (dx + 2 * dy) * .5, br = (2 * dy - dx) * .5; return [ar * PC + br * PS, -ar * PS + br * PC]; }
 // motif ancre sur l'origine du monde : il ne glisse pas quand on se deplace
 const bz = (x, y) => BAYER[(((y - TY) & 3) << 2) | ((x - TX) & 3)];

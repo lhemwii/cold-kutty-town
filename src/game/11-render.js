@@ -91,7 +91,8 @@ function stepClock(dt){
   if (CLOCK.auto) CLOCK.h = (CLOCK.h + dt * 24 / CLOCK.len * CLOCK.speed) % 24;
   NIGHT = COLOR ? nightOf(CLOCK.h) : 1;
   DAY = NIGHT < .5;
-  if (COLOR) makeColors(NIGHT, warmOf(CLOCK.h));
+  // de tres loin, la nuit passe par l'ombre de la planete (planetWarp) plutot que par la palette
+  if (COLOR) makeColors(NIGHT * (1 - CURV), warmOf(CLOCK.h) * (1 - CURV));
 }
 
 /* ================= meteo : soleil, pluie, neige, brouillard ================= */
@@ -174,6 +175,7 @@ function applyView(force){
   }
   // de loin, le tampon couvre tout l'ecran a l'echelle KMIN et le monde y est dessine en petit (SC < 1)
   SC = OV_ON ? Z / K : 1;
+  CURV = curvOf(Z); GR = CURV > 0 ? RP / CURV : Infinity;
   const zs = OV_ON ? K : Z, cw = W * zs / DPR, ch = H * zs / DPR;
   scene.style.width = cw + 'px'; scene.style.height = ch + 'px';
   scene.style.left = ((window.innerWidth - cw) / 2) + 'px'; scene.style.top = ((window.innerHeight - ch) / 2) + 'px';
@@ -197,27 +199,81 @@ function layout(){
   applyK();
 }
 const ZMIN = () => ZLEVELS[0];
-function clampCam(){ cam.a = clamp(cam.a, GA0 + 40, GA0 + GW / GSC - 40); cam.b = clamp(cam.b, GB0 + 30, GB0 + GH / GSC - 30); }
-// point du sol sous un point de l'ecran (coordonnees CSS)
+// courbure du monde selon le zoom : nulle en vue rapprochee, elle monte en continu jusqu'a la planete entiere (a KMIN * .1)
+function curvOf(z){
+  const z0 = KMIN * FAR_T, z1 = KMIN * .1;
+  if (z >= z0 - 1e-6) return 0;
+  const s = clamp(Math.log(z0 / z) / Math.log(z0 / z1), 0, 1), c = s * s * (3 - 2 * s);
+  return c < .002 ? 0 : c;
+}
+// tout au bout, le point vise remonte doucement : la planete finit au milieu de l'ecran
+function centerOf(z){ const s = clamp(Math.log(KMIN * .16 / z) / Math.log(.16 / .035), 0, 1); return s * s * (3 - 2 * s); }
+// De pres, la camera reste au-dessus de l'ile. En dezoomant, elle peut s'en eloigner de plus en plus, jusqu'a faire le tour
+// de la planete ; en revenant, elle est ramenee doucement vers l'ile.
+function camBox(c){
+  const a0 = GA0 + 40, a1 = GA0 + GW / GSC - 40, b0 = GB0 + 30, b1 = GB0 + GH / GSC - 30;
+  if (c <= 0) return [a0, a1, b0, b1];
+  const ea = c > .999 ? Infinity : (Math.PI * RP - a1) * c * c * .98, eb = (1.3 * RP - b1) * c * c;
+  return [a0 - ea, a1 + ea, b0 - eb, b1 + eb];
+}
+function camWrap(){ const ha = Math.PI * RP; if (cam.a > ha) cam.a -= 2 * ha; else if (cam.a < -ha) cam.a += 2 * ha; }
+function clampCam(){
+  const c = curvOf(Z), [a0, a1, b0, b1] = camBox(c);
+  if (c > .999) camWrap();
+  cam.a = clamp(cam.a, a0, a1); cam.b = clamp(cam.b, b0, b1);
+}
+// en zoomant vers l'ile depuis l'autre bout de la planete, la zone permise retrecit : la camera y revient en glissant
+function camPull(dt){
+  const c = curvOf(Z), [a0, a1, b0, b1] = camBox(c);
+  if (c > .999){ camWrap(); return; }
+  const ta = clamp(cam.a, a0, a1), tb = clamp(cam.b, b0, b1);
+  if (ta === cam.a && tb === cam.b) return;
+  const k = Math.min(1, dt * 6);
+  cam.a += (ta - cam.a) * k; cam.b += (tb - cam.b) * k;
+  if (Math.abs(ta - cam.a) + Math.abs(tb - cam.b) < .5){ cam.a = ta; cam.b = tb; }
+  setProj();
+}
+// point du sol sous un point de l'ecran (coordonnees CSS). De loin, on vise la sphere ; dans l'espace, RAYHIT.sky est vrai
+// et on rend le point qu'aurait donne le sol plat.
 function screenToWorld(cx, cy, z){
-  const dx = (cx - window.innerWidth / 2) * DPR / (z || Z), dy = (cy - window.innerHeight / 2) * DPR / (z || Z);
+  const zz = z || Z, dx = (cx - window.innerWidth / 2) * DPR / zz, dy = (cy - window.innerHeight / 2) * DPR / zz, c = curvOf(zz);
+  RAYHIT.sky = false;
+  if (c > 0){
+    geoSet(c, centerOf(zz));
+    const h = geoCast(dx, dy / GEO.k);
+    geoSet(CURV, centerOf(Z));
+    if (h) return h;
+    RAYHIT.sky = true;
+  }
   const g = groundDelta(dx, dy); return [cam.a + g[0], cam.b + g[1]];
 }
-// et l'inverse : point de l'ecran (CSS) d'un point du sol
+// et l'inverse : point de l'ecran (CSS) d'un point du sol (tres loin hors de l'ecran s'il est sur la face cachee)
 function worldToScreen(a, b, z){
-  const zz = z || Z, ar = (a - cam.a) * PC - (b - cam.b) * PS, br = (a - cam.a) * PS + (b - cam.b) * PC;
+  const zz = z || Z, c = curvOf(zz);
+  if (c > 0){
+    geoSet(c, centerOf(zz));
+    const q = geoProj(a, b, 0), k = GEO.k;
+    geoSet(CURV, centerOf(Z));
+    if (!q) return [-9999, -9999];
+    return [window.innerWidth / 2 + q[0] * zz / DPR, window.innerHeight / 2 + q[1] * k * zz / DPR];
+  }
+  const ar = (a - cam.a) * PC - (b - cam.b) * PS, br = (a - cam.a) * PS + (b - cam.b) * PC;
   return [window.innerWidth / 2 + (ar - br) * zz / DPR, window.innerHeight / 2 + (ar + br) * .5 * zz / DPR];
 }
 function setZNow(nz){
   const ax = ZANCH ? ZANCH[0] : window.innerWidth / 2, ay = ZANCH ? ZANCH[1] : window.innerHeight / 2;
   PC = Math.cos(cam.phi); PS = Math.sin(cam.phi);
-  const g = screenToWorld(ax, ay);
-  Z = nz;
-  const g2 = screenToWorld(ax, ay);
-  cam.a += g[0] - g2[0]; cam.b += g[1] - g2[1]; clampCam();
+  const g = screenToWorld(ax, ay), s1 = RAYHIT.sky;
+  const oz = Z; Z = nz;
+  // le point sous la souris reste sous la souris (sauf si on vise l'espace)
+  const g2 = screenToWorld(ax, ay), s2 = RAYHIT.sky;
+  if (!s1 && !s2){ cam.a += g[0] - g2[0]; cam.b += g[1] - g2[1]; }
+  // pas de butee brutale en zoomant : camPull ramene la camera en douceur dans la zone permise
+  if (curvOf(Z) > .999) camWrap();
   const nk = renderK(Z); if (nk !== K){ K = nk; applyK(); } else { setProj(); applyView(); }
 }
 function stepZoom(dt){
+  camPull(dt);
   if (Z === ZT) return;
   const lz = Math.log(Z), lt = Math.log(ZT);
   let nl = lz + (lt - lz) * Math.min(1, dt * 10);
@@ -515,9 +571,10 @@ let DYN_SHADOWS = [];
 function dynamicDrawables(t){ const out = []; DYN_SHADOWS = []; for (const f of HOOKS.dyn) f(t, out); return out; }
 // De pres, chaque objet se dessine directement dans le tampon. De loin (SC < 1), il passe par farDraw : dessine a l'echelle 1 a part, puis recopie en petit.
 function render(t){
-  if (planetOn()){ renderPlanet(t); return; }
   const far = SC < .999;
   setProj();
+  // tres loin, si l'ile n'est plus du tout dans le tampon plat (on a tourne autour de la planete), on ne dessine que la planete
+  if (CURV > 0 && !planetFlatNeeded()){ planetWarp(t, false); return; }
   renderGround(t);
   drawWaves(t);
   if (!far) for (const d of DECALS) d(t);
@@ -550,6 +607,7 @@ function render(t){
   drawSatellite(t); drawWeather(t); if (COLOR) for (const f of HOOKS.post) f(t);
   const P = PALX, pl = PL;
   for (let i = 0; i < N; i++){ const m = mb[i]; px32[i] = P[ob[i] * pl + (((m << 1) | fb[i]) * 5 + lb[i])]; }
+  if (CURV > 0){ planetWarp(t, true); return; }
   ctx.putImageData(img, 0, 0);
 }
 
@@ -699,6 +757,6 @@ function farDraw(it, t){
   } else S = sprRender(it, t);
   if (!S) return;
   const q = prj(it.a, it.b, 0);
-  // les bateaux restent lisibles de tres loin
-  sprBlit(S, q[0], q[1], it.big ? Math.max(SC, .5) : SC);
+  // les bateaux restent lisibles de loin (jusqu'a la planete, ou ils reprennent leur vraie taille)
+  sprBlit(S, q[0], q[1], it.big ? Math.max(SC, .5 - .46 * CURV) : SC);
 }

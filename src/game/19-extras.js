@@ -138,8 +138,11 @@ function drawMap(t){
   g.fillStyle = '#1d5c96'; g.fillRect(0, 0, mapCv.width, mapCv.height);
   const [x0, y0] = miniXY(GA0, GB0);
   g.imageSmoothingEnabled = true; g.drawImage(MAPV.cv, x0, y0, MAPV.W * s, MAPV.H * s);
-  g.beginPath(); viewCorners().forEach(([a, b], i) => { const [x, y] = miniXY(a, b); if (i) g.lineTo(x, y); else g.moveTo(x, y); }); g.closePath();
-  g.fillStyle = 'rgba(255,250,240,.16)'; g.fill(); g.strokeStyle = '#fffaf0'; g.lineWidth = 1.5; g.stroke();
+  // de tres loin (le globe), le cadre de la vue n'a plus de sens sur la carte plate
+  if (CURV < .25){
+    g.beginPath(); viewCorners().forEach(([a, b], i) => { const [x, y] = miniXY(a, b); if (i) g.lineTo(x, y); else g.moveTo(x, y); }); g.closePath();
+    g.fillStyle = 'rgba(255,250,240,.16)'; g.fill(); g.strokeStyle = '#fffaf0'; g.lineWidth = 1.5; g.stroke();
+  }
   for (const b of BOATS){ if (b.state === 'gone') continue; const [x, y] = miniXY(b.a, b.b); g.fillStyle = b.side === 'usc' ? '#8fb0ff' : '#ff9a90'; g.fillRect(Math.round(x) - 1, Math.round(y) - 1, 3, 3); }
 }
 function mapPick(e){
