@@ -9,14 +9,17 @@ const count = (side, type) => BLD.filter(l => l.side === side && l.type === type
 const rnd = (k) => hash2(Math.floor(GAME.t * 10) + k * 17, RIVAL.tries++);
 
 // plage de debarquement de l'IA : loin du joueur, sur une cote accueillante
+// avec plusieurs vraies iles (deux, quatre, archipel), elle debarque sur une autre ile que le joueur
 function rivalLanding(pa, pb){
+  const isl = ISEED.isl.filter(it => it.ra >= W_ISLE_MIN), mine = islandNear(pa, pb);
+  const multi = isl.length > 1 && ISEED.conf !== 'une' && ISEED.conf !== 'atoll', dmin = 500 * Math.min(1, mapScale());
+  const nA = Math.max(18, Math.round(90 / isl.length));
   let best = null, bs = -1;
-  for (let k = 0; k < 90; k++){
-    const an = k / 90 * TAU, a = IS.ca + Math.cos(an) * IS.ra * 1.05, b = IS.cb + Math.sin(an) * IS.rb * 1.05;
-    const s = nearestShore(a * .85, b * .85, 160); if (!s) continue;
-    const d = Math.hypot(s[0] - pa, s[1] - pb); if (d < 500) continue;
+  for (const it of isl) for (let k = 0; k < nA; k++){
+    const an = k / nA * TAU, s = nearestShore(it.ca + Math.cos(an) * it.ra * .9, it.cb + Math.sin(an) * it.rb * .9, 160); if (!s) continue;
+    const d = Math.hypot(s[0] - pa, s[1] - pb); if (d < dmin) continue;
     if (!findSpot('qg', GAME.rival, s[0] - Math.cos(an) * 40, s[1] - Math.sin(an) * 40, 70, true)) continue;
-    const sc = d + hash2(k, GAME.seed) * 200;
+    const sc = d + (multi && it !== mine ? 1e5 : 0) + hash2(k, GAME.seed) * 200;
     if (sc > bs){ bs = sc; best = s; }
   }
   return best;

@@ -170,7 +170,7 @@ let saveTimer = 0;
 function rleEncode(a){ const out = []; let v = a[0], n = 0; for (let i = 0; i < a.length; i++){ if (a[i] === v) n++; else { out.push(v, n); v = a[i]; n = 1; } } out.push(v, n); return out.join(','); }
 function rleDecode(s, into){ const p = s.split(',').map(Number); let i = 0; for (let k = 0; k + 1 < p.length; k += 2){ into.fill(p[k], i, i + p[k + 1]); i += p[k + 1]; } }
 function snapshot(){
-  return { v: 8, seed: GAME.seed, side: GAME.side, t: Math.round(GAME.t), speed: GAME.speed, cal: CAL.m, h: +CLOCK.h.toFixed(2),
+  return { v: 8, seed: GAME.seed, size: GAME.size, conf: GAME.conf, side: GAME.side, t: Math.round(GAME.t), speed: GAME.speed, cal: CAL.m, h: +CLOCK.h.toFixed(2),
     res: SIDES.map(s => [Math.round(RES[s].croq), Math.round(RES[s].laine), Math.round(RES[s].ron)]),
     bld: BLD.map(l => [l.type, l.side === 'usc' ? 0 : 1, l.ca, l.cb, l.lvl || 1, l.dir || 0, l.done ? -1 : +(GAME.t - l.buildT).toFixed(1), l.upT ? +(GAME.t - l.upT).toFixed(1) : -1]),
     roads: ROADS.map(r => [r.side === 'usc' ? 0 : 1, r.pts.map(p => [Math.round(p[0] * 10) / 10, Math.round(p[1] * 10) / 10])]),
@@ -188,7 +188,7 @@ function saveSoon(){
 }
 function loadGame(d){
   if (!d || d.v !== 8) return false;
-  newWorld(d.seed | 0);
+  newWorld(d.seed | 0, d.size, d.conf);
   GAME.side = d.side === 'ccp' ? 'ccp' : 'usc'; GAME.rival = other(GAME.side); GAME.t = +d.t || 0; CAL.m = clamp(d.cal | 0, 0, 11); CLOCK.h = +d.h || 10;
   SIDES.forEach((s, k) => { const r = d.res && d.res[k]; if (r){ RES[s].croq = +r[0] || 0; RES[s].laine = +r[1] || 0; RES[s].ron = +r[2] || 0; } });
   for (const t of String(d.trees || '').split(',')){ const i = +t; if (t !== '' && TREES.list[i]) TREES.list[i].alive = false; }
@@ -204,7 +204,7 @@ function loadGame(d){
   for (const r of d.roads || []) if (Array.isArray(r[1]) && r[1].length > 1){ ROADS.push(makeRoad(r[1], r[0] ? 'ccp' : 'usc')); clearForestAlong(r[1]); }
   for (const w of d.walls || []) WALLS.push({ side: w[0] ? 'ccp' : 'usc', pa: +w[1], pb: +w[2], qa: +w[3], qb: +w[4], g: w[5] | 0, line: w[6] });
   for (const w of d.towers || []) WALL_TOWERS.push({ side: w[0] ? 'ccp' : 'usc', a: +w[1], b: +w[2], ph: +w[3], line: w[4] });
-  if (d.ter){ rleDecode(d.ter, TER.own); TER.cnt.usc = TER.cnt.ccp = 0; for (let i = 0; i < TER.N; i++){ if (!TER.land[i]) TER.own[i] = 0; else if (TER.own[i]) TER.cnt[SNAME[TER.own[i]]]++; } }
+  if (d.ter){ rleDecode(d.ter, TER.own); TER.cnt.usc = TER.cnt.ccp = 0; for (let i = 0; i < TER.N; i++){ if (!TER.land[i]) TER.own[i] = 0; else if (TER.own[i]) TER.cnt[SNAME[TER.own[i]]]++; } terBoxRebuild(); }
   if (Array.isArray(d.space)){ SPACE.usc.stage = d.space[0] | 0; SPACE.ccp.stage = d.space[1] | 0; }
   EV.next = +d.ev || 150; if (Array.isArray(d.rival)){ RIVAL[GAME.rival].lastBarge = +d.rival[0] || 0; RIVAL[GAME.rival].lastWall = +d.rival[1] || 0; }
   RIVAL.auto = { usc: GAME.rival === 'usc', ccp: GAME.rival === 'ccp' };
@@ -227,9 +227,10 @@ function clearForestAlong(pts){ for (let k = 0; k + 1 < pts.length; k++){ const 
 setInterval(() => saveSoon(), 20000);
 
 /* ================= une partie : nouvelle ile, debarquement, victoire ================= */
-function newWorld(seed){
-  GAME.seed = seed;
-  buildGround(seed);
+function newWorld(seed, size, conf){
+  GAME.seed = seed; GAME.size = MAP_SIZES[size] ? size : 'moyenne'; GAME.conf = MAP_CONFS[conf] ? conf : 'une';
+  setMapSize(GAME.size);
+  buildGround(seed, GAME.conf);
   buildForests(seed);
   buildMountains(seed);
   buildVestiges(seed);
@@ -242,6 +243,8 @@ function newWorld(seed){
   CAL.m = 8; CLOCK.h = 9.5; applySeason(); updateCalUI();
   repaintAllRoads(); buildGraph(); rebuildTown();
   mapInit(); mapDirtyAll();
+  // le recul maximal suit la taille de la carte
+  zoomLevels(); if (ZT < ZMIN()) setZoom(ZMIN(), null, null, true);
 }
 // l'ecran de jeu : barre du haut, dock, radio
 function enterPlay(){
@@ -265,7 +268,7 @@ function startLanding(){
     const P2 = TAU * RP; cam.a = IS.ca + (cam.a - IS.ca) - Math.round((cam.a - IS.ca) / P2) * P2;
     cam.follow = [IS.ca, IS.cb]; cam.phiT = 0;
   } else { centerOn(IS.ca, IS.cb); cam.phi = 0; cam.phiT = null; }
-  setZoom(KMIN * .16, null, null, false);
+  setZoom(KMIN * .16 / mapScale(), null, null, false);
   setTool('landing');
 }
 function chooseLanding(a, b){
@@ -289,7 +292,7 @@ function chooseLanding(a, b){
     }
   }
   setZoom(KDEF * .8);
-  toast('Les barges font route vers la côte. L’autre camp débarque de l’autre côté de l’île.');
+  toast(ISEED.isl.length > 1 && islandNear(rv[0], rv[1]) !== islandNear(s[0], s[1]) ? 'Les barges font route vers la côte. L’autre camp débarque sur une autre île.' : 'Les barges font route vers la côte. L’autre camp débarque de l’autre côté de l’île.');
   radioQueue.unshift(['neutre', 'Météo marine', 'Mer calme sur Kutty : deux flottilles de barges approchent de l’île, chacune de son côté.']);
   sfx(GAME.side);
 }
@@ -401,7 +404,7 @@ function start(){
   window.__okt = { state, cam, GAME, RES, BLD: () => BLD, ROADS: () => ROADS, WALLS: () => WALLS, BOATS: () => BOATS, CATS: () => CATS, TER, TREES, MAPV, get VEST(){ return VEST; }, lootVestige, SPACE, EV, RIVAL, CLOCK, CAL, TYPES, ECO, PEAKS,
     setZoom, centerOn, unprj, prj, worldToScreen, screenToWorld, placeProblem, findSpot, makeBuilding, startBuilding, addRoad, roadProblem, sampleLine, sampleCurve, addWall, sendBarge, chooseLanding, terPct, claimDisc,
     render, FAR, rebuildTown, snapshot, loadGame, newWorld, enterPlay, applySeason, updateCalUI, deliverPaper, forceEvent: () => { EV.next = 0; }, autoBoth: () => { RIVAL.auto = { usc: true, ccp: true }; }, selectBuilding, setTool, upgradeBuilding, rivalStep: stepRival,
-    get Z(){ return Z; }, get K(){ return K; }, get KMIN(){ return KMIN; }, get KDEF(){ return KDEF; }, get ZLEVELS(){ return ZLEVELS; }, get OV_ON(){ return OV_ON; }, get view(){ return [W, H]; }, get NIGHT(){ return NIGHT; }, get CURV(){ return CURV; }, geoCast, geoProj, WARP, get SC(){ return SC; } };
+    get Z(){ return Z; }, get K(){ return K; }, get KMIN(){ return KMIN; }, get KDEF(){ return KDEF; }, get ZLEVELS(){ return ZLEVELS; }, get OV_ON(){ return OV_ON; }, get view(){ return [W, H]; }, get NIGHT(){ return NIGHT; }, get CURV(){ return CURV; }, geoCast, geoProj, WARP, get SC(){ return SC; }, islandNear, ISL: () => ISEED.isl, saveNow, newWorldOpts: () => [GAME.size, GAME.conf] };
   requestAnimationFrame(frame);
 }
 setTimeout(start, 30);

@@ -91,7 +91,8 @@ function paintTile(ia0, ia1, ib0, ib1){
   });
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (cnt[y * w + x] > 1) gTone[(ib0 + y) * GW + ia0 + x] = 0;
 }
-function repaintAllRoads(){ paintRoadsArea(GA0, GA0 + GW / GSC, GB0, GB0 + GH / GSC); }
+// le sol vient d'etre refait : on ne repeint que la ou passent des routes (repeindre toute la carte prenait une demi-seconde sur les grandes)
+function repaintAllRoads(){ for (const r of ROADS) repaintRoad(r); }
 function repaintRoad(r){ paintRoadsArea(r.box[0] - RWS - 2, r.box[1] + RWS + 2, r.box[2] - RWS - 2, r.box[3] + RWS + 2); mapDirtyRect(r.box[0] - RWS, r.box[1] + RWS, r.box[2] - RWS, r.box[3] + RWS); }
 
 /* ---- graphe : noeuds aux bouts et aux croisements, aretes avec leur geometrie ---- */

@@ -13,7 +13,7 @@ Le résultat est un site statique dans `dist/` : `index.html`, un CSS et deux sc
 | Fichier | Rôle |
 |---|---|
 | `01-core.js` | Bases : matières, crochets (HOOKS), état de partie (`GAME`), caméra, projection isométrique, primitives de dessin, police 3x5, plaques et panneaux collés au monde (`wallBitmap`, `plateW`), drapeaux à tête de chat. |
-| `02-ground.js` | L’île tirée au sort : forme, îlots, plages, chaînes de montagnes, forêts, grille du sol (2 cellules par unité), défrichage. |
+| `02-ground.js` | Le monde tiré au sort : tailles de carte (`MAP_SIZES`, `setMapSize`) et formes (`MAP_CONFS` : une île, deux, quatre, archipel, atoll), îles et îlots, plages, chaînes de montagnes, forêts, grille du sol (2 cellules par unité, 1 au-delà de « grande »), défrichage. La grille, le territoire (`TER`), la carte `MAPV` et la navigation (`NAV`) sont redimensionnés à chaque nouvelle partie ; les distances à la côte restent en demi-unités quelle que soit la finesse. |
 | `03-buildings-base.js` | Aides de décor : lumières, fumée, arbres, maisons à pignon, voitures (aussi en biais), coques de bateaux, fanions. |
 | `04-types.js`, `05-types-extra.js`, `06-types-more.js` | Catalogue des bâtiments. Chaque type sait se dessiner. `06` contient aussi QG, port (3 niveaux), pêcherie, bergerie, phare, avant-poste, Checkpoint. |
 | `07-world.js` | Forêts et montagnes rangées par cases, Rideau de Laine en pans libres, miradors, phare, lampadaires, voilier, vestiges catzi (`VEST`, `VEST_DEF`). |

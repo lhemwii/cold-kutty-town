@@ -7,7 +7,14 @@ TER.N = TER.W * TER.H;
 const terIdx = (a, b) => { const x = Math.floor((a - GA0) / TC), y = Math.floor((b - GB0) / TC); return (x < 0 || y < 0 || x >= TER.W || y >= TER.H) ? -1 : y * TER.W + x; };
 const ownerAt = (a, b) => { const i = terIdx(a, b); return i < 0 ? 0 : TER.own[i]; };
 const sideAt = (a, b) => SNAME[ownerAt(a, b)] || null;
+// rectangle ou chaque camp possede des cases : on n'y cherche que la (les grandes cartes ont plus d'un million de cases)
+function terGrow(side, i){ const x = i % TER.W, y = (i / TER.W) | 0, b = TER.box[side]; if (x < b[0]) b[0] = x; if (x > b[1]) b[1] = x; if (y < b[2]) b[2] = y; if (y > b[3]) b[3] = y; }
+function terBoxReset(){ TER.box = { usc: [1e9, -1, 1e9, -1], ccp: [1e9, -1, 1e9, -1] }; }
+function terBoxRebuild(){ terBoxReset(); for (let i = 0; i < TER.N; i++) if (TER.own[i]) terGrow(SNAME[TER.own[i]], i); }
 function initTerritory(){
+  terBoxReset();
+  // la grille suit la taille de la carte
+  TER.W = Math.round(GW / GSC / TC); TER.H = Math.round(GH / GSC / TC); TER.N = TER.W * TER.H;
   TER.own = new Uint8Array(TER.N); TER.land = new Uint8Array(TER.N); TER.lock = new Uint8Array(TER.N); TER.fresh = new Float32Array(TER.N);
   TER.tgt.usc = new Uint8Array(TER.N); TER.tgt.ccp = new Uint8Array(TER.N);
   let n = 0;
@@ -64,6 +71,7 @@ function claimCell(i, sid, t){
   if (o && TER.lock[i] && TER.lock[i] !== sid) return false;
   if (o) TER.cnt[SNAME[o]]--;
   TER.own[i] = sid; TER.cnt[SNAME[sid]]++; TER.fresh[i] = t; TER.ver++;
+  terGrow(SNAME[sid], i);
   mapDirtyCell(i);
   return true;
 }
@@ -99,7 +107,8 @@ function stepTerritory(dt){
     if (whole <= 0) continue;
     // cases neutres a portee, collees a notre territoire ; on prend d'abord les plus proches d'une source
     let n = 0;
-    for (let y = 1; y < TER.H - 1 && n < 8192; y++) for (let x = 1; x < Wd - 1; x++){
+    const bx = TER.box[side], ya = Math.max(1, bx[2] - 1), yb = Math.min(TER.H - 2, bx[3] + 1), xa = Math.max(1, bx[0] - 1), xb = Math.min(Wd - 2, bx[1] + 1);
+    for (let y = ya; y <= yb && n < 8192; y++) for (let x = xa; x <= xb; x++){
       const i = y * Wd + x;
       if (own[i] || !land[i] || T[i] === 255) continue;
       if (own[i - 1] !== sid && own[i + 1] !== sid && own[i - Wd] !== sid && own[i + Wd] !== sid) continue;
@@ -118,7 +127,9 @@ function stepTerritory(dt){
       const sid = SID[side], eid = SID[other(side)], T = TER.tgt[side];
       let budget = Math.floor(2.5 * fstep);
       const list = [];
-      for (let y = 1; y < TER.H - 1; y++) for (let x = 1; x < Wd - 1; x++){
+      // une case ennemie collee a la notre : dans notre rectangle agrandi d'une case
+      const bx = TER.box[side], ya = Math.max(1, bx[2] - 1), yb = Math.min(TER.H - 2, bx[3] + 1), xa = Math.max(1, bx[0] - 1), xb = Math.min(Wd - 2, bx[1] + 1);
+      for (let y = ya; y <= yb; y++) for (let x = xa; x <= xb; x++){
         const i = y * Wd + x;
         if (own[i] !== eid || T[i] === 255 || TER.lock[i]) continue;
         if (own[i - 1] !== sid && own[i + 1] !== sid && own[i - Wd] !== sid && own[i + Wd] !== sid) continue;

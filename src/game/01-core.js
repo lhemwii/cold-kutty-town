@@ -72,7 +72,7 @@ let GHOST = false, GHOST_T = 0;
 // SC : echelle du monde dans le tampon (1 de pres ; plus petit dans la vue de loin, ou tout est dessine en petit)
 let PROJ_FIX = null, NOW_T = 0, SC = 1;
 // partie : 'menu' (accueil), 'landing' (choix de la plage), 'play', 'over'. side : le camp du joueur, rival : l'IA en face
-const GAME = { mode: 'menu', side: 'usc', rival: 'ccp', speed: 1, paused: false, t: 0, seed: 1, winner: null };
+const GAME = { mode: 'menu', side: 'usc', rival: 'ccp', speed: 1, paused: false, t: 0, seed: 1, winner: null, size: 'moyenne', conf: 'une' };
 const SIDES = ['usc', 'ccp'];
 const other = (s) => s === 'usc' ? 'ccp' : 'usc';
 const CAMP_FULL = { usc: 'United Sands of Cats', ccp: 'Cats Communist Republic' };

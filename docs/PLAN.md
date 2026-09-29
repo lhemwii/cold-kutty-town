@@ -130,16 +130,17 @@ Les demandes qui arrivent en cours de route et ne rentrent dans aucune étape de
 
 - [x] Les vagues restent visibles à tous les zooms, avec autant de vagues à l’écran que de près : la mer vit et on sent qu’on se déplace. En dézoomant, on garde une partie des mêmes vagues (une case sur 2, 4, 8…).
 
-## Étape 0.17. Tailles de carte et configurations d’îles
+## Étape 0.17. Tailles de carte et configurations d’îles (fait)
 
 Au lancement d’une partie, on choisit la taille de la carte et la forme du monde.
 
-- [ ] Six tailles : petite, moyenne (la carte actuelle), grande, très grande, très très grande, immense (environ 3,4 fois plus large que la moyenne). Au-delà de « grande », le sol passe à une case par unité au lieu de deux, pour tenir en mémoire.
-- [ ] Cinq configurations : une île, deux îles face à face (un camp sur chacune), quatre îles, archipel, atoll autour d’un lagon. On passe d’une île à l’autre en barge.
-- [ ] Le choix se fait dans « Nouvelle partie », il est gardé dans la sauvegarde et affiché dans la liste des parties.
-- [ ] Le recul maximal, la vue du débarquement et le fond de l’accueil s’adaptent à la taille de la carte.
-- [ ] Débarquement de l’adversaire : loin du joueur, sur une autre île quand il y en a plusieurs.
-- [ ] Performances : de très loin, on ne parcourt plus chaque arbre (la forêt se voit par le sol) ; création du monde en moins de 2 s pour la plus grande carte.
+- [x] Six tailles : petite, moyenne (la carte actuelle), grande, très grande, très très grande, immense (environ 3,4 fois plus large que la moyenne). Au-delà de « grande », le sol passe à une case par unité au lieu de deux, pour tenir en mémoire.
+- [x] Cinq configurations : une île, deux îles face à face (un camp sur chacune), quatre îles, archipel, atoll autour d’un lagon. On passe d’une île à l’autre en barge.
+- [x] Le choix se fait dans « Nouvelle partie », il est gardé dans la sauvegarde et affiché dans la liste des parties.
+- [x] Le recul maximal, la vue du débarquement et le fond de l’accueil s’adaptent à la taille de la carte.
+- [x] Débarquement de l’adversaire : loin du joueur, sur une autre île quand il y en a plusieurs.
+- [x] Performances : de très loin, on ne parcourt plus chaque arbre (la forêt se voit par le sol), arbres et montagnes ne sont cherchés que sur la carte, le territoire ne cherche que dans la zone de chaque camp ; création de la carte immense en 2 s environ.
+- [ ] À régler en jouant : l’objectif de 60 % du territoire est très long à atteindre sur les grandes cartes.
 
 ## Étape 1. Fiabiliser ce qui existe
 

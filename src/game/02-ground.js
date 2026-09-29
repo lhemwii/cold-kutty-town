@@ -3,12 +3,37 @@
 const IS = { ca: 0, cb: 0, ra: 660, rb: 430 };
 const T_SEA = 0, T_GRASS = 1, T_BEACH = 2, T_ROAD = 3, T_WALK = 4, T_PATH = 5, T_PIER = 6, T_ROCK = 7, T_FOREST = 8, T_DIRT = 9, T_QUAY = 10;
 const TYPE_MAT = [M.SEA, M.GRASS, M.BEACH, M.ROAD, M.WALK, M.GRAVEL, M.PIER, M.ROCK, M.FOREST, M.DIRT, M.CONCRETE];
-// trame du sol : 2 cellules par unite. gBase garde le sol sans les routes pour pouvoir repeindre.
-const GSC = 2, GA0 = -800, GB0 = -540, GW = 1600 * GSC, GH = 1080 * GSC, GN = GW * GH;
-const GQW = GW >> 2, GQH = GH >> 2;
+// tailles de carte : etendue du monde en unites (centree sur 0, 0) et finesse du sol (cases par unite). Au-dela de « grande »,
+// une case par unite au lieu de deux, pour tenir en memoire. Moyenne : la carte d'origine.
+const MAP_SIZES = {
+  petite: { w: 1104, h: 744, gsc: 2, name: 'Petite' },
+  moyenne: { w: 1600, h: 1080, gsc: 2, name: 'Moyenne' },
+  grande: { w: 2200, h: 1480, gsc: 2, name: 'Grande' },
+  tresgrande: { w: 3000, h: 2024, gsc: 1, name: 'Très grande' },
+  enorme: { w: 4200, h: 2832, gsc: 1, name: 'Très, très grande' },
+  immense: { w: 5400, h: 3640, gsc: 1, name: 'Immense' }
+};
+// configurations : la forme du monde
+const MAP_CONFS = { une: 'Une île', deux: 'Deux îles', quatre: 'Quatre îles', archipel: 'Archipel', atoll: 'Atoll' };
+// trame du sol : GSC cellules par unite. gBase garde le sol sans les routes pour pouvoir repeindre.
+let GSC = 2, GA0 = -800, GB0 = -540, GW = 1600 * GSC, GH = 1080 * GSC, GN = GW * GH, GQW = GW >> 2, GQH = GH >> 2;
 // basse resolution : nuances de l'herbe et phase de l'ecume
-const gVar = new Uint8Array(GQW * GQH), gPh = new Uint8Array(GQW * GQH);
-const gType = new Uint8Array(GN), gBase = new Uint8Array(GN), gTone = new Uint8Array(GN), gSea = new Uint8Array(GN), gLand = new Uint8Array(GN);
+let gVar = null, gPh = null, gType = null, gBase = null, gTone = null, gSea = null, gLand = null;
+// echelle de la carte par rapport a la moyenne (1 pour la carte d'origine)
+const mapScale = () => Math.max(GW / GSC / 1600, GH / GSC / 1080);
+function setMapSize(key){
+  const m = MAP_SIZES[key] || MAP_SIZES.moyenne, gw = m.w * m.gsc, gh = m.h * m.gsc;
+  const same = gType && GW === gw && GH === gh;
+  GSC = m.gsc; GA0 = -m.w / 2; GB0 = -m.h / 2; GW = gw; GH = gh; GN = GW * GH; GQW = GW >> 2; GQH = GH >> 2;
+  if (!same){
+    // on lache les anciens tableaux avant d'en creer de nouveaux (les plus grandes cartes pesent lourd)
+    gType = gBase = gTone = gSea = gLand = gVar = gPh = null;
+    gVar = new Uint8Array(GQW * GQH); gPh = new Uint8Array(GQW * GQH);
+    gType = new Uint8Array(GN); gBase = new Uint8Array(GN); gTone = new Uint8Array(GN); gSea = new Uint8Array(GN); gLand = new Uint8Array(GN);
+  }
+  IS.ra = m.w * .4125; IS.rb = m.h * .398;
+}
+setMapSize('moyenne');
 const cellOf = (a, b) => { const ia = Math.floor((a - GA0) * GSC), ib = Math.floor((b - GB0) * GSC); return (ia < 0 || ib < 0 || ia >= GW || ib >= GH) ? -1 : ib * GW + ia; };
 const typeAt = (a, b) => { const i = cellOf(a, b); return i < 0 ? T_SEA : gType[i]; };
 const baseAt = (a, b) => { const i = cellOf(a, b); return i < 0 ? T_SEA : gBase[i]; };
@@ -16,32 +41,82 @@ const landDAt = (a, b) => { const i = cellOf(a, b); return i < 0 ? 0 : gLand[i];
 const seaDAt = (a, b) => { const i = cellOf(a, b); return i < 0 ? 255 : gSea[i]; };
 const isLand = (t) => t !== T_SEA && t !== T_PIER;
 
-// forme de l'ile : une super-ellipse cabossee par du bruit (baies, caps), plus quelques ilots au large
-const ISEED = { ox: 0, oy: 0, islets: [] };
-function seedIsland(seed){
+// forme du monde : une ou plusieurs iles (super-ellipses cabossees par du bruit : baies, caps), plus quelques ilots au large
+// ea, eb : demi-etendue des terres (pour le voilier au large et les vestiges)
+const ISEED = { ox: 0, oy: 0, isl: [], islets: [], conf: 'une', cut: 0, ea: 660, eb: 430 };
+function seedIsland(seed, conf){
   const r = (k) => hash2(seed * 7 + k, 913);
-  ISEED.ox = r(1) * 50; ISEED.oy = r(2) * 50;
-  ISEED.islets = [];
-  const n = 3 + Math.floor(r(3) * 2);
-  for (let k = 0; k < n; k++){
-    const ang = (k / n) * TAU + r(10 + k) * 1.2, d = 1.12 + r(20 + k) * .08, rr = 30 + r(30 + k) * 28;
+  const W2 = GW / GSC / 2, H2 = GH / GSC / 2, k = W2 / 800;
+  ISEED.ox = r(1) * 50; ISEED.oy = r(2) * 50; ISEED.conf = conf = MAP_CONFS[conf] ? conf : 'une';
+  ISEED.isl = []; ISEED.islets = []; ISEED.cut = 0;
+  const add = (ca, cb, ra, rb, j, ring) => ISEED.isl.push({ ca, cb, ra, rb, ox: r(40 + j) * 50, oy: r(60 + j) * 50, ring: !!ring, gaps: [r(80 + j) * TAU, r(81 + j) * TAU] });
+  let nIslets = 3 + Math.floor(r(3) * 2);
+  if (conf === 'deux'){
+    // deux iles face a face, separees par un detroit
+    add(-W2 * .5, (r(5) - .5) * H2 * .2, W2 * .36, H2 * .7, 0); add(W2 * .5, (r(6) - .5) * H2 * .2, W2 * .36, H2 * .7, 1);
+    ISEED.cut = 1; nIslets = 2;
+  } else if (conf === 'quatre'){
+    let j = 0; for (const sa of [-1, 1]) for (const sb of [-1, 1]){ add(sa * W2 * .5 + (r(7 + j) - .5) * W2 * .08, sb * H2 * .5 + (r(9 + j) - .5) * H2 * .08, W2 * .34, H2 * .34, j); j++; }
+    ISEED.cut = 2; nIslets = 2;
+  } else if (conf === 'archipel'){
+    // des iles de tailles variees, qui ne se touchent pas
+    const n = 7 + Math.floor(r(4) * 3);
+    for (let t = 0, j = 0; j < n && t < 400; t++){
+      const ra = W2 * (.13 + r(100 + t) * .13), rb = ra * (.7 + r(200 + t) * .3) * (H2 / W2) * 1.3;
+      const ca = (r(300 + t) * 2 - 1) * (W2 - ra * 1.3 - 60), cb = (r(400 + t) * 2 - 1) * (H2 - rb * 1.3 - 60);
+      if (ISEED.isl.some(o => Math.hypot((ca - o.ca) / (ra + o.ra), (cb - o.cb) / (rb + o.rb)) < 1.25)) continue;
+      add(ca, cb, ra, rb, j++);
+    }
+    nIslets = 0;
+  } else if (conf === 'atoll'){
+    // un anneau de terre autour d'un lagon, avec deux passes vers le large et un ilot au milieu
+    add(0, 0, IS.ra * 1.02, IS.rb * 1.02, 0, true); add((r(8) - .5) * W2 * .12, (r(9) - .5) * H2 * .12, W2 * .1, H2 * .1, 1);
+  } else add(IS.ca, IS.cb, IS.ra, IS.rb, 0);
+  const main = ISEED.isl[0];
+  if (conf === 'une' || conf === 'atoll'){ ISEED.ea = main.ra; ISEED.eb = main.rb; } else { ISEED.ea = W2 * .92; ISEED.eb = H2 * .92; }
+  for (let j = 0; j < nIslets; j++){
+    const ang = (j / nIslets) * TAU + r(10 + j) * 1.2, d = 1.12 + r(20 + j) * .08, rr = (30 + r(30 + j) * 28) * Math.sqrt(k);
+    const o = conf === 'une' || conf === 'atoll' ? main : ISEED.isl[j % ISEED.isl.length];
     // l'ilot reste entier dans la zone de jeu
-    const a = clamp(Math.cos(ang) * IS.ra * d, GA0 + rr * 1.6 + 30, GA0 + GW / GSC - rr * 1.6 - 30), b = clamp(Math.sin(ang) * IS.rb * d, GB0 + rr * 1.3 + 30, GB0 + GH / GSC - rr * 1.3 - 30);
+    const a = clamp(o.ca + Math.cos(ang) * o.ra * d, GA0 + rr * 1.6 + 30, GA0 + GW / GSC - rr * 1.6 - 30), b = clamp(o.cb + Math.sin(ang) * o.rb * d, GB0 + rr * 1.3 + 30, GB0 + GH / GSC - rr * 1.3 - 30);
     ISEED.islets.push({ a, b, r: rr });
   }
 }
+// l'ile la plus proche d'un point (en rayons de l'ile)
+function islandNear(a, b){
+  let best = ISEED.isl[0], bd = 1e9;
+  for (const it of ISEED.isl){ if (it.ra < W_ISLE_MIN) continue; const d = Math.hypot((a - it.ca) / it.ra, (b - it.cb) / it.rb); if (d < bd){ bd = d; best = it; } }
+  return best;
+}
+const W_ISLE_MIN = 60;
 function islandF(a, b){
-  const u = (a - IS.ca) / IS.ra, v = (b - IS.cb) / IS.rb;
-  const r = Math.pow(u * u * u * u + v * v * v * v, .25) * .6 + Math.hypot(u, v) * .4;
-  const ang = Math.atan2(v, u);
-  const n = (vnoise(Math.cos(ang) * 2.1 + ISEED.ox, Math.sin(ang) * 2.1 + ISEED.oy) - .5) * .36
-    + (vnoise(a * .005 + ISEED.ox, b * .005 + ISEED.oy) - .5) * .2
-    + (vnoise(a * .018 + 7 + ISEED.ox, b * .018 + 3 + ISEED.oy) - .5) * .07;
-  let f = 1 + n - r;
+  let f = -9;
+  for (const it of ISEED.isl){
+    const u = (a - it.ca) / it.ra, v = (b - it.cb) / it.rb;
+    if (u > 1.45 || u < -1.45 || v > 1.45 || v < -1.45) continue;
+    const r = Math.pow(u * u * u * u + v * v * v * v, .25) * .6 + Math.hypot(u, v) * .4;
+    const ang = Math.atan2(v, u);
+    const n = (vnoise(Math.cos(ang) * 2.1 + it.ox, Math.sin(ang) * 2.1 + it.oy) - .5) * .36
+      + (vnoise(a * .005 + ISEED.ox, b * .005 + ISEED.oy) - .5) * .2
+      + (vnoise(a * .018 + 7 + ISEED.ox, b * .018 + 3 + ISEED.oy) - .5) * .07;
+    let g = 1 + n - r;
+    if (it.ring){
+      // le lagon au milieu, et deux passes vers le large
+      g = Math.min(g, (r - .58) * 2.6 + n * .8);
+      for (const ga of it.gaps){ let da = Math.abs(ang - ga) % TAU; if (da > Math.PI) da = TAU - da; if (da < .12) g -= (1 - da / .12) * 1.2; }
+    }
+    if (g > f) f = g;
+  }
   for (const it of ISEED.islets){
     const d = Math.hypot((a - it.a) / it.r, (b - it.b) / (it.r * .75));
     const g = (1 - d) * .6 + (vnoise(a * .04 + it.a * .01, b * .04 + it.b * .01) - .5) * .25;
     if (g > f) f = g;
+  }
+  // detroits entre les iles : la mer passe toujours entre elles
+  if (ISEED.cut){
+    const ch = 40 * Math.sqrt(GW / GSC / 1600) + (vnoise(b * .01 + 5, 3) - .5) * 20;
+    if (Math.abs(a) < ch) f -= (1 - Math.abs(a) / ch) * 1.3;
+    if (ISEED.cut === 2){ const cb = 40 * Math.sqrt(GH / GSC / 1080) + (vnoise(a * .01 + 9, 7) - .5) * 20; if (Math.abs(b) < cb) f -= (1 - Math.abs(b) / cb) * 1.3; }
   }
   // pres des bords de la carte, la terre s'efface toujours dans la mer
   const edge = Math.min(a - GA0, GA0 + GW / GSC - a, b - GB0, GB0 + GH / GSC - b);
@@ -69,27 +144,34 @@ function chamfer(dist, w, h){
     dist[i] = v;
   }
 }
-function buildGround(seed){
-  seedIsland(seed);
+function buildGround(seed, conf){
+  seedIsland(seed, conf);
   // 1. la forme, calculee toutes les 2 unites puis interpolee (rapide et lisse)
   const S = 4, cw = Math.ceil(GW / S) + 2, ch = Math.ceil(GH / S) + 2, F = new Float32Array(cw * ch);
   for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) F[y * cw + x] = islandF(GA0 + x * S / GSC, GB0 + y * S / GSC);
-  for (let ib = 0, i = 0; ib < GH; ib++){
-    const fy = (ib + .5) / S, y0 = Math.floor(fy), ty = fy - y0;
-    for (let ia = 0; ia < GW; ia++, i++){
-      const fx = (ia + .5) / S, x0 = Math.floor(fx), tx = fx - x0, k = y0 * cw + x0;
-      const f = (F[k] * (1 - tx) + F[k + 1] * tx) * (1 - ty) + (F[k + cw] * (1 - tx) + F[k + cw + 1] * tx) * ty;
-      gBase[i] = f > 0 ? T_GRASS : T_SEA;
+  // par blocs de S x S cases : un bloc dont les quatre coins sont du meme cote est tout en mer ou tout en terre
+  for (let by = 0; by * S < GH; by++) for (let bx = 0; bx * S < GW; bx++){
+    const k = by * cw + bx, f00 = F[k], f10 = F[k + 1], f01 = F[k + cw], f11 = F[k + cw + 1];
+    const ya = by * S, yb = Math.min(GH, ya + S), xa = bx * S, xb = Math.min(GW, xa + S);
+    if (f00 > 0 && f10 > 0 && f01 > 0 && f11 > 0){ for (let ib = ya; ib < yb; ib++) gBase.fill(T_GRASS, ib * GW + xa, ib * GW + xb); continue; }
+    if (f00 <= 0 && f10 <= 0 && f01 <= 0 && f11 <= 0){ for (let ib = ya; ib < yb; ib++) gBase.fill(T_SEA, ib * GW + xa, ib * GW + xb); continue; }
+    for (let ib = ya; ib < yb; ib++){
+      const ty = (ib + .5) / S - by;
+      for (let ia = xa; ia < xb; ia++){
+        const tx = (ia + .5) / S - bx, f = (f00 * (1 - tx) + f10 * tx) * (1 - ty) + (f01 * (1 - tx) + f11 * tx) * ty;
+        gBase[ib * GW + ia] = f > 0 ? T_GRASS : T_SEA;
+      }
     }
   }
   // 2. distances a la cote, des deux cotes
   let d = new Uint16Array(GN);
   for (let i = 0; i < GN; i++) d[i] = gBase[i] === T_SEA ? 60000 : 0;
   chamfer(d, GW, GH);
-  for (let i = 0; i < GN; i++) gSea[i] = Math.min(255, d[i] >> 1);
+  // distances en demi-unites, quelle que soit la finesse du sol
+  for (let i = 0; i < GN; i++) gSea[i] = Math.min(255, (d[i] / GSC) | 0);
   for (let i = 0; i < GN; i++) d[i] = gBase[i] === T_SEA ? 0 : 60000;
   chamfer(d, GW, GH);
-  for (let i = 0; i < GN; i++) gLand[i] = Math.min(255, d[i] >> 1);
+  for (let i = 0; i < GN; i++) gLand[i] = Math.min(255, (d[i] / GSC) | 0);
   d = null;
   // 3. plages, rochers, forets (le bruit est lu en basse resolution)
   const RS = 8, rw = Math.ceil(GW / RS) + 1, rh = Math.ceil(GH / RS) + 1, FO = new Float32Array(rw * rh), RO = new Float32Array(rw * rh);

@@ -190,16 +190,24 @@ function layout(){
   KMIN = Math.min(KDEF, Math.max(1, Math.ceil(Math.sqrt(devW * devH / PIX_BUDGET))));
   KMAX = KDEF * 4;
   // tout au bout du dezoom, trois paliers de planete (voir 23-planet.js), puis l'ile de loin, puis la vue rapprochee
-  // a plat (globe eteint), deux paliers de recul en plus sous l'ile entiere : l'ile au milieu de la mer
-  ZLEVELS = [...(GLOBE_ON ? [KMIN * .035] : []), KMIN * .06, KMIN * .1, KMIN * .16, KMIN * .24, KMIN * .36, KMIN * .52, KMIN * .74];
-  for (let k = KMIN; k <= KMAX; k = Math.max(k + 1, Math.round(k * 1.2))) ZLEVELS.push(k);
-  if (ZLEVELS[ZLEVELS.length - 1] !== KMAX) ZLEVELS.push(KMAX);
-  if (!ZLEVELS.includes(KDEF)){ ZLEVELS.push(KDEF); ZLEVELS.sort((x, y) => x - y); }
+  zoomLevels();
   Z = ZT = clamp(KDEF * rel, ZLEVELS[0], KMAX);
   K = renderK(Z);
   applyK();
 }
 const ZMIN = () => ZLEVELS[0];
+// paliers de zoom. A plat (globe eteint), deux paliers de recul sous l'ile entiere (l'ile au milieu de la mer) ;
+// sur les grandes cartes, d'autres encore, pour voir tout le monde d'un coup d'oeil.
+function zoomLevels(){
+  const far = [KMIN * .74, KMIN * .52, KMIN * .36, KMIN * .24, KMIN * .16, KMIN * .1, KMIN * .06];
+  if (GLOBE_ON) far.push(KMIN * .035);
+  const lo = KMIN * .06 / mapScale();
+  while (far[far.length - 1] > lo * 1.15) far.push(Math.max(lo, far[far.length - 1] / 1.6));
+  ZLEVELS = far.reverse();
+  for (let k = KMIN; k <= KMAX; k = Math.max(k + 1, Math.round(k * 1.2))) ZLEVELS.push(k);
+  if (ZLEVELS[ZLEVELS.length - 1] !== KMAX) ZLEVELS.push(KMAX);
+  if (!ZLEVELS.includes(KDEF)){ ZLEVELS.push(KDEF); ZLEVELS.sort((x, y) => x - y); }
+}
 // courbure du monde selon le zoom : nulle en vue rapprochee, elle monte en continu jusqu'a la planete entiere (a KMIN * .1)
 function curvOf(z){
   if (!GLOBE_ON) return 0;
@@ -305,6 +313,7 @@ function centerOn(a, b){ cam.a = a; cam.b = b; clampCam(); setProj(); }
 // on ne la redessine que par morceaux (cases de territoire gagnees, routes, batiments) : plus de gros calcul au dezoom
 const MS = 2, MAPV = { W: GW / GSC / MS, H: GH / GSC / MS, cv: null, g: null, img: null, px: null, dirty: [], all: true };
 function mapInit(){
+  MAPV.W = Math.round(GW / GSC / MS); MAPV.H = Math.round(GH / GSC / MS); MAPV.dirty.length = 0;
   MAPV.cv = document.createElement('canvas'); MAPV.cv.width = MAPV.W; MAPV.cv.height = MAPV.H;
   MAPV.g = MAPV.cv.getContext('2d'); MAPV.img = MAPV.g.createImageData(MAPV.W, MAPV.H); MAPV.px = new Uint32Array(MAPV.img.data.buffer);
   MAPV.all = true;
@@ -394,7 +403,7 @@ function renderGround(t){
   const dax = (.5 * PC - .5 * PS) / SC, dbx = (-.5 * PS - .5 * PC) / SC, day = (PC + PS) / SC, dby = (PC - PS) / SC;
   const o = unprj(.5, .5);
   const F = fb, MB = mb, LBF = lb, OB = ob, GV = gVar, GS = gSea, GT = gTone, GTY = gType, GP = gPh, TM = TYPE_MAT, BY = BAYER, PT = PTAB;
-  const w = W, h = H, tx = TX, ty = TY, gw = GW, gh = GH, ga0 = GA0, gb0 = GB0, qw = GQW;
+  const w = W, h = H, tx = TX, ty = TY, gw = GW, gh = GH, ga0 = GA0, gb0 = GB0, qw = GQW, gsc = GSC, tsh = GSC === 2 ? 3 : 2;
   // faisceau du phare le plus proche du centre de la vue, la nuit seulement
   let bm = null;
   if (COLOR && NIGHT > .55 && BEACONS.length){ let bd = 1e9; for (const bk of BEACONS){ const d = Math.hypot(bk[0] - cam.a, bk[1] - cam.b); if (d < bd){ bd = d; bm = bk; } } }
@@ -406,8 +415,8 @@ function renderGround(t){
   for (let y = 0; y < h; y++){
     const a = o[0] + y * day, b = o[1] + y * dby;
     const ry = ((y - ty) & 3) << 2;
-    let fa = (a - ga0) * 2, fbb = (b - gb0) * 2;
-    const dfa = dax * 2, dfb = dbx * 2;
+    let fa = (a - ga0) * gsc, fbb = (b - gb0) * gsc;
+    const dfa = dax * gsc, dfb = dbx * gsc;
     let la = a - LA, lbb = b - LB, left = 0;
     for (let x = 0; x < w; x++, i++){
       let tone = 0, m = MS2, lv = 0, own = 0;
@@ -417,7 +426,7 @@ function renderGround(t){
         if (ty2 === 0) m = GS[ci] < 16 ? MSS : GS[ci] < 50 ? MSM : MS2;
         else {
           m = TM[ty2]; if (ty2 === 1) lv = GV[(ib >> 2) * qw + (ia >> 2)];
-          if (hasT){ const ti = (ib >> 3) * TW + (ia >> 3); own = TO[ti]; if (own && gt - TFR[ti] < 1.1) own += 2; }
+          if (hasT){ const ti = (ib >> tsh) * TW + (ia >> tsh); own = TO[ti]; if (own && gt - TFR[ti] < 1.1) own += 2; }
         }
       }
       let v = 0;
@@ -452,16 +461,16 @@ function renderGround(t){
 // recalcule seulement les camps par pixel (teinte et frontieres), d'apres la geometrie du sol
 function groundOwners(){
   const dax = (.5 * PC - .5 * PS) / SC, dbx = (-.5 * PS - .5 * PC) / SC, day = (PC + PS) / SC, dby = (PC - PS) / SC, o = unprj(.5, .5);
-  const OB = ob, GTY = gType, TO = TER.own, TW = TER.W, TFR = TER.fresh, gt = GAME.t, w = W, h = H, gw = GW, gh = GH;
+  const OB = ob, GTY = gType, TO = TER.own, TW = TER.W, TFR = TER.fresh, gt = GAME.t, w = W, h = H, gw = GW, gh = GH, gsc = GSC, tsh = GSC === 2 ? 3 : 2;
   if (OROW.length !== w) OROW = new Uint8Array(w);
   const UP = OROW; UP.fill(0);
   let i = 0;
   for (let y = 0; y < h; y++){
-    let fa = (o[0] + y * day - GA0) * 2, fbb = (o[1] + y * dby - GB0) * 2, left = 0;
-    const dfa = dax * 2, dfb = dbx * 2;
+    let fa = (o[0] + y * day - GA0) * gsc, fbb = (o[1] + y * dby - GB0) * gsc, left = 0;
+    const dfa = dax * gsc, dfb = dbx * gsc;
     for (let x = 0; x < w; x++, i++){
       let own = 0;
-      if (fa >= 0 && fbb >= 0 && fa < gw && fbb < gh){ const ia = fa | 0, ib = fbb | 0; if (GTY[ib * gw + ia] !== 0){ const ti = (ib >> 3) * TW + (ia >> 3); own = TO[ti]; if (own && gt - TFR[ti] < 1.1) own += 2; } }
+      if (fa >= 0 && fbb >= 0 && fa < gw && fbb < gh){ const ia = fa | 0, ib = fbb | 0; if (GTY[ib * gw + ia] !== 0){ const ti = (ib >> tsh) * TW + (ia >> tsh); own = TO[ti]; if (own && gt - TFR[ti] < 1.1) own += 2; } }
       const base = own > 2 ? own - 2 : own;
       let ov = own;
       if (x > 0 && base !== left){ if (base) ov = base + 2; if (left) OB[i - 1] = left + 2; }

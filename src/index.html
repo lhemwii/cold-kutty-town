@@ -206,8 +206,11 @@
       <button class="side-card" type="button" role="radio" data-side="ccp" aria-checked="false"><span class="flag big" data-flag="ccp"></span><b>Cats Communist Republic</b><span>CCR. Kolkhozes, usines, défilés et cosmonautes.</span></button>
     </div>
     <label class="field"><span>Nom de la partie</span><input id="newName" type="text" maxlength="28" autocomplete="off"></label>
+    <div class="field"><span>Taille de la carte</span><div class="seg" id="newSize" role="radiogroup" aria-label="Taille de la carte"><button class="btn" type="button" role="radio" data-v="petite">Petite</button><button class="btn" type="button" role="radio" data-v="moyenne">Moyenne</button><button class="btn" type="button" role="radio" data-v="grande">Grande</button><button class="btn" type="button" role="radio" data-v="tresgrande">Très grande</button><button class="btn" type="button" role="radio" data-v="enorme">Très, très grande</button><button class="btn" type="button" role="radio" data-v="immense">Immense</button></div></div>
+    <div class="field"><span>Forme du monde</span><div class="seg" id="newConf" role="radiogroup" aria-label="Forme du monde"><button class="btn" type="button" role="radio" data-v="une">Une île</button><button class="btn" type="button" role="radio" data-v="deux">Deux îles</button><button class="btn" type="button" role="radio" data-v="quatre">Quatre îles</button><button class="btn" type="button" role="radio" data-v="archipel">Archipel</button><button class="btn" type="button" role="radio" data-v="atoll">Atoll</button></div></div>
+    <p class="field-note" id="newMapNote"></p>
     <label class="field"><span>Île</span><span class="field-row"><input id="newSeed" type="text" inputmode="numeric" maxlength="5" placeholder="au hasard" autocomplete="off"><button class="btn" id="newDice" type="button">Tirer au sort</button></span></label>
-    <p class="field-note">Le numéro d’île redonne la même île : partage-le pour jouer sur la même carte.</p>
+    <p class="field-note">Le numéro d’île, avec la même taille et la même forme, redonne la même carte : partage-le pour jouer sur la même.</p>
     <div class="intro-modes"><button class="btn primary" id="introGo" type="button">Débarquer</button></div>
   </section>
 

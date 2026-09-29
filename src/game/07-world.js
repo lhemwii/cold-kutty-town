@@ -58,13 +58,17 @@ function drawPeak(pk){
     }
   }
 }
+// (le rectangle est d'abord ramene a la carte : de tres loin, la vue deborde largement sur la mer)
+function clipToMap(a0, a1, b0, b1){ return [Math.max(a0, GA0 - 100), Math.min(a1, GA0 + GW / GSC + 100), Math.max(b0, GB0 - 100), Math.min(b1, GB0 + GH / GSC + 100)]; }
 function peaksIn(a0, a1, b0, b1, fn){
+  [a0, a1, b0, b1] = clipToMap(a0, a1, b0, b1);
   for (let i = Math.floor(a0 / TB); i <= Math.floor(a1 / TB); i++) for (let j = Math.floor(b0 / TB); j <= Math.floor(b1 / TB); j++){
     const L = PEAKS.grid.get(treeKey(i, j)); if (L) for (const p of L) fn(p);
   }
 }
 // arbres dans un rectangle (vivants seulement)
 function treesIn(a0, a1, b0, b1, fn){
+  [a0, a1, b0, b1] = clipToMap(a0, a1, b0, b1);
   for (let i = Math.floor(a0 / TB); i <= Math.floor(a1 / TB); i++) for (let j = Math.floor(b0 / TB); j <= Math.floor(b1 / TB); j++){
     const L = TREES.grid.get(treeKey(i, j)); if (!L) continue;
     for (const t of L) if (t.alive && t.a >= a0 && t.a <= a1 && t.b >= b0 && t.b <= b1) fn(t);
@@ -97,6 +101,8 @@ function treeDrawables(out, t, withShadows){
     if (q[0] < -pk.R * 2 * s || q[0] > W + pk.R * 2 * s || q[1] < -10 * s || q[1] > H + (pk.H + pk.R) * s) return;
     out.push({ d: dep(pk.a, pk.b) - pk.R * .5, m: M.ROCK, f: () => drawPeak(pk), a: pk.a, b: pk.b, key: pk, still: true });
   });
+  // tout au fond du dezoom (grandes cartes), un arbre ne ferait plus qu'une fraction de pixel : la foret se voit par son sol
+  if (far && s < .03) return;
   treesIn(a0, a1, b0, b1, (tr) => {
     const q = prj(tr.a, tr.b, 0);
     if (q[0] < -14 * s || q[0] > W + 14 * s || q[1] < -4 * s || q[1] > H + 26 * s) return;
@@ -246,7 +252,7 @@ function drawLampHeads(){
 }
 
 /* ================= le voilier qui fait le tour de l'ile, au large ================= */
-function sailPos(t){ const ph = t * 0.01 + 1.2, c = Math.cos(ph), s = Math.sin(ph); return [IS.ca + (IS.ra + 190) * Math.sign(c) * Math.sqrt(Math.abs(c)), IS.cb + (IS.rb + 150) * Math.sign(s) * Math.sqrt(Math.abs(s))]; }
+function sailPos(t){ const ph = t * 0.01 + 1.2, c = Math.cos(ph), s = Math.sin(ph); return [IS.ca + (ISEED.ea + 190) * Math.sign(c) * Math.sqrt(Math.abs(c)), IS.cb + (ISEED.eb + 150) * Math.sign(s) * Math.sqrt(Math.abs(s))]; }
 function drawSailboat(t){
   const [a, b] = sailPos(t), [a2, b2] = sailPos(t + 1);
   const p = prj(a, b, 0), q = prj(a2, b2, 0);
@@ -276,9 +282,11 @@ const VEST_DEF = {
 let VEST = [];
 function buildVestiges(seed){
   VEST = [];
-  const kinds = ['statue', 'bunker', 'bunker', 'bunker', 'bunker', 'canon', 'canon', 'canon', 'depot', 'depot', 'depot'];
-  for (let k = 0, tries = 0; k < kinds.length && tries < 900; tries++){
-    const a = IS.ca + (hash2(seed + tries * 7, 31) - .5) * IS.ra * 1.8, b = IS.cb + (hash2(seed - tries * 5, 57) - .5) * IS.rb * 1.8;
+  // une statue de Catdolf ; les autres vestiges sont d'autant plus nombreux que la carte est grande
+  const base = ['bunker', 'bunker', 'bunker', 'bunker', 'canon', 'canon', 'canon', 'depot', 'depot', 'depot'], reps = Math.max(1, Math.round(mapScale() * mapScale() * .8));
+  const kinds = ['statue']; for (let r = 0; r < reps; r++) kinds.push(...base);
+  for (let k = 0, tries = 0; k < kinds.length && tries < 900 * reps; tries++){
+    const a = IS.ca + (hash2(seed + tries * 7, 31) - .5) * ISEED.ea * 1.9, b = IS.cb + (hash2(seed - tries * 5, 57) - .5) * ISEED.eb * 1.9;
     const t = baseAt(a, b);
     if ((t !== T_GRASS && t !== T_FOREST) || landDAt(a, b) < 14) continue;
     if (VEST.some(v => Math.hypot(v.a - a, v.b - b) < 110)) continue;

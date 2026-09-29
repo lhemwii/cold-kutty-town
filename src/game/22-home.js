@@ -45,7 +45,7 @@ function saveNow(){
     return;
   }
   const ix = savesIndex().filter(e => e.id !== GAME.slot);
-  ix.unshift({ id: GAME.slot, name: GAME.name, side: GAME.side, at: Date.now(), m: CAL.m, h: CLOCK.h, pct: [terPct('usc'), terPct('ccp')], seed: GAME.seed, won: GAME.winner || '' });
+  ix.unshift({ id: GAME.slot, name: GAME.name, side: GAME.side, at: Date.now(), m: CAL.m, h: CLOCK.h, pct: [terPct('usc'), terPct('ccp')], seed: GAME.seed, size: GAME.size, conf: GAME.conf, won: GAME.winner || '' });
   store.set(SAVES_KEY, ix);
   const now2 = performance.now();
   if (now2 - thumbAt > 30000 || !store.raw(thumbKey(GAME.slot))){ thumbAt = now2; const u = mapThumb(); if (u) store.set(thumbKey(GAME.slot), u); }
@@ -128,7 +128,25 @@ function leaveToHome(){
 let pickSide = PROFILE.side === 'ccp' ? 'ccp' : 'usc';
 function markSide(){ for (const o of document.querySelectorAll('#pageNew .side-card')) o.setAttribute('aria-checked', String(o.dataset.side === pickSide)); }
 for (const b of document.querySelectorAll('#pageNew .side-card')) b.addEventListener('click', () => { pickSide = b.dataset.side; markSide(); sfx(pickSide); });
-function fillNew(){ markSide(); $('newName').value = 'Partie ' + (savesIndex().length + 1); $('newSeed').value = ''; }
+function fillNew(){ markSide(); markMap(); $('newName').value = 'Partie ' + (savesIndex().length + 1); $('newSeed').value = ''; }
+// taille de la carte et forme du monde (retenues pour la prochaine partie)
+const MAP_KEY = 'ckt-carte';
+let pickSize = 'moyenne', pickConf = 'une';
+{ const m = store.get(MAP_KEY, {}) || {}; if (MAP_SIZES[m.size]) pickSize = m.size; if (MAP_CONFS[m.conf]) pickConf = m.conf; }
+const MAP_NOTES = { une: 'Une grande île, les deux camps débarquent chacun d’un côté.', deux: 'Deux îles face à face, séparées par un détroit : chaque camp débarque sur la sienne. Les barges passent de l’une à l’autre.', quatre: 'Quatre îles séparées par des chenaux. Les barges vont de l’une à l’autre.', archipel: 'Une poignée d’îles de toutes les tailles. Il faudra des barges pour s’étendre.', atoll: 'Un anneau de terre autour d’un lagon, deux passes vers le large et un îlot au milieu.' };
+function markMap(){
+  for (const b of $('newSize').children) b.setAttribute('aria-checked', String(b.dataset.v === pickSize));
+  for (const b of $('newConf').children) b.setAttribute('aria-checked', String(b.dataset.v === pickConf));
+  const m = MAP_SIZES[pickSize];
+  $('newMapNote').textContent = MAP_NOTES[pickConf] + ' Carte ' + m.name.toLowerCase() + ' : ' + Math.round(m.w * m.h / (1600 * 1080) * 100) + ' % de la moyenne.';
+}
+function pickMap(size, conf){
+  if (size) pickSize = size; if (conf) pickConf = conf;
+  store.set(MAP_KEY, { size: pickSize, conf: pickConf });
+  markMap(); sfx('click');
+}
+for (const b of $('newSize').children) b.addEventListener('click', () => pickMap(b.dataset.v, null));
+for (const b of $('newConf').children) b.addEventListener('click', () => pickMap(null, b.dataset.v));
 $('newDice').addEventListener('click', () => { $('newSeed').value = String(1 + Math.floor(Math.random() * 99999)); sfx('click'); });
 $('introGo').addEventListener('click', () => {
   if (inGame()) saveNow();
@@ -139,7 +157,7 @@ $('introGo').addEventListener('click', () => {
   const seed = typed > 0 ? Math.min(99999, typed) : 1 + Math.floor(Math.random() * 99999);
   PROFILE.games++; saveProfile();
   closeHome(false); setPaused(false); GAME.winner = null;
-  newWorld(seed);
+  newWorld(seed, pickSize, pickConf);
   setSpeed(OPT.speed);
   startLanding();
 });
@@ -156,7 +174,7 @@ function fillLoad(){
     const t = document.createElement('div'); t.className = 'save-t'; t.innerHTML = '<span class="flag">' + flagSVG(e.side) + '</span>'; const nm = document.createElement('b'); nm.textContent = e.name || 'Partie'; t.append(nm); info.append(t);
     const meta = document.createElement('div'); meta.className = 'save-meta';
     const pct = Array.isArray(e.pct) ? 'USC ' + Math.round(e.pct[0] * 100) + ' % · CCR ' + Math.round(e.pct[1] * 100) + ' %' : '';
-    meta.textContent = [CAMP_SHORT[e.side], MONTHS[e.m | 0], pct, 'île ' + (e.seed || '?'), e.won ? (e.won === e.side ? 'gagnée' : 'perdue') : ''].filter(Boolean).join(' · ');
+    meta.textContent = [CAMP_SHORT[e.side], MONTHS[e.m | 0], pct, 'île ' + (e.seed || '?'), MAP_SIZES[e.size] ? MAP_SIZES[e.size].name.toLowerCase() : '', MAP_CONFS[e.conf] && e.conf !== 'une' ? MAP_CONFS[e.conf].toLowerCase() : '', e.won ? (e.won === e.side ? 'gagnée' : 'perdue') : ''].filter(Boolean).join(' · ');
     const when = document.createElement('div'); when.className = 'save-when'; when.textContent = 'Jouée ' + whenLabel(e.at) + (e.id === GAME.slot ? ' · partie en cours' : '');
     info.append(meta, when);
     const act = document.createElement('div'); act.className = 'save-act';
@@ -206,7 +224,7 @@ $('optWipe').addEventListener('click', () => {
   const b = $('optWipe');
   if (b.dataset.sure !== '1'){ b.dataset.sure = '1'; b.textContent = 'Sûr ? Tout sera perdu'; setTimeout(() => { b.dataset.sure = ''; b.textContent = 'Effacer parties, profil et options'; }, 3000); return; }
   for (const e of savesIndex()) deleteSlot(e.id);
-  store.del(SAVES_KEY); store.del(PROFILE_KEY); store.del(OPT_KEY);
+  store.del(SAVES_KEY); store.del(PROFILE_KEY); store.del(OPT_KEY); store.del(MAP_KEY);
   Object.assign(PROFILE, { name: '', side: 'usc', games: 0, wins: 0, losses: 0, secs: 0 });
   Object.assign(OPT, { vol: 70, mus: 100, speed: 1, wx: 1 });
   b.dataset.sure = ''; b.textContent = 'Effacer parties, profil et options';
@@ -216,10 +234,12 @@ $('optWipe').addEventListener('click', () => {
 /* ---- le fond de l'accueil : l'ile de loin (ou la planete, avec GLOBE_ON), qui tourne doucement sur elle-meme ---- */
 const HOME = { last: 0, acc: 0 };
 function homeIsland(seed){
-  newWorld(seed);
+  // en fond de l'accueil : une carte moyenne, d'une forme tiree au sort
+  const confs = Object.keys(MAP_CONFS);
+  newWorld(seed, 'moyenne', confs[seed % confs.length]);
   centerOn(IS.ca, IS.cb); cam.phiT = null; cam.follow = null; cam.phi = 0;
   if (GLOBE_ON) cam.a = IS.ca - .6 * RP;
-  setZoom(KMIN * (GLOBE_ON ? .06 : .16), null, null, true);
+  setZoom(KMIN * (GLOBE_ON ? .06 : .16) / mapScale(), null, null, true);
 }
 HOOKS.after.push(() => {
   const now2 = performance.now(), dt = HOME.last ? Math.min(.1, (now2 - HOME.last) / 1000) : 0; HOME.last = now2;

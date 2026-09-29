@@ -8,7 +8,7 @@ Une île vierge tirée au sort à chaque partie : forêts, plages, rochers, îlo
 
 ## L’accueil
 
-Au lancement, un vrai menu de jeu devant l’île qui tourne doucement, vue de loin : Continuer (la dernière partie), Nouvelle partie (camp, nom, numéro d’île à partager), Charger une partie (toutes tes parties, avec vignette, camp, mois, territoire), Profil (ton nom, ton camp préféré, tes victoires et ton temps de jeu), Options (volume, musique, vitesse de départ, pluie et neige), Règles. En jeu, le bouton Menu met en pause et propose de revenir à la partie ou de la quitter. Tout se garde dans le navigateur ; les parties se sauvegardent toutes seules.
+Au lancement, un vrai menu de jeu devant l’île qui tourne doucement, vue de loin : Continuer (la dernière partie), Nouvelle partie (camp, nom, taille de la carte de petite à immense, forme du monde : une île, deux îles face à face, quatre îles, archipel ou atoll, et numéro d’île à partager), Charger une partie (toutes tes parties, avec vignette, camp, mois, territoire), Profil (ton nom, ton camp préféré, tes victoires et ton temps de jeu), Options (volume, musique, vitesse de départ, pluie et neige), Règles. En jeu, le bouton Menu met en pause et propose de revenir à la partie ou de la quitter. Tout se garde dans le navigateur ; les parties se sauvegardent toutes seules.
 
 ## La planète
 

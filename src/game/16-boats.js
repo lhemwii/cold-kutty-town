@@ -2,6 +2,8 @@
 // grille de navigation : une case = 8 unites, un peu plus grande que l'ile pour arriver du large
 const NS = 8, NAV = { A0: GA0 - 160, B0: GB0 - 160, W: Math.ceil((GW / GSC + 320) / NS), H: Math.ceil((GH / GSC + 320) / NS), ok: null };
 function buildNav(){
+  // la grille suit la taille de la carte, avec une marge de mer tout autour
+  NAV.A0 = GA0 - 160; NAV.B0 = GB0 - 160; NAV.W = Math.ceil((GW / GSC + 320) / NS); NAV.H = Math.ceil((GH / GSC + 320) / NS);
   NAV.ok = new Uint8Array(NAV.W * NAV.H);
   for (let y = 0; y < NAV.H; y++) for (let x = 0; x < NAV.W; x++){
     const a = NAV.A0 + (x + .5) * NS, b = NAV.B0 + (y + .5) * NS;
@@ -59,7 +61,8 @@ function navPath(a0, b0, a1, b1){
 }
 // point de la mer au large, dans la direction d'un point de la cote
 function offshoreFrom(a, b){
-  const d = Math.hypot(a - IS.ca, b - IS.cb) || 1, ua = (a - IS.ca) / d, ub = (b - IS.cb) / d;
+  // vers le large, a partir du centre de l'ile la plus proche
+  const it = islandNear(a, b), d = Math.hypot(a - it.ca, b - it.cb) || 1, ua = (a - it.ca) / d, ub = (b - it.cb) / d;
   let pa = a, pb = b;
   for (let k = 0; k < 200; k++){ pa += ua * 8; pb += ub * 8; if (pa < NAV.A0 + 12 || pb < NAV.B0 + 12 || pa > NAV.A0 + NAV.W * NS - 12 || pb > NAV.B0 + NAV.H * NS - 12) break; }
   return [pa, pb];
