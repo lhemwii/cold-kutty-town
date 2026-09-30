@@ -138,7 +138,7 @@ export function thumb(type: string, side: Side, w: number, h: number, lvl?: numb
   const [fa, fb2] = footOf(type);
   // un lot fictif : les dessins des types ne lisent que l'emprise, le camp, le niveau et la direction
   const lot: Building = { id: 0, type, a0: -fa / 2, a1: fa / 2, b0: -fb2 / 2, b1: fb2 / 2, ca: 0, cb: 0, side, lvl: lvl || 1, dir: 0, done: true, buildT: 0, bdur: 0, upT: 0, active: true };
-  setView({ W: w, H: h, fb: new Uint8Array(w * h), mb: new Uint8Array(w * h), lb: new Uint8Array(w * h), PC: 1, PS: 0, SC: 1 });
+  setView({ W: w, H: h, fb: new Uint8Array(w * h), mb: new Uint8Array(w * h), lb: new Uint8Array(w * h), db: new Uint16Array(w * h), PC: 1, PS: 0, SC: 1 });
   SH.CUR_SIDE = side;
   try {
     const r = TYPES[type].build(lot, 5), probe = { x0: 1e9, y0: 1e9, x1: -1e9, y1: -1e9 };
@@ -161,7 +161,7 @@ export function vestThumb(kind: VestKind, w: number, h: number){
   const key = 'vest:' + kind + ':' + w; if (THUMBS[key]) return THUMBS[key];
   const saved = getView();
   const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
-  setView({ W: w, H: h, fb: new Uint8Array(w * h), mb: new Uint8Array(w * h), lb: new Uint8Array(w * h), PC: 1, PS: 0, SC: 1 });
+  setView({ W: w, H: h, fb: new Uint8Array(w * h), mb: new Uint8Array(w * h), lb: new Uint8Array(w * h), db: new Uint16Array(w * h), PC: 1, PS: 0, SC: 1 });
   try {
     const v = { kind, a: 0, b: 0, ang: 0 };
     setView({ TX: w >> 1, TY: Math.round(h * .62) }); drawVestige(v);

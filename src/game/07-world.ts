@@ -1,6 +1,7 @@
 import { SH } from './00-shared.ts';
 import type { Side } from './00-shared.ts';
 import type { Vec2 } from './02-ground.ts';
+import type { Sprite } from './01-core.ts';
 import { COLOR, FONT, H, M, PC, PS, SC, SHADOW_V, TAU, UP, W, bay, blit, blitAt, boxS, bz, cam, clamp, dep, drawFace, fput, hash2, lb, line3, prj, state, textW, unprj, wallFace } from './01-core.ts';
 import { GA0, GB0, GH, GSC, GW, IS, ISEED, MOUNT_T, T_FOREST, T_GRASS, T_ROCK, baseAt, cellOf, clearForest, gBase, gLand, landDAt, mapScale, mountN } from './02-ground.ts';
 import { pennant, treeSpr, treeSprSc } from './03-buildings-base.ts';
@@ -101,7 +102,9 @@ export function cutTreesAlong(pts: Vec2[], w: number): number {
 }
 // arbres visibles, ajoutes a la liste de dessin ; leurs ombres sont posees directement au sol
 /** Un objet a dessiner, trie par profondeur (d) : voir render() dans 11-render. */
-export interface Drawable { d: number; a?: number; b?: number; f: (t: number) => void; m?: number; key?: object; still?: boolean; raw?: boolean; side?: Side; big?: boolean }
+/** un objet a dessiner, trie par profondeur d. spr : l'objet n'est que ce petit dessin pose au pixel (x, y) de l'image,
+ *  en matiere m (un arbre) : la carte graphique peut le poser elle-meme (11-render, etape 3.3) */
+export interface Drawable { d: number; a?: number; b?: number; f: (t: number) => void; m?: number; key?: object; still?: boolean; raw?: boolean; side?: Side; big?: boolean; spr?: { s: Sprite; x: number; y: number } }
 export function treeDrawables(out: Drawable[], t: number, withShadows: boolean): void {
   const cs = [unprj(-20, -20), unprj(W + 20, -20), unprj(-20, H + 60), unprj(W + 20, H + 60)];
   let a0 = 1e9, a1 = -1e9, b0 = 1e9, b1 = -1e9;
@@ -123,10 +126,12 @@ export function treeDrawables(out: Drawable[], t: number, withShadows: boolean):
       // a sa vraie taille, un arbre peut faire moins d'un pixel : on n'en dessine qu'une part, selon la surface de son feuillage
       const rx = (tr.r + 1) * s; if (rx < 1.1 && hash2(tr.a * 1.7 + 3, tr.b * .9 - 5) > Math.PI * rx * tr.r * s) return;
       if (farShade && s > .3) treeShadow(tr, q, s);
-      out.push({ d: dep(tr.a, tr.b), m: M.TREE, raw: true, f: () => { SH.CUR = M.TREE; blit(treeSprSc(tr.r, s), Math.round(q[0]), Math.round(q[1])); } }); return; }
+      const sp = treeSprSc(tr.r, s), x = Math.round(q[0]), y = Math.round(q[1]);
+      out.push({ d: dep(tr.a, tr.b), m: M.TREE, raw: true, spr: { s: sp, x, y }, f: () => { SH.CUR = M.TREE; blit(sp, x, y); } }); return; }
     if (withShadows) treeShadow(tr, q);
     const deco = xmas && hash2(tr.a, tr.b) < .3;
-    out.push({ d: dep(tr.a, tr.b), m: M.TREE, f: (tt) => { SH.CUR = M.TREE; blitAt(treeSpr(tr.r), tr.a, tr.b, 0); if (deco) SH.drawTreeLights(tr.a, tr.b, tr.r, tt); } });
+    out.push({ d: dep(tr.a, tr.b), m: M.TREE, spr: deco ? undefined : { s: treeSpr(tr.r), x: Math.round(q[0]), y: Math.round(q[1]) }, f: (tt) => { SH.CUR = M.TREE; blitAt(treeSpr(tr.r), tr.a, tr.b, 0); if (deco) SH.drawTreeLights(tr.a, tr.b, tr.r, tt); } });
+
   });
 }
 // ombre d'arbre : un ovale decale selon le soleil, seulement sur le sol

@@ -104,6 +104,10 @@ export let mb: Uint8Array = new Uint8Array(0);
 export let lb: Uint8Array = new Uint8Array(0);
 export let img: ImageData | null = null;
 export let px32: Uint32Array = new Uint32Array(0);
+// rang de dessin de chaque pixel (avec PixiJS, pour placer ce que dessine le processeur devant ou derriere les objets
+// poses par la carte graphique) ; SH.RANK : rang de ce qu'on dessine en ce moment (0 : a ras du sol)
+export let db: Uint16Array = new Uint16Array(0);
+SH.RANK = 0;
 
 SH.ctx = null;
 SH.GHOST = false; SH.GHOST_T = 0;
@@ -113,12 +117,13 @@ export let PROJ_FIX: [number, number] | null = null, SC = 1;
 SH.NOW_T = 0;
 export interface View {
   PC: number; PS: number; TX: number; TY: number; SC: number; W: number; H: number; N: number;
-  fb: Uint8Array; mb: Uint8Array; lb: Uint8Array; PROJ_FIX: [number, number] | null; img: ImageData | null; px32: Uint32Array;
+  fb: Uint8Array; mb: Uint8Array; lb: Uint8Array; db: Uint16Array; PROJ_FIX: [number, number] | null; img: ImageData | null; px32: Uint32Array;
 }
-export function getView(): View { return { PC, PS, TX, TY, SC, W, H, N, fb, mb, lb, PROJ_FIX, img, px32 }; }
+export function getView(): View { return { PC, PS, TX, TY, SC, W, H, N, fb, mb, lb, db, PROJ_FIX, img, px32 }; }
 export function setView(v: Partial<View>){
   if (v.PC !== undefined) PC = v.PC; if (v.PS !== undefined) PS = v.PS; if (v.TX !== undefined) TX = v.TX; if (v.TY !== undefined) TY = v.TY; if (v.SC !== undefined) SC = v.SC;
-  if (v.W !== undefined) W = v.W; if (v.H !== undefined) H = v.H; if (v.N !== undefined) N = v.N; if (v.fb) fb = v.fb; if (v.mb) mb = v.mb; if (v.lb) lb = v.lb;
+  if (v.W !== undefined) W = v.W; if (v.H !== undefined) H = v.H; if (v.N !== undefined) N = v.N; if (v.fb) fb = v.fb; if (v.mb) mb = v.mb; if (v.lb) lb = v.lb; if (v.db) db = v.db;
+
   if ('PROJ_FIX' in v && v.PROJ_FIX !== undefined) PROJ_FIX = v.PROJ_FIX; if ('img' in v && v.img !== undefined) img = v.img; if (v.px32) px32 = v.px32;
 }
 // partie : 'menu' (accueil), 'landing' (choix de la plage), 'play', 'over'. side : le camp du joueur, rival : l'IA en face
@@ -201,7 +206,8 @@ export function fput(x: number, y: number, c: number){
   if (SH.CAPTURE || x < 0 || y < 0 || x >= w || y >= H) return;
   const i = y * w + x;
   if (COLOR) lb[i] = SH.LV;
-  if (SH.GHOST){ if (c >= 1 && ((x + y + SH.GHOST_T) & 1)){ fb[i] = 1; mb[i] = M.BEAM; } return; }
+  if (SH.GHOST){ if (c >= 1 && ((x + y + SH.GHOST_T) & 1)){ fb[i] = 1; mb[i] = M.BEAM; db[i] = SH.RANK; } return; }
+  db[i] = SH.RANK;
   if (c === 3){ fb[i] = 1; mb[i] = M.WIN; } else if (c >= 4){ fb[i] = c === 4 ? 1 : 0; mb[i] = SH.ACC; } else { fb[i] = c; mb[i] = SH.CUR; }
 }
 export function lineS(x0: number, y0: number, x1: number, y1: number, c: number, dash?: boolean){
@@ -210,7 +216,7 @@ export function lineS(x0: number, y0: number, x1: number, y1: number, c: number,
   let err = dx + dy, k = 0;
   for (;;){
     if (!dash) fput(x0, y0, c);
-    else if (!SH.CAPTURE && ((k + SH.GHOST_T) >> 1) & 1){ if (x0 >= 0 && y0 >= 0 && x0 < W && y0 < H){ fb[y0 * W + x0] = 1; mb[y0 * W + x0] = M.BEAM; if (COLOR) lb[y0 * W + x0] = 0; } }
+    else if (!SH.CAPTURE && ((k + SH.GHOST_T) >> 1) & 1){ if (x0 >= 0 && y0 >= 0 && x0 < W && y0 < H){ fb[y0 * W + x0] = 1; mb[y0 * W + x0] = M.BEAM; db[y0 * W + x0] = SH.RANK; if (COLOR) lb[y0 * W + x0] = 0; } }
     if (x0 === x1 && y0 === y1) break;
     const e2 = 2 * err;
     if (e2 >= dy){ err += dy; x0 += sx; }
@@ -236,8 +242,8 @@ export function fillConvex(xs: ArrayLike<number>, ys: ArrayLike<number>, n: numb
     }
     if (xl > xr) continue;
     const xa = Math.max(0, Math.ceil(xl - .5)), xb = Math.min(W - 1, Math.floor(xr - .5));
-    const row = y * W, FB = fb, MB = mb, LB = lb;
-    for (let x = xa; x <= xb; x++){ const v = shade(x, y); if (v >= 0){ if (COLOR) LB[row + x] = SH.LV; if (v === 3){ FB[row + x] = 1; MB[row + x] = M.WIN; } else if (v >= 4){ FB[row + x] = v === 4 ? 1 : 0; MB[row + x] = SH.ACC; } else { FB[row + x] = v; MB[row + x] = SH.CUR; } } }
+    const row = y * W, FB = fb, MB = mb, LB = lb, DB = db, RK = SH.RANK;
+    for (let x = xa; x <= xb; x++){ const v = shade(x, y); if (v >= 0){ DB[row + x] = RK; if (COLOR) LB[row + x] = SH.LV; if (v === 3){ FB[row + x] = 1; MB[row + x] = M.WIN; } else if (v >= 4){ FB[row + x] = v === 4 ? 1 : 0; MB[row + x] = SH.ACC; } else { FB[row + x] = v; MB[row + x] = SH.CUR; } } }
   }
 }
 export const FX = new Float64Array(16), FY = new Float64Array(16);
@@ -366,7 +372,7 @@ export function makeSprite(draw: (put: Put) => void): Sprite {
 }
 export function blit(s: Sprite, dx: number, dy: number){
   const ox = s.x0 + dx, oy = s.y0 + dy;
-  const FB = fb, MB = mb, LB = lb, LV = SH.LV, CUR = SH.CUR, GH = SH.GHOST, GT = SH.GHOST_T;
+  const FB = fb, MB = mb, LB = lb, DB = db, RK = SH.RANK, LV = SH.LV, CUR = SH.CUR, GH = SH.GHOST, GT = SH.GHOST_T;
   if (SH.CAPTURE || ox > W || oy > H || ox + s.w < 0 || oy + s.h < 0) return;
   for (let y = 0; y < s.h; y++){
     const sy = oy + y; if (sy < 0 || sy >= H) continue;
@@ -375,8 +381,8 @@ export function blit(s: Sprite, dx: number, dy: number){
       const sx = ox + x; if (sx < 0 || sx >= W) continue;
       const j = sy * W + sx;
       if (COLOR) LB[j] = LV;
-      if (GH){ if (v >= 1 && ((x + y + GT) & 1)){ FB[j] = 1; MB[j] = M.BEAM; } }
-      else if (v === 3){ FB[j] = 1; MB[j] = M.WIN; } else { FB[j] = v; MB[j] = CUR; }
+      if (GH){ if (v >= 1 && ((x + y + GT) & 1)){ FB[j] = 1; MB[j] = M.BEAM; DB[j] = RK; } }
+      else { DB[j] = RK; if (v === 3){ FB[j] = 1; MB[j] = M.WIN; } else { FB[j] = v; MB[j] = CUR; } }
     }
   }
 }

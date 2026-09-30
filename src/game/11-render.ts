@@ -2,8 +2,8 @@ import { SH, type Light, type ShadowHull } from './00-shared.ts';
 import type { Sprite } from './01-core.ts';
 import type { Drawable } from './07-world.ts';
 import type { Cat } from './10-town.ts';
-import { createPresenter, type GroundView, type Presenter } from '../gpu/present.ts';
-import { BAYER, COLOR, GAME, GEO, GLOBE_ON, H, HOOKS, M, N, PC, PROJ_FIX, PS, RAYHIT, RP, SC, SHADOW_V, TAU, TX, TY, W, cam, clamp, dep, fb, fput, geoCast, geoProj, geoSet, getView, groundDelta, hash2, img, lb, litAt, mb, prj, px32, setProj, setView, state, unprj } from './01-core.ts';
+import { QUAD, createPresenter, type GroundView, type Presenter } from '../gpu/present.ts';
+import { BAYER, COLOR, db, GAME, GEO, GLOBE_ON, H, HOOKS, M, N, PC, PROJ_FIX, PS, RAYHIT, RP, SC, SHADOW_V, TAU, TX, TY, W, cam, clamp, dep, fb, fput, geoCast, geoProj, geoSet, getView, groundDelta, hash2, img, lb, litAt, mb, prj, px32, setProj, setView, state, unprj } from './01-core.ts';
 import { GA0, GB0, GDIRTY, GH, GQH, GQW, GSC, GW, TYPE_MAT, T_BEACH, T_DIRT, T_FOREST, T_GRASS, T_PIER, T_QUAY, T_ROAD, T_ROCK, T_SEA, T_WALK, cellOf, gPh, gSea, gTone, gType, gVar, mapScale } from './02-ground.ts';
 import { drawCarAng } from './03-buildings-base.ts';
 import { VEST, drawGlow, drawLampHeads, drawLantern, drawSailboat, sailPos, towerSpot, treeDrawables } from './07-world.ts';
@@ -162,8 +162,11 @@ export function drawWeather(t: number){
 
 /* ================= ecran, zoom ================= */
 export const scene = document.getElementById('scene') as HTMLCanvasElement;
-// affichage : PixiJS (WebGL2, mise en couleur sur la carte graphique) ; sinon, ou avec ?gl=0 dans l'adresse, le canvas 2D d'avant
-export const GPU: Presenter | null = new URLSearchParams(location.search).get('gl') === '0' ? null : await createPresenter(scene, 1, 1);
+// affichage : PixiJS (WebGL2, mise en couleur sur la carte graphique) ; sinon, ou avec ?gl=0 dans l'adresse, le canvas 2D d'avant.
+// Si WebGL est emule par le processeur, le sol et les objets restent calcules en JavaScript (plus rapide la) ; ?gl=gpu force la carte.
+export const GL_MODE = new URLSearchParams(location.search).get('gl') || '';
+export const GPU: Presenter | null = GL_MODE === '0' ? null : await createPresenter(scene, 1, 1);
+export const GPU_HEAVY = !!GPU && (!GPU.software || GL_MODE === 'gpu');
 
 SH.GPU_GROUND = false; SH.REFL = null;
 SH.ctx = GPU ? null : scene.getContext('2d', { alpha: false });
@@ -180,7 +183,7 @@ export const FAR_T = .7;
 export const renderK = (z: number) => z >= SH.KMIN - 1e-6 ? Math.max(SH.KMIN, Math.floor(z + 1e-6)) : z >= SH.KMIN * FAR_T - 1e-6 ? Math.max(SH.KMIN * FAR_T * .98, Math.floor(z * 16) / 16) : SH.KMIN;
 export function applyK(){
   const w = Math.ceil(devW / SH.K), h = Math.ceil(devH / SH.K), n = w * h, im = new ImageData(w, h);
-  setView({ W: w, H: h, N: n, img: im, px32: new Uint32Array(im.data.buffer), fb: new Uint8Array(n), mb: new Uint8Array(n), lb: new Uint8Array(n) });
+  setView({ W: w, H: h, N: n, img: im, px32: new Uint32Array(im.data.buffer), fb: new Uint8Array(n), mb: new Uint8Array(n), lb: new Uint8Array(n), db: new Uint16Array(n) });
   ob = new Uint8Array(n);
   setProj();
   applyView(true);
@@ -506,7 +509,8 @@ let GCELLS = new Uint8Array(0), GQUART = new Uint8Array(0), gridOf: Uint8Array |
 let TERPX = new Uint8Array(0);
 if (GPU) GPU.groundMats({ typeMat: TYPE_MAT, sea: M.SEA, seaMid: M.SEA_MID, seaShallow: M.SEA_SHALLOW, foam: M.FOAM, beam: M.BEAM, road: M.ROAD, reflect: M.REFLECT, glows: GLOWS, waters: WATERS, keepTint: KEEP_TINT });
 // le sol peut-il etre calcule par la carte graphique pour cette image ? (pas pour le globe, ni si la grille depasse ses textures)
-export function groundOnGpu(): boolean { return !!GPU && !SH.CPU_GROUND && gType.length > 0 && GW <= GPU.maxTex && GH <= GPU.maxTex && SH.CURV <= 0; }
+export function groundOnGpu(): boolean { return !!GPU && GPU_HEAVY && !SH.CPU_GROUND &&
+ gType.length > 0 && GW <= GPU.maxTex && GH <= GPU.maxTex && SH.CURV <= 0; }
 function packCells(x0: number, x1: number, y0: number, y1: number){
   const C = GCELLS, T = gType, O = gTone, S = gSea, w = GW;
   for (let y = y0; y <= y1; y++) for (let x = x0, i = y * w + x0; x <= x1; x++, i++){
@@ -690,7 +694,7 @@ export function render(t: number){
   // tres loin, si l'ile n'est plus du tout dans le tampon plat (on a tourne autour de la planete), on ne dessine que la planete
   if (SH.CURV > 0 && !SH.planetFlatNeeded()){ SH.planetWarp(t, false); return; }
   const gg = groundOnGpu();
-  SH.GPU_GROUND = gg; SH.REFL = null;
+  SH.GPU_GROUND = gg; SH.REFL = null; SH.RANK = 0;
   if (gg){ syncGround(); mb.fill(EMPTY_PX); fb.fill(0); lb.fill(0); }
   else renderGround(t);
   drawWaves(t);
@@ -713,16 +717,27 @@ export function render(t: number){
   for (const c of SH.CATS){ const p = catPos(c, t), q = prj(p.a, p.b, 0); c.screen = null; if (q[0] < -20 || q[0] > W + 20 || q[1] < -20 || q[1] > H + 20) continue; list.push({ d: dep(p.a, p.b) + .2, a: p.a, b: p.b, f: far ? () => { drawCat(c, t); c.screen = null; } : () => drawCat(c, t) }); }
   const sp = sailPos(t); list.push({ d: dep(sp[0], sp[1]), a: sp[0], b: sp[1], f: drawSailboat, big: true });
   for (const o of dyn) list.push(o);
-  list.sort((u, v) => u.d - v.d);
-  if (far) farRefresh(list, t);
-  for (const it of list){ SH.CUR = it.m == null ? M.METAL : it.m; SH.CUR_SIDE = it.side || 'usc'; if (far) farDraw(it, t); else it.f(t); }
+  const sorted = sortByDepth(list);
+  if (far) farRefresh(sorted, t);
+  // chaque objet a son rang ; avec le sol sur la carte graphique, elle pose ce qu'elle peut (voir gpuDraw)
+  const gpuObj = gg && !SH.CPU_OBJECTS, still = gpuObj ? objectsBegin() : false;
+  for (let i = 0; i < sorted.length; i++){
+    const it = sorted[i], r = Math.min(i + 1, 65534);
+    SH.CUR = it.m == null ? M.METAL : it.m; SH.CUR_SIDE = it.side || 'usc'; SH.RANK = r;
+    if (gpuObj && gpuDraw(it, r, far, t, still)) continue;
+    if (far) farDraw(it, t); else it.f(t);
+  }
+  if (gpuObj) objectsEnd();
+  // ce qui vient apres passe devant tous les objets
+  SH.RANK = 65535;
   if (!far){ for (const f of HOOKS.top) f(t); if (typeof SH.drawToolPreview === 'function') SH.drawToolPreview(t); }
   const glow = !COLOR || SH.NIGHT > .35;
   if (far){ for (const bk of BEACONS) farDraw({ a: bk[0], b: bk[1], f: (tt: number) => { drawLantern(bk[0], bk[1]); if (glow) drawGlow(bk[0], bk[1], tt); } }, t); }
   else if (glow){ for (const bk of BEACONS){ drawLantern(bk[0], bk[1]); drawGlow(bk[0], bk[1], t); } drawLampHeads(); }
   else for (const bk of BEACONS) drawLantern(bk[0], bk[1]);
   drawSatellite(t); drawWeather(t); if (COLOR) for (const f of HOOKS.post) f(t);
-  if (GPU && gg){ GPU.palette(PALX, PL, SH.palKey); GPU.drawGround({ fb, mb, lb, ob, n: N }, groundView(t)); return; }
+  if (GPU && gg){ GPU.palette(PALX, PL, SH.palKey); GPU.drawGround({ fb, mb, lb, ob, db, n: N }, groundView(t), gpuObj ? { q: OBJQ, n: NQ } : null); return; }
+
   if (GPU && SH.CURV <= 0){ GPU.palette(PALX, PL, SH.palKey); GPU.draw({ fb, mb, lb, ob, n: N }); return; }
 
   toRGBA();
@@ -789,15 +804,17 @@ export function drawShadows(){
 // dans un petit tampon a part, avec le meme code que de pres, puis recopie en petit. Les batiments et les montagnes gardent
 // ce dessin en memoire et le refont par roulement (la vue a tourne, un drapeau flotte) ; ce qui bouge est refait a chaque image.
 export const SPW = 256, SPH = 256, SPAX = 128, SPAY = 196, EMPTY = 255;
-export const SPB = { fb: new Uint8Array(SPW * SPH), mb: new Uint8Array(SPW * SPH), lb: new Uint8Array(SPW * SPH), ob: new Uint8Array(SPW * SPH) };
+export const SPB = { fb: new Uint8Array(SPW * SPH), mb: new Uint8Array(SPW * SPH), lb: new Uint8Array(SPW * SPH), ob: new Uint8Array(SPW * SPH), db: new Uint16Array(SPW * SPH) };
 /** dessin d'un objet fait a part, a l'echelle 1 : forme, matiere, eclairage ; (x0, y0) par rapport au point d'ancrage */
-export interface FarSprite { x0: number; y0: number; w: number; h: number; fb: Uint8Array; mb: Uint8Array; lb: Uint8Array }
-/** dessin garde en memoire pour un objet de la vue de loin : le dessin, l'angle de vue ou il a ete fait, et quand */
-interface FarEntry { spr: FarSprite | null; bk: number; t0: number }
+/** clip : le dessin touche le bord du tampon, il est peut-etre coupe (trop grand pour etre garde tel quel) */
+export interface FarSprite { x0: number; y0: number; w: number; h: number; fb: Uint8Array; mb: Uint8Array; lb: Uint8Array; clip: boolean }
+/** dessin garde en memoire pour un objet de la vue de loin : le dessin, l'angle de vue ou il a ete fait, et quand ; sa place dans l'atlas */
+interface FarEntry { spr: FarSprite | null; bk: number; t0: number; slot: Slot | null }
 export const FAR = { budget: 5, bk: TAU / 360, age: 1200, cache: new WeakMap<object, FarEntry>(), t0: 0 };
 export function sprRender(it: Pick<Drawable, 'f' | 'm' | 'side'>, a: number, b: number, t: number): FarSprite | null {
   const sv = getView(), svOb = ob;
-  setView({ W: SPW, H: SPH, N: SPW * SPH, fb: SPB.fb, mb: SPB.mb, lb: SPB.lb }); ob = SPB.ob;
+  setView({ W: SPW, H: SPH, N: SPW * SPH, fb: SPB.fb, mb: SPB.mb, lb: SPB.lb, db: SPB.db }); ob = SPB.ob;
+
   fb.fill(0); mb.fill(EMPTY); lb.fill(0);
   const ar = a * PC - b * PS, br = a * PS + b * PC;
   setView({ SC: 1, PROJ_FIX: [Math.round(SPAX - (ar - br)), Math.round(SPAY - (ar + br) * .5)] });
@@ -817,7 +834,7 @@ export function sprRender(it: Pick<Drawable, 'f' | 'm' | 'side'>, a: number, b: 
     if (x1 >= 0){
       const w = x1 - x0 + 1, h = y1 - y0 + 1, F = new Uint8Array(w * h), Mm = new Uint8Array(w * h), L = new Uint8Array(w * h);
       for (let y = 0; y < h; y++){ const s0 = (y + y0) * SPW + x0, d0 = y * w; F.set(fb.subarray(s0, s0 + w), d0); Mm.set(MB.subarray(s0, s0 + w), d0); L.set(lb.subarray(s0, s0 + w), d0); }
-      out = { x0: x0 - ax, y0: y0 - ay, w, h, fb: F, mb: Mm, lb: L };
+      out = { x0: x0 - ax, y0: y0 - ay, w, h, fb: F, mb: Mm, lb: L, clip: x0 === 0 || y0 === 0 || x1 === SPW - 1 || y1 === SPH - 1 };
     }
   } finally {
     setView(sv); ob = svOb;
@@ -827,7 +844,7 @@ export function sprRender(it: Pick<Drawable, 'f' | 'm' | 'side'>, a: number, b: 
 // recopie en petit d'un dessin fait a part (x, y : point d'ancrage dans le tampon)
 export function sprBlit(S: FarSprite, x: number, y: number, sc: number){
   const X0 = x + S.x0 * sc, Y0 = y + S.y0 * sc, inv = 1 / sc, sw = S.w, sh = S.h, SM = S.mb, SF = S.fb, SL = S.lb;
-  const FB = fb, MB = mb, LB = lb;
+  const FB = fb, MB = mb, LB = lb, DB = db, RK = SH.RANK;
   const xa = Math.max(0, Math.floor(X0)), xb = Math.min(W - 1, Math.ceil(X0 + sw * sc) - 1);
   const ya = Math.max(0, Math.floor(Y0)), yb = Math.min(H - 1, Math.ceil(Y0 + sh * sc) - 1);
   for (let dy = ya; dy <= yb; dy++){
@@ -836,14 +853,14 @@ export function sprBlit(S: FarSprite, x: number, y: number, sc: number){
     for (let dx = xa; dx <= xb; dx++){
       const sx = Math.floor((dx + .5 - X0) * inv); if (sx < 0 || sx >= sw) continue;
       const k = srow + sx, m = SM[k]; if (m === EMPTY) continue;
-      const j = row + dx; FB[j] = SF[k]; MB[j] = m; LB[j] = SL[k];
+      const j = row + dx; FB[j] = SF[k]; MB[j] = m; LB[j] = SL[k]; DB[j] = RK;
     }
   }
 }
 // meme chose pour les petits dessins tout faits (arbres) : 2 transparent, 3 fenetre, sinon la matiere courante
 export function blitSc(s: Sprite, x: number, y: number, sc: number){
   const X0 = x + s.x0 * sc, Y0 = y + s.y0 * sc, inv = 1 / sc, sw = s.w, sh = s.h, B = s.buf, cur = SH.CUR, lv = SH.LV, col = COLOR;
-  const FB = fb, MB = mb, LB = lb;
+  const FB = fb, MB = mb, LB = lb, DB = db, RK = SH.RANK;
   const xa = Math.max(0, Math.floor(X0)), xb = Math.min(W - 1, Math.ceil(X0 + sw * sc) - 1);
   const ya = Math.max(0, Math.floor(Y0)), yb = Math.min(H - 1, Math.ceil(Y0 + sh * sc) - 1);
   for (let dy = ya; dy <= yb; dy++){
@@ -852,8 +869,9 @@ export function blitSc(s: Sprite, x: number, y: number, sc: number){
     for (let dx = xa; dx <= xb; dx++){
       const sx = Math.floor((dx + .5 - X0) * inv); if (sx < 0 || sx >= sw) continue;
       const v = B[srow + sx]; if (v === 2) continue;
-      const j = row + dx; if (col) LB[j] = lv;
+      const j = row + dx; if (col) LB[j] = lv; DB[j] = RK;
       if (v === 3){ FB[j] = 1; MB[j] = M.WIN; } else { FB[j] = v; MB[j] = cur; }
+
     }
   }
 }
@@ -873,7 +891,7 @@ export function farRefresh(list: Drawable[], t: number){
     if (performance.now() - now > FAR.budget) break;
     SH.CUR = it.m == null ? M.METAL : it.m; SH.CUR_SIDE = it.side || 'usc';
     if (it.a == null || it.b == null) continue;
-    c.spr = sprRender(it, it.a, it.b, t); c.bk = bk; c.t0 = performance.now();
+    c.spr = sprRender(it, it.a, it.b, t); c.bk = bk; c.t0 = performance.now(); c.slot = null;
   }
 }
 export function farDraw(it: Omit<Drawable, 'd'>, t: number){
@@ -886,7 +904,8 @@ export function farDraw(it: Omit<Drawable, 'd'>, t: number){
     if (!c){
       // pas encore dessine : on le fait tout de suite, sauf si l'image a deja pris trop de temps (il viendra a la suivante)
       if (performance.now() - FAR.t0 > 24) return;
-      c = { spr: sprRender(it, a, b, t), bk: farBucket(), t0: performance.now() };
+      c = { spr: sprRender(it, a, b, t), bk: farBucket(), t0: performance.now(), slot: null };
+
       FAR.cache.set(it.key, c);
     }
     S = c.spr;
@@ -902,3 +921,127 @@ export function farDraw(it: Omit<Drawable, 'd'>, t: number){
 // appeles depuis des modules plus petits en numero
 Object.assign(SH, { centerOf, mapDirtyRect, mapDirtyCell, shadowHull, circ, presentImage });
 
+
+/* ================= objets poses par la carte graphique (etape 3.3) ================= */
+// Avec le sol sur la carte graphique, ce qui est immobile est pose par elle a partir d'un atlas de dessins :
+// - les arbres (leur petit dessin, le meme sous tous les angles) ;
+// - de loin, les batiments et les montagnes, avec le dessin que la vue de loin garde deja (FAR.cache), recopie en petit ;
+// - de pres, les batiments et les montagnes qui ne s'animent pas, dessines une fois a l'echelle 1 pour l'angle exact de la
+//   camera (NEAR) : le dessin est le meme qu'en direct, decale d'un nombre entier de pixels. Pendant qu'on tourne la vue,
+//   ou si le dessin depasse son tampon, ils sont dessines par le processeur comme avant.
+// Chaque objet garde son rang dans l'ordre de dessin ; ce que dessine le processeur l'ecrit dans db. Le shader garde,
+// pixel par pixel, ce qui est devant.
+export interface Slot { x: number; y: number; gen: number }
+export const AW = 2048, AH = 2048;
+// l'atlas : range par etageres ; quand il est plein, on le vide a l'image suivante et chacun y revient quand il sert
+const ATLAS = { buf: new Uint8Array(GPU ? AW * AH * 4 : 0), gen: 1, x: 0, y: 0, rowH: 0, full: false, dx0: AW, dy0: AH, dx1: -1, dy1: -1 };
+if (GPU) GPU.objAtlas(ATLAS.buf, AW, AH);
+function atlasReset(){ const A = ATLAS; A.gen++; A.x = 0; A.y = 0; A.rowH = 0; A.full = false; }
+function atlasAlloc(w: number, h: number): Slot | null {
+  const A = ATLAS;
+  if (A.full || w > AW || h > AH) return null;
+  if (A.x + w > AW){ A.x = 0; A.y += A.rowH + 1; A.rowH = 0; }
+  if (A.y + h > AH){ A.full = true; return null; }
+  const s: Slot = { x: A.x, y: A.y, gen: A.gen };
+  A.x += w + 1; A.rowH = Math.max(A.rowH, h);
+  A.dx0 = Math.min(A.dx0, s.x); A.dy0 = Math.min(A.dy0, s.y); A.dx1 = Math.max(A.dx1, s.x + w - 1); A.dy1 = Math.max(A.dy1, s.y + h - 1);
+  return s;
+}
+// un texel de l'atlas : matiere, puis forme | eclairage << 1 | 128 (plein) ; 0 : vide
+const SPR_SLOT = new WeakMap<Sprite, Slot>();
+function spriteSlot(s: Sprite): Slot | null {
+  const had = SPR_SLOT.get(s); if (had && had.gen === ATLAS.gen) return had;
+  const sl = atlasAlloc(s.w, s.h); if (!sl) return null;
+  const B = ATLAS.buf, src = s.buf, TR = M.TREE, WN = M.WIN;
+  for (let y = 0; y < s.h; y++) for (let x = 0, j = ((sl.y + y) * AW + sl.x) * 4, k = y * s.w; x < s.w; x++, j += 4, k++){
+    const v = src[k];
+    if (v === 2){ B[j] = 0; B[j + 1] = 0; } else if (v === 3){ B[j] = WN; B[j + 1] = 129; } else { B[j] = TR; B[j + 1] = v | 128; }
+    B[j + 2] = 0; B[j + 3] = 0;
+  }
+  SPR_SLOT.set(s, sl); return sl;
+}
+function farSlot(e: { spr: FarSprite | null; slot: Slot | null }): Slot | null {
+  const S = e.spr; if (!S) return null;
+  if (e.slot && e.slot.gen === ATLAS.gen) return e.slot;
+  const sl = atlasAlloc(S.w, S.h); if (!sl) return null;
+  const B = ATLAS.buf, SM = S.mb, SF = S.fb, SL = S.lb;
+  for (let y = 0; y < S.h; y++) for (let x = 0, j = ((sl.y + y) * AW + sl.x) * 4, k = y * S.w; x < S.w; x++, j += 4, k++){
+    const m = SM[k];
+    if (m === EMPTY){ B[j] = 0; B[j + 1] = 0; } else { B[j] = m; B[j + 1] = SF[k] | (SL[k] << 1) | 128; }
+    B[j + 2] = 0; B[j + 3] = 0;
+  }
+  e.slot = sl; return sl;
+}
+// les quadrilateres de l'image en cours
+let OBJQ = new Float32Array(QUAD * 1024), NQ = 0;
+function pushQuad(x0: number, y0: number, w: number, h: number, sc: number, sl: Slot, r: number){
+  if ((NQ + 1) * QUAD > OBJQ.length){ const n = new Float32Array(OBJQ.length * 2); n.set(OBJQ); OBJQ = n; }
+  const q = OBJQ, s = NQ * QUAD;
+  q[s] = x0; q[s + 1] = y0; q[s + 2] = w; q[s + 3] = h; q[s + 4] = sc; q[s + 5] = sl.x; q[s + 6] = sl.y; q[s + 7] = r;
+  NQ++;
+}
+// de pres : dessin a l'echelle 1 pour l'angle exact de la camera, de jour ou de nuit (les fenetres), a Noel ou non
+interface NearEntry { spr: FarSprite | null; phi: number; day: boolean; xm: boolean; slot: Slot | null }
+const NEAR = new WeakMap<object, NearEntry>();
+let phiSeen = NaN, phiSince = 0, nearUntil = 0;
+// la carte graphique pose-t-elle cet objet ? (sinon le processeur le dessine)
+function gpuDraw(it: Drawable, r: number, far: boolean, t: number, still: boolean): boolean {
+  if (it.spr){ const s = it.spr.s, sl = spriteSlot(s); if (!sl) return false; pushQuad(it.spr.x + s.x0, it.spr.y + s.y0, s.w, s.h, 1, sl, r); return true; }
+  const a = it.a, b = it.b;
+  if (!it.key || a == null || b == null || it.big) return false;
+  if (far){
+    let c = FAR.cache.get(it.key);
+    if (!c){
+      // comme farDraw : pas encore dessine, on le fait tout de suite sauf si l'image a deja pris trop de temps
+      if (performance.now() - FAR.t0 > 24) return true;
+      c = { spr: sprRender(it, a, b, t), bk: farBucket(), t0: performance.now(), slot: null };
+      FAR.cache.set(it.key, c);
+    }
+    const S = c.spr; if (!S) return true;
+    const sl = farSlot(c); if (!sl) return false;
+    const q = prj(a, b, 0);
+    pushQuad(q[0] + S.x0 * SC, q[1] + S.y0 * SC, S.w, S.h, SC, sl, r); return true;
+  }
+  // de pres : seulement ce qui ne s'anime pas (dessin sans temps)
+  if (it.f.length > 0) return false;
+  let e = NEAR.get(it.key);
+  if (!e || e.phi !== cam.phi || e.day !== SH.DAY || e.xm !== !!SH.XMAS_ON){
+    if (!still || performance.now() > nearUntil) return false;
+    e = { spr: sprRender(it, a, b, t), phi: cam.phi, day: SH.DAY, xm: !!SH.XMAS_ON, slot: null };
+    NEAR.set(it.key, e);
+  }
+  const S = e.spr; if (!S) return true;
+  if (S.clip) return false;
+  const sl = farSlot(e); if (!sl) return false;
+  const q = prj(a, b, 0);
+  pushQuad(Math.round(q[0] + S.x0), Math.round(q[1] + S.y0), S.w, S.h, 1, sl, r); return true;
+}
+// avant la liste des objets : l'atlas, l'etat de la camera
+function objectsBegin(){
+  if (ATLAS.full) atlasReset();
+  NQ = 0;
+  const now = performance.now();
+  if (cam.phi !== phiSeen){ phiSeen = cam.phi; phiSince = now; }
+  // de pres, on garde au plus 6 ms par image pour faire les dessins manquants (le reste attend l'image suivante)
+  nearUntil = now + 6;
+  return now - phiSince > 300;
+}
+// apres la liste : ce qui a change dans l'atlas part a la carte graphique
+function objectsEnd(){
+  const A = ATLAS;
+  if (GPU && A.dx1 >= A.dx0){ GPU.objAtlasPatch(A.dx0, A.dy0, A.dx1, A.dy1); }
+  A.dx0 = AW; A.dy0 = AH; A.dx1 = -1; A.dy1 = -1;
+}
+// tri par profondeur, par cles numeriques (bien plus rapide que de comparer des objets) ; a profondeur egale, l'ordre d'arrivee
+let SORTK = new Float64Array(1024);
+export function sortByDepth(list: Drawable[]): Drawable[] {
+  const n = list.length;
+  if (n > 1048575) return list.sort((u, v) => u.d - v.d);
+  if (SORTK.length < n) SORTK = new Float64Array(Math.max(n, SORTK.length * 2));
+  const K = SORTK.subarray(0, n);
+  for (let i = 0; i < n; i++) K[i] = Math.round((list[i].d + 30000) * 1024) * 1048576 + i;
+  K.sort();
+  const out: Drawable[] = new Array(n);
+  for (let i = 0; i < n; i++) out[i] = list[K[i] % 1048576];
+  return out;
+}

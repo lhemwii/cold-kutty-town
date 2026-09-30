@@ -5,8 +5,8 @@
 // L'image reste a la taille du jeu : le navigateur l'agrandit au pixel pres (image-rendering: pixelated), le style est garde.
 // Sans WebGL2, on rend la main : le jeu garde son affichage par canvas 2D.
 // Ce module ne depend d'aucun module du jeu.
-import { Geometry, Mesh, Shader, Texture, BufferImageSource, WebGLRenderer, Container, UniformGroup } from 'pixi.js';
-import { FRAG, FRAG_GROUND, PAL_W, VERT } from './ground-glsl.ts';
+import { Geometry, Mesh, Shader, Texture, BufferImageSource, WebGLRenderer, Container, UniformGroup, RenderTexture, Buffer, BufferUsage } from 'pixi.js';
+import { FRAG, FRAG_GROUND, OBJ_FRAG, OBJ_VERT, PAL_W, VERT } from './ground-glsl.ts';
 
 /** les tampons d'une image : un octet par pixel chacun, n pixels */
 export interface Frame { fb: Uint8Array; mb: Uint8Array; lb: Uint8Array; ob: Uint8Array; n: number }
@@ -30,10 +30,17 @@ export interface GroundView {
   beam: { a: number; b: number; c: number; s: number; tn: number; I: number; noise: boolean; pt: number } | null;
   refl: { road: boolean; maxW: number; maxR: number; tick: number; wet: number } | null;
 }
+/** objets poses par la carte graphique : n quadrilateres de QUAD nombres (x0, y0 a l'image ; w, h du dessin ; echelle ; u, v dans l'atlas ; rang) */
+export interface Objects { q: Float32Array; n: number }
+export const QUAD = 8;
 
 export interface Presenter {
   /** plus grand cote d'une texture sur cette carte graphique */
   readonly maxTex: number;
+  /** WebGL est emule par le processeur (pas de vraie carte graphique) : les calculs lourds y sont plus lents qu'en JavaScript */
+  readonly software: boolean;
+  /** nom du moteur de rendu, tel que le donne le navigateur */
+  readonly rendererName: string;
   /** taille de l'image (pixels du jeu) */
   resize(w: number, h: number): void;
   /** palette : pal[ob * stride + ((m << 1 | fb) * 5 + lb)] en ABGR ; ver change quand la palette change */
@@ -48,8 +55,12 @@ export interface Presenter {
   groundGrid(g: GroundGrid): void;
   /** un rectangle de la grille a change (cases x0..x1, y0..y1) : on ne renvoie que lui */
   groundPatch(x0: number, y0: number, x1: number, y1: number): void;
-  /** calcule le sol, pose l'image du processeur dessus (mb 255 : rien), et affiche */
-  drawGround(f: Frame, v: GroundView): void;
+  /** l'atlas des dessins d'objets (4 octets par texel : matiere, forme | eclairage << 1 | 128 si plein), a la taille w x h */
+  objAtlas(buf: Uint8Array, w: number, h: number): void;
+  /** un rectangle de l'atlas a change : on ne renvoie que lui */
+  objAtlasPatch(x0: number, y0: number, x1: number, y1: number): void;
+  /** calcule le sol, pose dessus les objets de la carte graphique et l'image du processeur (mb 255 : rien, db : rang), et affiche */
+  drawGround(f: Frame & { db: Uint16Array }, v: GroundView, objs: Objects | null): void;
 }
 
 // une texture d'octets : format et taille ; la memoire est a nous, envoyee telle quelle
@@ -63,6 +74,9 @@ export async function createPresenter(canvas: HTMLCanvasElement, w: number, h: n
   const probe = document.createElement('canvas').getContext('webgl2');
   if (!probe) return null;
   const maxTex: number = probe.getParameter(probe.MAX_TEXTURE_SIZE);
+  const info = probe.getExtension('WEBGL_debug_renderer_info');
+  const rendererName = String(probe.getParameter(info ? info.UNMASKED_RENDERER_WEBGL : probe.RENDERER) || '');
+  const software = /swiftshader|llvmpipe|softpipe|software|basic render|microsoft basic/i.test(rendererName);
   probe.getExtension('WEBGL_lose_context')?.loseContext();
   const renderer = new WebGLRenderer();
   try {
@@ -83,6 +97,10 @@ export async function createPresenter(canvas: HTMLCanvasElement, w: number, h: n
   const terSrc = byteSource(ter8, 2, 2, 'rgba8unorm');
   const lut = new Uint8Array(256 * 2 * 4);
   const lutSrc = byteSource(lut, 256, 2, 'rgba8unorm');
+  // objets : atlas des dessins, et la couche des objets de l'image en cours (texture hors ecran, a la taille de l'image)
+  let atlas: { buf: Uint8Array; w: number; h: number } = { buf: new Uint8Array(4 * 4), w: 2, h: 2 };
+  const atlasSrc = byteSource(atlas.buf, 2, 2, 'rgba8unorm');
+  const objRT = RenderTexture.create({ width: W, height: H, scaleMode: 'nearest', antialias: false });
 
   const quad = (): number[] => [0, 0, W, 0, W, H, 0, H];
   const geometry = new Geometry({ attributes: { aPosition: quad(), aUV: [0, 0, 1, 0, 1, 1, 0, 1] }, indexBuffer: [0, 1, 2, 0, 2, 3] });
@@ -95,7 +113,7 @@ export async function createPresenter(canvas: HTMLCanvasElement, w: number, h: n
     uTerI: v4(), uBeamA: v4(), uBeamB: v4(), uPT: f32(0), uMatA: v4(), uMatB: v4(), uRefl: v4(), uReflB: v2(),
   });
   // deux programmes qui partagent textures et reglages : la mise en couleur seule, et le sol
-  const resources = { uData: dataSrc, uPal: palSrc, uCells: cellsSrc, uQuarter: quarterSrc, uTer: terSrc, uLut: lutSrc, uParams: params };
+  const resources = { uData: dataSrc, uPal: palSrc, uCells: cellsSrc, uQuarter: quarterSrc, uTer: terSrc, uLut: lutSrc, uObj: objRT.source, uParams: params };
   const shaderPal = Shader.from({ gl: { vertex: VERT, fragment: FRAG, name: 'ckt-palette' }, resources });
   const shaderGround = Shader.from({ gl: { vertex: VERT, fragment: FRAG_GROUND, name: 'ckt-sol' }, resources });
   const U: Record<string, number | Float32Array> = params.uniforms;
@@ -103,6 +121,44 @@ export async function createPresenter(canvas: HTMLCanvasElement, w: number, h: n
   const mesh = new Mesh({ geometry, shader: shaderPal, texture: Texture.WHITE });
   const stage = new Container();
   stage.addChild(mesh);
+  // la couche des objets : un seul maillage de quadrilateres, redimensionne quand il en faut plus
+  let cap = 0;
+  const posBuf = new Buffer({ data: new Float32Array(0), usage: BufferUsage.VERTEX | BufferUsage.COPY_DST });
+  const quadBuf = new Buffer({ data: new Float32Array(0), usage: BufferUsage.VERTEX | BufferUsage.COPY_DST });
+  const texBuf = new Buffer({ data: new Float32Array(0), usage: BufferUsage.VERTEX | BufferUsage.COPY_DST });
+  const idxBuf = new Buffer({ data: new Uint32Array(0), usage: BufferUsage.INDEX | BufferUsage.COPY_DST });
+  const objGeom = new Geometry({ attributes: { aPos: { buffer: posBuf, format: 'float32x2' }, aQuad: { buffer: quadBuf, format: 'float32x4' }, aTex: { buffer: texBuf, format: 'float32x4' } }, indexBuffer: idxBuf });
+  const objParams = new UniformGroup({ uSize: v2() });
+  const objShader = Shader.from({ gl: { vertex: OBJ_VERT, fragment: OBJ_FRAG, name: 'ckt-objets' }, resources: { uAtlas: atlasSrc, uObjParams: objParams } });
+  const objMesh = new Mesh({ geometry: objGeom, shader: objShader, texture: Texture.WHITE });
+  objMesh.blendMode = 'none';
+  const objStage = new Container();
+  objStage.addChild(objMesh);
+  const growObjects = (n: number) => {
+    if (n <= cap) return;
+    cap = Math.max(n, cap * 2, 256);
+    posBuf.data = new Float32Array(cap * 8); quadBuf.data = new Float32Array(cap * 16); texBuf.data = new Float32Array(cap * 16);
+    const idx = new Uint32Array(cap * 6);
+    for (let k = 0; k < cap; k++){ const v0 = k * 4, j = k * 6; idx[j] = v0; idx[j + 1] = v0 + 1; idx[j + 2] = v0 + 2; idx[j + 3] = v0; idx[j + 4] = v0 + 2; idx[j + 5] = v0 + 3; }
+    idxBuf.data = idx;
+  };
+  // dessine la couche des objets dans sa texture (vide s'il n'y en a pas)
+  const renderObjects = (o: Objects | null) => {
+    const n = o ? o.n : 0;
+    growObjects(Math.max(1, n));
+    const P = posBuf.data, Q = quadBuf.data, T = texBuf.data;
+    if (o) for (let k = 0; k < n; k++){
+      const s = k * QUAD, q = o.q, p = k * 8, x0 = q[s], y0 = q[s + 1], w = q[s + 2], h = q[s + 3], sc = q[s + 4], x1 = x0 + w * sc, y1 = y0 + h * sc;
+      P[p] = x0; P[p + 1] = y0; P[p + 2] = x1; P[p + 3] = y0; P[p + 4] = x1; P[p + 5] = y1; P[p + 6] = x0; P[p + 7] = y1;
+      for (let v = 0, j = k * 16; v < 4; v++, j += 4){ Q[j] = x0; Q[j + 1] = y0; Q[j + 2] = sc; Q[j + 3] = q[s + 7]; T[j] = q[s + 5]; T[j + 1] = q[s + 6]; T[j + 2] = w; T[j + 3] = h; }
+    }
+    // le reste du maillage ne dessine rien (quadrilateres plats)
+    P.fill(0, n * 8);
+    posBuf.update(); quadBuf.update(); texBuf.update();
+    const u = objParams.uniforms.uSize; if (u instanceof Float32Array) u.set([W, H]);
+    objParams.update();
+    renderer.render({ container: objStage, target: objRT, clear: true, clearColor: [0, 0, 0, 0] });
+  };
 
   const render = (mode: number) => {
     U.uMode = mode; set('uSize', W, H);
@@ -114,7 +170,10 @@ export async function createPresenter(canvas: HTMLCanvasElement, w: number, h: n
   // envoi d'un rectangle d'une texture d'octets deja creee sur la carte graphique
   const patch = (src: BufferImageSource, buf: Uint8Array, rowLen: number, bpp: number, x0: number, y0: number, w0: number, h0: number) => {
     renderer.texture.bindSource(src, 0);
+    // (les reglages d'envoi sont ceux laisses par PixiJS : on fixe tous ceux qui comptent, sans alpha premultiplie ni retournement)
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+
     gl.pixelStorei(gl.UNPACK_ROW_LENGTH, rowLen); gl.pixelStorei(gl.UNPACK_SKIP_PIXELS, x0); gl.pixelStorei(gl.UNPACK_SKIP_ROWS, y0);
     gl.texSubImage2D(gl.TEXTURE_2D, 0, x0, y0, w0, h0, bpp === 2 ? gl.RG : gl.RGBA, gl.UNSIGNED_BYTE, buf);
     gl.pixelStorei(gl.UNPACK_ROW_LENGTH, 0); gl.pixelStorei(gl.UNPACK_SKIP_PIXELS, 0); gl.pixelStorei(gl.UNPACK_SKIP_ROWS, 0);
@@ -122,12 +181,14 @@ export async function createPresenter(canvas: HTMLCanvasElement, w: number, h: n
   };
 
   return {
-    maxTex,
+    maxTex, software, rendererName,
+
     resize(nw: number, nh: number){
       if (nw === W && nh === H) return;
       W = nw; H = nh;
       data = new Uint8Array(W * H * 4); data32 = new Uint32Array(data.buffer);
       dataSrc.resource = data; dataSrc.resize(W, H);
+      objRT.resize(W, H);
       geometry.getAttribute('aPosition').buffer.data = new Float32Array(quad());
       renderer.resize(W, H);
     },
@@ -170,10 +231,22 @@ export async function createPresenter(canvas: HTMLCanvasElement, w: number, h: n
       if (xb < xa || yb < ya) return;
       patch(cellsSrc, g.cells, g.gw, 2, xa, ya, xb - xa + 1, yb - ya + 1);
     },
-    drawGround(f: Frame, v: GroundView){
-      const D = data32, FB = f.fb, MB = f.mb, LB = f.lb, n = Math.min(f.n, D.length);
-      for (let i = 0; i < n; i++) D[i] = MB[i] | (FB[i] << 8) | (LB[i] << 16);
+    objAtlas(buf: Uint8Array, aw: number, ah: number){
+      atlas = { buf, w: aw, h: ah };
+      atlasSrc.resource = buf; atlasSrc.resize(aw, ah); atlasSrc.update();
+    },
+    objAtlasPatch(x0: number, y0: number, x1: number, y1: number){
+      const xa = Math.max(0, x0), ya = Math.max(0, y0), xb = Math.min(atlas.w - 1, x1), yb = Math.min(atlas.h - 1, y1);
+      if (xb < xa || yb < ya) return;
+      patch(atlasSrc, atlas.buf, atlas.w, 4, xa, ya, xb - xa + 1, yb - ya + 1);
+    },
+    drawGround(f: Frame & { db: Uint16Array }, v: GroundView, objs: Objects | null){
+      // pixel pose : matiere, forme | eclairage << 1, rang ; pixel vide : 255, matiere d'une lumiere de nuit, ombre
+      const D = data32, FB = f.fb, MB = f.mb, LB = f.lb, DB = f.db, n = Math.min(f.n, D.length);
+      for (let i = 0; i < n; i++){ const m = MB[i]; D[i] = m === 255 ? (255 | (FB[i] << 8) | (LB[i] << 16)) : (m | ((FB[i] | (LB[i] << 1)) << 8) | (DB[i] << 16)); }
       dataSrc.update();
+      renderObjects(objs);
+
       set('uO', v.o[0], v.o[1]); set('uD', v.dax, v.dbx, v.day, v.dby); set('uG0', v.ga0, v.gb0, v.gsc);
       set('uT', v.tx, v.ty); set('uAnim', v.tick, v.ring);
       const t = v.ter;

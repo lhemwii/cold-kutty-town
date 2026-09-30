@@ -35,6 +35,7 @@ uniform sampler2D uCells;    // grille du sol : r = type | classe de mer << 4, g
 uniform sampler2D uQuarter;  // grille au quart : r = variante de l'herbe, g = phase de l'ecume
 uniform sampler2D uTer;      // territoire : r = camp (+ 2 juste conquis)
 uniform sampler2D uLut;      // ligne 0 : matiere de chaque type de sol ; ligne 1 : g lumineux, b eau, a garde sa teinte
+uniform sampler2D uObj;      // objets poses par la carte graphique (etape 3.3) : r matiere, g forme | eclairage << 1, b + a * 256 rang (0 : rien)
 uniform float uStride;
 uniform float uMode;
 uniform vec2 uSize;          // taille de l'image
@@ -84,6 +85,16 @@ int ownAt(int x, int y){
   return byte(texelFetch(uTer, ivec2(c.x >> sh, c.y >> sh), 0).r);
 }
 int baseOf(int o){ return o > 2 ? o - 2 : o; }
+// ce qui est dessus en un pixel : ce qu'a dessine le processeur ou un objet pose par la carte graphique, le plus haut rang
+// l'emporte (a rang egal, le processeur). Rend faux s'il n'y a rien (le sol).
+bool topAt(ivec2 q, out int m, out int f, out int l){
+  ivec4 u = bytes(texelFetch(uData, q, 0)), ob = bytes(texelFetch(uObj, q, 0));
+  int ru = u.b + u.a * 256, ro = ob.b + ob.a * 256;
+  bool hu = u.r != 255, ho = ro > 0;
+  if (hu && (!ho || ru >= ro)){ m = u.r; f = u.g & 1; l = (u.g >> 1) & 7; return true; }
+  if (ho){ m = ob.r; f = ob.g & 1; l = (ob.g >> 1) & 7; return true; }
+  m = 0; f = 0; l = 0; return false;
+}
 #endif
 
 void main(){
@@ -148,8 +159,7 @@ void main(){
       if (edge) o = base + 2;
     }
     // ce qui est pose sur le sol l'emporte ; sinon le sol, avec son ombre et sa lumiere de nuit
-    if (d.r != 255){ m = d.r; f = d.g; l = d.b; }
-    else {
+    if (!topAt(p, m, f, l)){
       m = gm; f = v; l = d.b == 4 ? 4 : lv;
       if (d.g != 0 && v == 0){ m = d.g; f = 1; l = 0; }
     }
@@ -161,8 +171,9 @@ void main(){
         int maxW = int(uRefl.z), dist = 0, gm2 = 0;
         for (int k = 1; k <= 40; k++){
           if (k > maxW || y - k < 0) break;
-          ivec4 u = bytes(texelFetch(uData, ivec2(x, y - k), 0));
-          if (u.r != 255 && u.g == 1 && lutMat(u.r).g != 0){ dist = k; gm2 = u.r; break; }
+          int um, uf, ul;
+          if (topAt(ivec2(x, y - k), um, uf, ul) && uf == 1 && lutMat(um).g != 0){ dist = k; gm2 = um; break; }
+
         }
         if (dist > 0){
           int rt = int(uReflB.x), refl = lutMat(gm2).a != 0 ? gm2 : int(uMatB.z);
@@ -186,3 +197,37 @@ void main(){
 // deux programmes : la mise en couleur seule (modes 0 et 1), et le sol (mode 2), pour ne payer le sol que quand il sert
 export const FRAG = FRAG_SRC.replace('__DEFINES__', '');
 export const FRAG_GROUND = FRAG_SRC.replace('__DEFINES__', '#define GROUND 1');
+
+// Couche des objets (etape 3.3) : chaque objet pose par la carte graphique est un quadrilatere qui lit son dessin dans
+// l'atlas (r matiere, g forme | eclairage << 1 | 128 si le pixel est plein). On ecrit le rang de l'objet a cote, pour que
+// le shader de l'image garde ce qui est devant. Les quadrilateres sont dessines dans l'ordre : le suivant recouvre.
+// La position est en pixels de l'image, ligne 0 en haut, rangee telle quelle dans la texture (ligne 0 = premiere ligne).
+export const OBJ_VERT = `#version 300 es
+in vec2 aPos;
+in vec4 aQuad;   // origine (x, y) a l'image, echelle, rang
+in vec4 aTex;    // coin dans l'atlas (u, v), taille du dessin (w, h)
+flat out vec4 vQuad;
+flat out vec4 vTex;
+uniform vec2 uSize;
+void main(){
+  gl_Position = vec4(aPos.x / uSize.x * 2.0 - 1.0, aPos.y / uSize.y * 2.0 - 1.0, 0.0, 1.0);
+  vQuad = aQuad; vTex = aTex;
+}`;
+
+// le texel lu est calcule comme sprBlit (11-render) : floor((pixel + 0,5 - origine) / echelle), sur chaque axe
+export const OBJ_FRAG = `#version 300 es
+precision highp float;
+precision highp int;
+flat in vec4 vQuad;
+flat in vec4 vTex;
+out vec4 finalColor;
+uniform sampler2D uAtlas;
+void main(){
+  float inv = 1.0 / vQuad.z;
+  int sx = int(floor((gl_FragCoord.x - vQuad.x) * inv)), sy = int(floor((gl_FragCoord.y - vQuad.y) * inv));
+  if (sx < 0 || sy < 0 || sx >= int(vTex.z) || sy >= int(vTex.w)) discard;
+  ivec4 a = ivec4(texelFetch(uAtlas, ivec2(int(vTex.x) + sx, int(vTex.y) + sy), 0) * 255.0 + 0.5);
+  if ((a.g & 128) == 0) discard;
+  int r = int(vQuad.w + 0.5);
+  finalColor = vec4(float(a.r), float(a.g & 127), float(r & 255), float(r >> 8)) / 255.0;
+}`;
