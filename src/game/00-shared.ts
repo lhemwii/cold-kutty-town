@@ -85,6 +85,10 @@ export interface Shared {
   CPU_GROUND?: boolean;
   /** pour comparer : les objets sont tous dessines par le processeur */
   CPU_OBJECTS?: boolean;
+  /** pour comparer : ombres, lumieres de nuit et meteo par le processeur */
+  CPU_FX?: boolean;
+  /** vrai quand ombres, lumieres et meteo de l'image en cours sont faites par la carte graphique */
+  GPU_FX?: boolean;
 
 
   /** reflets de nuit a faire par la carte graphique pour l'image en cours (18-life), null sinon */

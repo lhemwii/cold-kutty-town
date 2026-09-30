@@ -36,6 +36,8 @@ uniform sampler2D uQuarter;  // grille au quart : r = variante de l'herbe, g = p
 uniform sampler2D uTer;      // territoire : r = camp (+ 2 juste conquis)
 uniform sampler2D uLut;      // ligne 0 : matiere de chaque type de sol ; ligne 1 : g lumineux, b eau, a garde sa teinte
 uniform sampler2D uObj;      // objets poses par la carte graphique (etape 3.3) : r matiere, g forme | eclairage << 1, b + a * 256 rang (0 : rien)
+uniform sampler2D uShadow;   // ombres portees (etape 3.4) : r > 0 dans l'ombre
+uniform sampler2D uLight;    // lumieres de nuit (etape 3.4) : r = matiere de la lumiere (0 : aucune)
 uniform float uStride;
 uniform float uMode;
 uniform vec2 uSize;          // taille de l'image
@@ -87,13 +89,13 @@ int ownAt(int x, int y){
 int baseOf(int o){ return o > 2 ? o - 2 : o; }
 // ce qui est dessus en un pixel : ce qu'a dessine le processeur ou un objet pose par la carte graphique, le plus haut rang
 // l'emporte (a rang egal, le processeur). Rend faux s'il n'y a rien (le sol).
-bool topAt(ivec2 q, out int m, out int f, out int l){
+bool topAt(ivec2 q, out int m, out int f, out int l, out int rk){
   ivec4 u = bytes(texelFetch(uData, q, 0)), ob = bytes(texelFetch(uObj, q, 0));
   int ru = u.b + u.a * 256, ro = ob.b + ob.a * 256;
   bool hu = u.r != 255, ho = ro > 0;
-  if (hu && (!ho || ru >= ro)){ m = u.r; f = u.g & 1; l = (u.g >> 1) & 7; return true; }
-  if (ho){ m = ob.r; f = ob.g & 1; l = (ob.g >> 1) & 7; return true; }
-  m = 0; f = 0; l = 0; return false;
+  if (hu && (!ho || ru >= ro)){ m = u.r; f = u.g & 1; l = (u.g >> 1) & 7; rk = ru; return true; }
+  if (ho){ m = ob.r; f = ob.g & 1; l = (ob.g >> 1) & 7; rk = ro; return true; }
+  m = 0; f = 0; l = 0; rk = 0; return false;
 }
 #endif
 
@@ -159,9 +161,19 @@ void main(){
       if (edge) o = base + 2;
     }
     // ce qui est pose sur le sol l'emporte ; sinon le sol, avec son ombre et sa lumiere de nuit
-    if (!topAt(p, m, f, l)){
-      m = gm; f = v; l = d.b == 4 ? 4 : lv;
-      if (d.g != 0 && v == 0){ m = d.g; f = 1; l = 0; }
+    // ombres et lumieres, dans l'ordre du processeur : ombres portees, puis lumieres de nuit (sur un pixel sombre), puis
+    // ombres des arbres (d.b = 4 pour un pixel vide ; eclairage 4 pour un pixel pose). Elles ne touchent que le sol et ce qui
+    // a ete pose avant les objets (rang 0 : vagues, decors au sol).
+    bool sh = texelFetch(uShadow, p, 0).r > 0.0;
+    int lm = byte(texelFetch(uLight, p, 0).r), rk;
+    if (!topAt(p, m, f, l, rk)){
+      bool tree = d.b == 4;
+      m = gm; f = v; l = (sh || tree) ? 4 : lv;
+      int lk = d.g != 0 ? d.g : lm;
+      if (lk != 0 && v == 0){ m = lk; f = 1; l = tree ? 4 : 0; }
+    } else if (rk == 0){
+      if (lm != 0 && f == 0){ m = lm; f = 1; l = l == 4 ? 4 : 0; }
+      else if (sh) l = 4;
     }
     // reflets de nuit : sous une lumiere, l'eau et les routes mouillees renvoient sa couleur
     if (uRefl.x > 0.5){
@@ -171,8 +183,8 @@ void main(){
         int maxW = int(uRefl.z), dist = 0, gm2 = 0;
         for (int k = 1; k <= 40; k++){
           if (k > maxW || y - k < 0) break;
-          int um, uf, ul;
-          if (topAt(ivec2(x, y - k), um, uf, ul) && uf == 1 && lutMat(um).g != 0){ dist = k; gm2 = um; break; }
+          int um, uf, ul, ur;
+          if (topAt(ivec2(x, y - k), um, uf, ul, ur) && uf == 1 && lutMat(um).g != 0){ dist = k; gm2 = um; break; }
 
         }
         if (dist > 0){
@@ -230,4 +242,73 @@ void main(){
   if ((a.g & 128) == 0) discard;
   int r = int(vQuad.w + 0.5);
   finalColor = vec4(float(a.r), float(a.g & 127), float(r & 255), float(r >> 8)) / 255.0;
+}`;
+
+// Ombres portees (etape 3.4) : chaque ombre est un polygone convexe, en triangles, en pixels de l'image.
+export const SHADOW_VERT = `#version 300 es
+in vec2 aPos;
+uniform vec2 uSize;
+void main(){ gl_Position = vec4(aPos.x / uSize.x * 2.0 - 1.0, aPos.y / uSize.y * 2.0 - 1.0, 0.0, 1.0); }`;
+export const SHADOW_FRAG = `#version 300 es
+precision highp float;
+out vec4 finalColor;
+void main(){ finalColor = vec4(1.0, 0.0, 0.0, 1.0); }`;
+
+// Lumieres de nuit (etape 3.4) : un rectangle par lumiere (son cadre a l'image) ; le shader refait le calcul d'applyLights
+// (11-render) : disque ou cone au sol, attenuation, trame. Dessinees de la derniere a la premiere : la premiere l'emporte.
+export const LIGHT_VERT = `#version 300 es
+in vec2 aPos;
+in vec4 aL0;   // cone (1) ou disque (0), a, b, matiere
+in vec4 aL1;   // rayon, intensite, attenuation, longueur du cone
+in vec4 aL2;   // direction du cone (da, db), tangente, largeur au pied
+flat out vec4 vL0;
+flat out vec4 vL1;
+flat out vec4 vL2;
+uniform vec2 uSize;
+void main(){
+  gl_Position = vec4(aPos.x / uSize.x * 2.0 - 1.0, aPos.y / uSize.y * 2.0 - 1.0, 0.0, 1.0);
+  vL0 = aL0; vL1 = aL1; vL2 = aL2;
+}`;
+export const LIGHT_FRAG = `#version 300 es
+precision highp float;
+precision highp int;
+flat in vec4 vL0;
+flat in vec4 vL1;
+flat in vec4 vL2;
+out vec4 finalColor;
+uniform vec2 uO;       // point du sol au centre du premier pixel
+uniform vec4 uD;       // pas au sol par pixel en x, puis en y
+uniform vec2 uT;       // ancrage de la trame (TX, TY)
+uniform float uPat;    // trame : 0 points, 1 rayures, 2 bruit, 3 losanges
+const int BAYER[16] = int[16](0,8,2,10, 12,4,14,6, 3,11,1,9, 15,7,13,5);
+float hash2(int x, int y){
+  uint h = uint(x) * 374761393u + uint(y) * 668265263u;
+  h = (h ^ (h >> 13u)) * 1274126177u;
+  h ^= h >> 16u;
+  return float(h) / 4294967296.0;
+}
+// litAt (01-core)
+bool litAt(int x, int y, int mode, float I){
+  if (mode == 0) return float(BAYER[((y & 3) << 2) | (x & 3)]) < I * 16.0;
+  if (mode == 1) return float((x + y) & 3) < I * 4.0;
+  if (mode == 2) return hash2(x * 7 + 1013, y * 13 + 7) < I;
+  int dx = x & 3, dy = y & 3;
+  if (dx > 2) dx -= 4; if (dy > 2) dy -= 4;
+  return float(abs(dx) + abs(dy)) < I * 4.0;
+}
+void main(){
+  int x = int(gl_FragCoord.x), y = int(gl_FragCoord.y);
+  vec2 w = uO + float(x) * uD.xy + float(y) * uD.zw - vL0.yz;
+  float tt;
+  if (vL0.x < 0.5){
+    float d2 = dot(w, w), r = vL1.x;
+    if (d2 > r * r) discard;
+    tt = sqrt(d2) / r;
+  } else {
+    float al = w.x * vL2.x + w.y * vL2.y, pe = w.y * vL2.x - w.x * vL2.y;
+    if (al < 0.0 || al > vL1.w || abs(pe) > al * vL2.z + vL2.w) discard;
+    tt = al / vL1.w;
+  }
+  if (!litAt(x - int(uT.x), y - int(uT.y), int(uPat), vL1.y * (1.0 - vL1.z * tt))) discard;
+  finalColor = vec4(vL0.w / 255.0, 0.0, 0.0, 1.0);
 }`;

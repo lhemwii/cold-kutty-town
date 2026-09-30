@@ -23,7 +23,9 @@ export default defineConfig(({ mode }) => {
   return {
     root: 'src',
     publicDir: '../public',
-    build: { outDir: '../dist', emptyOutDir: true, target: 'es2022', assetsDir: 'assets' },
+    // (le jeu et PixiJS tiennent en un seul script d'environ 500 Ko, 170 Ko compresses : pas d'avertissement pour cela)
+    build: { outDir: '../dist', emptyOutDir: true, target: 'es2022', assetsDir: 'assets', chunkSizeWarningLimit: 900 },
+
     server: { port: 5173 },
     preview: { port: 4173 },
     plugins: [apiClaude()]

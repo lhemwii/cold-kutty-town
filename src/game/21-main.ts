@@ -442,7 +442,7 @@ export function start(){
   SH.homeIsland(1 + Math.floor(Math.random() * 99999));
   radioNext();
   SH.openIntro();
-  window.__okt = { SH, state, cam, GAME, RES: SH.RES, BLD: () => SH.BLD, ROADS: () => SH.ROADS, WALLS: () => SH.WALLS, BOATS: () => SH.BOATS, CATS: () => SH.CATS, TER, TREES, MAPV, get VEST(){ return VEST; }, lootVestige, SPACE: SH.SPACE, EV, RIVAL, CLOCK, CAL: SH.CAL, TYPES, ECO: SH.ECO, PEAKS,
+  window.__okt = { SH, state, cam, GAME, WEATHER, RES: SH.RES, BLD: () => SH.BLD, ROADS: () => SH.ROADS, WALLS: () => SH.WALLS, BOATS: () => SH.BOATS, CATS: () => SH.CATS, TER, TREES, MAPV, get VEST(){ return VEST; }, lootVestige, SPACE: SH.SPACE, EV, RIVAL, CLOCK, CAL: SH.CAL, TYPES, ECO: SH.ECO, PEAKS,
     setZoom, centerOn, unprj, prj, worldToScreen, screenToWorld, placeProblem, findSpot, makeBuilding, startBuilding: SH.startBuilding, addRoad, roadProblem, sampleLine, sampleCurve, addWall, sendBarge: SH.sendBarge, chooseLanding, terPct, claimDisc,
     render, FAR, rebuildTown, snapshot, loadGame, newWorld, enterPlay, applySeason, updateCalUI, deliverPaper, forceEvent: () => { EV.next = 0; }, autoBoth: () => { RIVAL.auto = { usc: true, ccp: true }; }, selectBuilding: SH.selectBuilding, setTool, upgradeBuilding: SH.upgradeBuilding, rivalStep: stepRival,
     get Z(){ return SH.Z; }, get K(){ return SH.K; }, get KMIN(){ return SH.KMIN; }, get KDEF(){ return SH.KDEF; }, get ZLEVELS(){ return ZLEVELS; }, get OV_ON(){ return OV_ON; }, get view(){ return [W, H]; }, get NIGHT(){ return SH.NIGHT; }, get CURV(){ return SH.CURV; }, geoCast, geoProj, WARP: SH.WARP, get SC(){ return SC; }, islandNear, ISL: () => ISEED.isl, saveNow: SH.saveNow, newWorldOpts: () => [GAME.size, GAME.conf] };

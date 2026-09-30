@@ -2,8 +2,8 @@ import { SH, type Light, type ShadowHull } from './00-shared.ts';
 import type { Sprite } from './01-core.ts';
 import type { Drawable } from './07-world.ts';
 import type { Cat } from './10-town.ts';
-import { QUAD, createPresenter, type GroundView, type Presenter } from '../gpu/present.ts';
-import { BAYER, COLOR, db, GAME, GEO, GLOBE_ON, H, HOOKS, M, N, PC, PROJ_FIX, PS, RAYHIT, RP, SC, SHADOW_V, TAU, TX, TY, W, cam, clamp, dep, fb, fput, geoCast, geoProj, geoSet, getView, groundDelta, hash2, img, lb, litAt, mb, prj, px32, setProj, setView, state, unprj } from './01-core.ts';
+import { LIGHT, QUAD, createPresenter, type Fx, type GroundView, type Presenter } from '../gpu/present.ts';
+import { BAYER, COLOR, db, makeSprite, GAME, GEO, GLOBE_ON, H, HOOKS, M, N, PC, PROJ_FIX, PS, RAYHIT, RP, SC, SHADOW_V, TAU, TX, TY, W, cam, clamp, dep, fb, fput, geoCast, geoProj, geoSet, getView, groundDelta, hash2, img, lb, litAt, mb, prj, px32, setProj, setView, state, unprj } from './01-core.ts';
 import { GA0, GB0, GDIRTY, GH, GQH, GQW, GSC, GW, TYPE_MAT, T_BEACH, T_DIRT, T_FOREST, T_GRASS, T_PIER, T_QUAY, T_ROAD, T_ROCK, T_SEA, T_WALK, cellOf, gPh, gSea, gTone, gType, gVar, mapScale } from './02-ground.ts';
 import { drawCarAng } from './03-buildings-base.ts';
 import { VEST, drawGlow, drawLampHeads, drawLantern, drawSailboat, sailPos, towerSpot, treeDrawables } from './07-world.ts';
@@ -134,6 +134,13 @@ export function stepWeather(dt: number, t: number){
   WX.fog = sh === 'brouillard' ? k : sh === 'neige' ? k * .15 : 0;
   WX.snow = sh === 'neige' ? Math.min(1, WX.snow + dt * .04) : Math.max(0, WX.snow - dt * .025);
 }
+// gouttes et flocons en petits dessins (les memes pixels que fput ci-dessous), pour la carte graphique (etape 3.4)
+export const RAIN_SPR = makeSprite(put => { put(0, 0, 1); put(0, 1, 1); put(-1, 2, 0); put(-1, 3, 1); });
+export const SNOW_SPR = makeSprite(put => { put(0, 0, 1); });
+export const SNOW_BIG = makeSprite(put => { put(0, 0, 1); put(1, 0, 1); put(0, 1, 0); });
+// la meteo de l'image en cours est-elle posee par la carte graphique ?
+let WX_GPU = false;
+function wxQuad(s: Sprite, mat: number, x: number, y: number){ const sl = spriteSlot(s, mat); if (sl) pushQuad(x + s.x0, y + s.y0, s.w, s.h, 1, sl, 65535); }
 export function drawWeather(t: number){
   if (!COLOR || WEATHER.k < .05 || !SH.OPT.wx) return;
   // de loin, les gouttes et les flocons feraient de gros pixels devant la vue : ils s'estompent en dezoomant (la teinte du ciel reste)
@@ -146,6 +153,7 @@ export function drawWeather(t: number){
       const x0 = hash2(i, 3) * (W + 40), y0 = hash2(i, 7) * (H + 40), ph = hash2(i, 11);
       const y = ((y0 + (t + ph * 3) * sp - TY * .0) % (H + 40)) - 20, x = ((x0 - (t + ph * 3) * sp * .18 + TX) % (W + 40) + W + 40) % (W + 40) - 20;
       const xi = Math.round(x), yi = Math.round(y);
+      if (WX_GPU){ wxQuad(RAIN_SPR, M.RAIN, xi, yi); continue; }
       fput(xi, yi, 1); fput(xi, yi + 1, 1); fput(xi - 1, yi + 2, 0); fput(xi - 1, yi + 3, 1);
     }
   } else if (sh === 'neige'){
@@ -155,7 +163,9 @@ export function drawWeather(t: number){
       const x0 = hash2(i, 5) * (W + 20), y0 = hash2(i, 9) * (H + 20), ph = hash2(i, 13) * TAU, sp = 14 + hash2(i, 17) * 16;
       const y = ((y0 + t * sp) % (H + 20)) - 10, x = ((x0 + Math.sin(t * .9 + ph) * 4 + TX) % (W + 20) + W + 20) % (W + 20) - 10;
       const xi = Math.round(x), yi = Math.round(y);
-      fput(xi, yi, 1); if (hash2(i, 21) < .35){ fput(xi + 1, yi, 1); fput(xi, yi + 1, 0); }
+      const big = hash2(i, 21) < .35;
+      if (WX_GPU){ wxQuad(big ? SNOW_BIG : SNOW_SPR, M.SNOW, xi, yi); continue; }
+      fput(xi, yi, 1); if (big){ fput(xi + 1, yi, 1); fput(xi, yi + 1, 0); }
     }
   }
 }
@@ -559,7 +569,10 @@ export function groundView(t: number): GroundView {
   };
 }
 // un pixel de l'image est-il eclaire (allume par le sol ou par une lumiere de nuit) ?
-export function pixelLit(j: number): boolean { return SH.GPU_GROUND && mb[j] === EMPTY_PX ? fb[j] !== 0 : fb[j] === 1; }
+export function pixelLit(j: number): boolean {
+  if (SH.GPU_FX && mb[j] === EMPTY_PX) return lightAtPixel(j % W, (j / W) | 0);
+  return SH.GPU_GROUND && mb[j] === EMPTY_PX ? fb[j] !== 0 : fb[j] === 1;
+}
 // recalcule seulement les camps par pixel (teinte et frontieres), d'apres la geometrie du sol
 
 export function groundOwners(){
@@ -702,8 +715,12 @@ export function render(t: number){
   const dyn = dynamicDrawables(t);
   SH.siteDrawables(t, dyn);
   const shadowsOn = COLOR && SH.NIGHT < .6 && !far;
-  if (shadowsOn) drawShadows();
-  if (!COLOR || SH.NIGHT > .25){ gatherLights(t); applyLights(); }
+  // avec le sol sur la carte graphique, elle fait aussi les ombres, les lumieres de nuit et la meteo (etape 3.4)
+  const gpuFx = gg && !SH.CPU_FX;
+  FX_TRI_N = 0; FX_L_N = 0;
+  if (shadowsOn){ if (gpuFx) shadowTris(); else drawShadows(); }
+  if (!COLOR || SH.NIGHT > .25){ gatherLights(t); if (gpuFx) lightQuads(); else applyLights(); }
+  SH.GPU_FX = gpuFx;
   const list: Drawable[] = [];
   const Mg = 110 * SC;
   for (const p of STATIC_PARTS){
@@ -722,21 +739,21 @@ export function render(t: number){
   // chaque objet a son rang ; avec le sol sur la carte graphique, elle pose ce qu'elle peut (voir gpuDraw)
   const gpuObj = gg && !SH.CPU_OBJECTS, still = gpuObj ? objectsBegin() : false;
   for (let i = 0; i < sorted.length; i++){
-    const it = sorted[i], r = Math.min(i + 1, 65534);
+    const it = sorted[i], r = Math.min(i + 1, 65000);
     SH.CUR = it.m == null ? M.METAL : it.m; SH.CUR_SIDE = it.side || 'usc'; SH.RANK = r;
     if (gpuObj && gpuDraw(it, r, far, t, still)) continue;
     if (far) farDraw(it, t); else it.f(t);
   }
-  if (gpuObj) objectsEnd();
-  // ce qui vient apres passe devant tous les objets
-  SH.RANK = 65535;
+  // ce qui vient apres passe devant tous les objets (la meteo de la carte graphique, 65535, encore devant)
+  SH.RANK = 65100;
+  WX_GPU = gpuObj && gpuFx;
   if (!far){ for (const f of HOOKS.top) f(t); if (typeof SH.drawToolPreview === 'function') SH.drawToolPreview(t); }
   const glow = !COLOR || SH.NIGHT > .35;
   if (far){ for (const bk of BEACONS) farDraw({ a: bk[0], b: bk[1], f: (tt: number) => { drawLantern(bk[0], bk[1]); if (glow) drawGlow(bk[0], bk[1], tt); } }, t); }
   else if (glow){ for (const bk of BEACONS){ drawLantern(bk[0], bk[1]); drawGlow(bk[0], bk[1], t); } drawLampHeads(); }
   else for (const bk of BEACONS) drawLantern(bk[0], bk[1]);
-  drawSatellite(t); drawWeather(t); if (COLOR) for (const f of HOOKS.post) f(t);
-  if (GPU && gg){ GPU.palette(PALX, PL, SH.palKey); GPU.drawGround({ fb, mb, lb, ob, db, n: N }, groundView(t), gpuObj ? { q: OBJQ, n: NQ } : null); return; }
+  drawSatellite(t); drawWeather(t); if (gpuObj) objectsEnd(); if (COLOR) for (const f of HOOKS.post) f(t);
+  if (GPU && gg){ GPU.palette(PALX, PL, SH.palKey); GPU.drawGround({ fb, mb, lb, ob, db, n: N }, groundView(t), gpuObj ? { q: OBJQ, n: NQ } : null, gpuFx ? fxFrame() : null); return; }
 
   if (GPU && SH.CURV <= 0){ GPU.palette(PALX, PL, SH.palKey); GPU.draw({ fb, mb, lb, ob, n: N }); return; }
 
@@ -949,10 +966,10 @@ function atlasAlloc(w: number, h: number): Slot | null {
 }
 // un texel de l'atlas : matiere, puis forme | eclairage << 1 | 128 (plein) ; 0 : vide
 const SPR_SLOT = new WeakMap<Sprite, Slot>();
-function spriteSlot(s: Sprite): Slot | null {
+function spriteSlot(s: Sprite, mat: number): Slot | null {
   const had = SPR_SLOT.get(s); if (had && had.gen === ATLAS.gen) return had;
   const sl = atlasAlloc(s.w, s.h); if (!sl) return null;
-  const B = ATLAS.buf, src = s.buf, TR = M.TREE, WN = M.WIN;
+  const B = ATLAS.buf, src = s.buf, TR = mat, WN = M.WIN;
   for (let y = 0; y < s.h; y++) for (let x = 0, j = ((sl.y + y) * AW + sl.x) * 4, k = y * s.w; x < s.w; x++, j += 4, k++){
     const v = src[k];
     if (v === 2){ B[j] = 0; B[j + 1] = 0; } else if (v === 3){ B[j] = WN; B[j + 1] = 129; } else { B[j] = TR; B[j + 1] = v | 128; }
@@ -986,7 +1003,7 @@ const NEAR = new WeakMap<object, NearEntry>();
 let phiSeen = NaN, phiSince = 0, nearUntil = 0;
 // la carte graphique pose-t-elle cet objet ? (sinon le processeur le dessine)
 function gpuDraw(it: Drawable, r: number, far: boolean, t: number, still: boolean): boolean {
-  if (it.spr){ const s = it.spr.s, sl = spriteSlot(s); if (!sl) return false; pushQuad(it.spr.x + s.x0, it.spr.y + s.y0, s.w, s.h, 1, sl, r); return true; }
+  if (it.spr){ const s = it.spr.s, sl = spriteSlot(s, M.TREE); if (!sl) return false; pushQuad(it.spr.x + s.x0, it.spr.y + s.y0, s.w, s.h, 1, sl, r); return true; }
   const a = it.a, b = it.b;
   if (!it.key || a == null || b == null || it.big) return false;
   if (far){
@@ -1044,4 +1061,61 @@ export function sortByDepth(list: Drawable[]): Drawable[] {
   const out: Drawable[] = new Array(n);
   for (let i = 0; i < n; i++) out[i] = list[K[i] % 1048576];
   return out;
+}
+
+/* ================= ombres et lumieres sur la carte graphique (etape 3.4) ================= */
+// Les memes ombres et lumieres que drawShadows et applyLights, preparees pour les shaders : triangles d'ombre a l'image,
+// et pour chaque lumiere son cadre a l'image et ses reglages. Le shader de l'image les applique dans le meme ordre.
+let FX_TRI = new Float32Array(6 * 256), FX_TRI_N = 0, FX_L = new Float32Array(LIGHT * 64), FX_L_N = 0;
+const PAT_ID: Record<string, number> = { dots: 0, stripes: 1, noise: 2, diamond: 3 };
+function shadowTris(){
+  const M2 = 60;
+  for (const h of SH.SHADOWS.concat(DYN_SHADOWS)){
+    if (h.box){ const c = prj(h.box[0], h.box[1], 0), r = h.box[2] * 1.5 + 4; if (c[0] + r < -M2 || c[0] - r > W + M2 || c[1] + r < -M2 || c[1] - r > H + M2) continue; }
+    const n = Math.min(64, h.length); if (n < 3) continue;
+    for (let i = 0; i < n; i++){ const p = prj(h[i][0], h[i][1], 0); SX[i] = p[0]; SY[i] = p[1]; }
+    // polygone convexe : un eventail de triangles
+    if ((FX_TRI_N + n) * 6 > FX_TRI.length){ const a = new Float32Array(Math.max(FX_TRI.length * 2, (FX_TRI_N + n) * 6)); a.set(FX_TRI); FX_TRI = a; }
+    for (let i = 1; i < n - 1; i++){ const j = FX_TRI_N * 6; FX_TRI[j] = SX[0]; FX_TRI[j + 1] = SY[0]; FX_TRI[j + 2] = SX[i]; FX_TRI[j + 3] = SY[i]; FX_TRI[j + 4] = SX[i + 1]; FX_TRI[j + 5] = SY[i + 1]; FX_TRI_N++; }
+  }
+}
+// cadre d'une lumiere a l'image (inclus), et son intensite (comme applyLights)
+function lightBox(Lt: Light): [number, number, number, number, number] | null {
+  const R = Lt.kind === 'circle' ? Lt.r : Lt.len + Lt.w0 + 2;
+  const ca = Lt.kind === 'circle' ? Lt.a : Lt.a + Lt.da * Lt.len * .5, cb = Lt.kind === 'circle' ? Lt.b : Lt.b + Lt.db * Lt.len * .5;
+  const rr = Lt.kind === 'circle' ? R : Lt.len * .5 + Lt.len * Lt.tan + Lt.w0 + 2;
+  const c = prj(ca, cb, 0), ex = rr * 1.42 * SC, ey = rr * .72 * SC;
+  const x0 = Math.max(0, Math.floor(c[0] - ex)), x1 = Math.min(W - 1, Math.ceil(c[0] + ex));
+  const y0 = Math.max(0, Math.floor(c[1] - ey)), y1 = Math.min(H - 1, Math.ceil(c[1] + ey));
+  if (x0 > x1 || y0 > y1) return null;
+  const Ik = clamp(state.intensity * Lt.k * (COLOR ? clamp((SH.NIGHT - .2) * 1.6, 0, 1) : 1), 0, 1);
+  return [x0, y0, x1, y1, Ik];
+}
+function lightQuads(){
+  if (!(state.pattern in PAT_ID)) return;
+  for (const Lt of LIGHTS){
+    const bx = lightBox(Lt); if (!bx) continue;
+    if ((FX_L_N + 1) * LIGHT > FX_L.length){ const a = new Float32Array(FX_L.length * 2); a.set(FX_L); FX_L = a; }
+    const q = FX_L, s = FX_L_N * LIGHT, lm = Lt.m == null ? M.GLOW : Lt.m;
+    q[s] = bx[0]; q[s + 1] = bx[1]; q[s + 2] = bx[2] + 1; q[s + 3] = bx[3] + 1;
+    q[s + 5] = Lt.a; q[s + 6] = Lt.b; q[s + 7] = lm; q[s + 9] = bx[4]; q[s + 10] = Lt.att;
+    if (Lt.kind === 'circle'){ q[s + 4] = 0; q[s + 8] = Lt.r; q[s + 11] = 0; q[s + 12] = 0; q[s + 13] = 0; q[s + 14] = 0; q[s + 15] = 0; }
+    else { q[s + 4] = 1; q[s + 8] = 0; q[s + 11] = Lt.len; q[s + 12] = Lt.da; q[s + 13] = Lt.db; q[s + 14] = Lt.tan; q[s + 15] = Lt.w0; }
+    FX_L_N++;
+  }
+}
+function fxFrame(): Fx {
+  return { tri: FX_TRI, nTri: FX_TRI_N, lights: FX_L, nLights: FX_L_N, o: unprj(.5, .5), d: [(.5 * PC - .5 * PS) / SC, (-.5 * PS - .5 * PC) / SC, (PC + PS) / SC, (PC - PS) / SC], tx: TX, ty: TY, pat: PAT_ID[state.pattern] ?? 0 };
+}
+// un pixel du sol est-il allume par une lumiere de nuit ? (pour le chat sous un lampadaire)
+function lightAtPixel(x: number, y: number): boolean {
+  const pat = state.pattern, w = unprj(x + .5, y + .5);
+  for (const Lt of LIGHTS){
+    const bx = lightBox(Lt); if (!bx || x < bx[0] || x > bx[2] || y < bx[1] || y > bx[3]) continue;
+    let tt: number;
+    if (Lt.kind === 'circle'){ const da = w[0] - Lt.a, db = w[1] - Lt.b, d2 = da * da + db * db; if (d2 > Lt.r * Lt.r) continue; tt = Math.sqrt(d2) / Lt.r; }
+    else { const la = w[0] - Lt.a, lbb = w[1] - Lt.b, al = la * Lt.da + lbb * Lt.db, pe = lbb * Lt.da - la * Lt.db; if (al < 0 || al > Lt.len || Math.abs(pe) > al * Lt.tan + Lt.w0) continue; tt = al / Lt.len; }
+    if (litAt(x - TX, y - TY, pat, bx[4] * (1 - Lt.att * tt))) return true;
+  }
+  return false;
 }

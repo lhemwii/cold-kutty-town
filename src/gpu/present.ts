@@ -6,7 +6,7 @@
 // Sans WebGL2, on rend la main : le jeu garde son affichage par canvas 2D.
 // Ce module ne depend d'aucun module du jeu.
 import { Geometry, Mesh, Shader, Texture, BufferImageSource, WebGLRenderer, Container, UniformGroup, RenderTexture, Buffer, BufferUsage } from 'pixi.js';
-import { FRAG, FRAG_GROUND, OBJ_FRAG, OBJ_VERT, PAL_W, VERT } from './ground-glsl.ts';
+import { FRAG, FRAG_GROUND, LIGHT_FRAG, LIGHT_VERT, OBJ_FRAG, OBJ_VERT, PAL_W, SHADOW_FRAG, SHADOW_VERT, VERT } from './ground-glsl.ts';
 
 /** les tampons d'une image : un octet par pixel chacun, n pixels */
 export interface Frame { fb: Uint8Array; mb: Uint8Array; lb: Uint8Array; ob: Uint8Array; n: number }
@@ -33,6 +33,15 @@ export interface GroundView {
 /** objets poses par la carte graphique : n quadrilateres de QUAD nombres (x0, y0 a l'image ; w, h du dessin ; echelle ; u, v dans l'atlas ; rang) */
 export interface Objects { q: Float32Array; n: number }
 export const QUAD = 8;
+/** ombres et lumieres de l'image en cours (etape 3.4).
+ *  tri : triangles des ombres, 6 nombres chacun (trois points a l'image) ;
+ *  lights : LIGHT nombres par lumiere (cadre x0, y0, x1, y1 ; cone ou disque, a, b, matiere ; rayon, intensite, attenuation,
+ *  longueur ; da, db, tangente, largeur), dans l'ordre du jeu ; o, d, tx, ty, pat : passage des pixels au sol et trame */
+export interface Fx {
+  tri: Float32Array; nTri: number; lights: Float32Array; nLights: number;
+  o: [number, number]; d: [number, number, number, number]; tx: number; ty: number; pat: number;
+}
+export const LIGHT = 16;
 
 export interface Presenter {
   /** plus grand cote d'une texture sur cette carte graphique */
@@ -59,8 +68,9 @@ export interface Presenter {
   objAtlas(buf: Uint8Array, w: number, h: number): void;
   /** un rectangle de l'atlas a change : on ne renvoie que lui */
   objAtlasPatch(x0: number, y0: number, x1: number, y1: number): void;
-  /** calcule le sol, pose dessus les objets de la carte graphique et l'image du processeur (mb 255 : rien, db : rang), et affiche */
-  drawGround(f: Frame & { db: Uint16Array }, v: GroundView, objs: Objects | null): void;
+  /** calcule le sol, pose dessus les objets de la carte graphique et l'image du processeur (mb 255 : rien, db : rang), avec
+   *  ombres et lumieres, et affiche */
+  drawGround(f: Frame & { db: Uint16Array }, v: GroundView, objs: Objects | null, fx: Fx | null): void;
 }
 
 // une texture d'octets : format et taille ; la memoire est a nous, envoyee telle quelle
@@ -101,6 +111,9 @@ export async function createPresenter(canvas: HTMLCanvasElement, w: number, h: n
   let atlas: { buf: Uint8Array; w: number; h: number } = { buf: new Uint8Array(4 * 4), w: 2, h: 2 };
   const atlasSrc = byteSource(atlas.buf, 2, 2, 'rgba8unorm');
   const objRT = RenderTexture.create({ width: W, height: H, scaleMode: 'nearest', antialias: false });
+  // ombres et lumieres de l'image en cours (etape 3.4)
+  const shadowRT = RenderTexture.create({ width: W, height: H, scaleMode: 'nearest', antialias: false });
+  const lightRT = RenderTexture.create({ width: W, height: H, scaleMode: 'nearest', antialias: false });
 
   const quad = (): number[] => [0, 0, W, 0, W, H, 0, H];
   const geometry = new Geometry({ attributes: { aPosition: quad(), aUV: [0, 0, 1, 0, 1, 1, 0, 1] }, indexBuffer: [0, 1, 2, 0, 2, 3] });
@@ -113,7 +126,7 @@ export async function createPresenter(canvas: HTMLCanvasElement, w: number, h: n
     uTerI: v4(), uBeamA: v4(), uBeamB: v4(), uPT: f32(0), uMatA: v4(), uMatB: v4(), uRefl: v4(), uReflB: v2(),
   });
   // deux programmes qui partagent textures et reglages : la mise en couleur seule, et le sol
-  const resources = { uData: dataSrc, uPal: palSrc, uCells: cellsSrc, uQuarter: quarterSrc, uTer: terSrc, uLut: lutSrc, uObj: objRT.source, uParams: params };
+  const resources = { uData: dataSrc, uPal: palSrc, uCells: cellsSrc, uQuarter: quarterSrc, uTer: terSrc, uLut: lutSrc, uObj: objRT.source, uShadow: shadowRT.source, uLight: lightRT.source, uParams: params };
   const shaderPal = Shader.from({ gl: { vertex: VERT, fragment: FRAG, name: 'ckt-palette' }, resources });
   const shaderGround = Shader.from({ gl: { vertex: VERT, fragment: FRAG_GROUND, name: 'ckt-sol' }, resources });
   const U: Record<string, number | Float32Array> = params.uniforms;
@@ -141,6 +154,56 @@ export async function createPresenter(canvas: HTMLCanvasElement, w: number, h: n
     const idx = new Uint32Array(cap * 6);
     for (let k = 0; k < cap; k++){ const v0 = k * 4, j = k * 6; idx[j] = v0; idx[j + 1] = v0 + 1; idx[j + 2] = v0 + 2; idx[j + 3] = v0; idx[j + 4] = v0 + 2; idx[j + 5] = v0 + 3; }
     idxBuf.data = idx;
+  };
+  // ombres : des triangles ; lumieres : un rectangle par lumiere, avec ses reglages sur chaque coin
+  const vbuf = () => new Buffer({ data: new Float32Array(0), usage: BufferUsage.VERTEX | BufferUsage.COPY_DST });
+  const shPos = vbuf();
+  const shGeom = new Geometry({ attributes: { aPos: { buffer: shPos, format: 'float32x2' } } });
+  const fxParams = new UniformGroup({ uSize: v2(), uO: v2(), uD: v4(), uT: v2(), uPat: f32(0) });
+  const shMesh = new Mesh({ geometry: shGeom, shader: Shader.from({ gl: { vertex: SHADOW_VERT, fragment: SHADOW_FRAG, name: 'ckt-ombres' }, resources: { uFx: fxParams } }), texture: Texture.WHITE });
+  shMesh.blendMode = 'none';
+  const shStage = new Container(); shStage.addChild(shMesh);
+  const lPos = vbuf(), lA = vbuf(), lB = vbuf(), lC = vbuf();
+  const lIdx = new Buffer({ data: new Uint32Array(0), usage: BufferUsage.INDEX | BufferUsage.COPY_DST });
+  const lGeom = new Geometry({ attributes: { aPos: { buffer: lPos, format: 'float32x2' }, aL0: { buffer: lA, format: 'float32x4' }, aL1: { buffer: lB, format: 'float32x4' }, aL2: { buffer: lC, format: 'float32x4' } }, indexBuffer: lIdx });
+  const lMesh = new Mesh({ geometry: lGeom, shader: Shader.from({ gl: { vertex: LIGHT_VERT, fragment: LIGHT_FRAG, name: 'ckt-lumieres' }, resources: { uFx: fxParams } }), texture: Texture.WHITE });
+  lMesh.blendMode = 'none';
+  const lStage = new Container(); lStage.addChild(lMesh);
+  let lCap = 0;
+  const renderFx = (fx: Fx | null) => {
+    const FU: Record<string, number | Float32Array> = fxParams.uniforms;
+    const setU = (k: string, ...xs: number[]) => { const u = FU[k]; if (u instanceof Float32Array) u.set(xs); };
+    setU('uSize', W, H);
+    if (fx){ setU('uO', fx.o[0], fx.o[1]); setU('uD', fx.d[0], fx.d[1], fx.d[2], fx.d[3]); setU('uT', fx.tx, fx.ty); FU.uPat = fx.pat; }
+    fxParams.update();
+    // ombres : triangles (une texture vide s'il n'y en a pas)
+    const nt = fx ? fx.nTri : 0;
+    const P = new Float32Array(Math.max(1, nt) * 6);
+    if (fx) P.set(fx.tri.subarray(0, nt * 6));
+    shPos.data = P;
+    renderer.render({ container: shStage, target: shadowRT, clear: true, clearColor: [0, 0, 0, 0] });
+    // lumieres : de la derniere a la premiere, chacune recouvre les suivantes
+    const nl = fx ? fx.nLights : 0;
+    if (Math.max(1, nl) > lCap){
+      lCap = Math.max(nl, lCap * 2, 64);
+      lPos.data = new Float32Array(lCap * 8); lA.data = new Float32Array(lCap * 16); lB.data = new Float32Array(lCap * 16); lC.data = new Float32Array(lCap * 16);
+      const idx = new Uint32Array(lCap * 6);
+      for (let k = 0; k < lCap; k++){ const v0 = k * 4, j = k * 6; idx[j] = v0; idx[j + 1] = v0 + 1; idx[j + 2] = v0 + 2; idx[j + 3] = v0; idx[j + 4] = v0 + 2; idx[j + 5] = v0 + 3; }
+      lIdx.data = idx;
+    }
+    const LP = lPos.data, L0 = lA.data, L1 = lB.data, L2 = lC.data;
+    if (fx) for (let k = 0; k < nl; k++){
+      const s = (nl - 1 - k) * LIGHT, q = fx.lights, p = k * 8, x0 = q[s], y0 = q[s + 1], x1 = q[s + 2], y1 = q[s + 3];
+      LP[p] = x0; LP[p + 1] = y0; LP[p + 2] = x1; LP[p + 3] = y0; LP[p + 4] = x1; LP[p + 5] = y1; LP[p + 6] = x0; LP[p + 7] = y1;
+      for (let v = 0, j = k * 16; v < 4; v++, j += 4){
+        L0[j] = q[s + 4]; L0[j + 1] = q[s + 5]; L0[j + 2] = q[s + 6]; L0[j + 3] = q[s + 7];
+        L1[j] = q[s + 8]; L1[j + 1] = q[s + 9]; L1[j + 2] = q[s + 10]; L1[j + 3] = q[s + 11];
+        L2[j] = q[s + 12]; L2[j + 1] = q[s + 13]; L2[j + 2] = q[s + 14]; L2[j + 3] = q[s + 15];
+      }
+    }
+    LP.fill(0, nl * 8);
+    lPos.update(); lA.update(); lB.update(); lC.update();
+    renderer.render({ container: lStage, target: lightRT, clear: true, clearColor: [0, 0, 0, 0] });
   };
   // dessine la couche des objets dans sa texture (vide s'il n'y en a pas)
   const renderObjects = (o: Objects | null) => {
@@ -188,7 +251,7 @@ export async function createPresenter(canvas: HTMLCanvasElement, w: number, h: n
       W = nw; H = nh;
       data = new Uint8Array(W * H * 4); data32 = new Uint32Array(data.buffer);
       dataSrc.resource = data; dataSrc.resize(W, H);
-      objRT.resize(W, H);
+      objRT.resize(W, H); shadowRT.resize(W, H); lightRT.resize(W, H);
       geometry.getAttribute('aPosition').buffer.data = new Float32Array(quad());
       renderer.resize(W, H);
     },
@@ -240,12 +303,13 @@ export async function createPresenter(canvas: HTMLCanvasElement, w: number, h: n
       if (xb < xa || yb < ya) return;
       patch(atlasSrc, atlas.buf, atlas.w, 4, xa, ya, xb - xa + 1, yb - ya + 1);
     },
-    drawGround(f: Frame & { db: Uint16Array }, v: GroundView, objs: Objects | null){
+    drawGround(f: Frame & { db: Uint16Array }, v: GroundView, objs: Objects | null, fx: Fx | null){
       // pixel pose : matiere, forme | eclairage << 1, rang ; pixel vide : 255, matiere d'une lumiere de nuit, ombre
       const D = data32, FB = f.fb, MB = f.mb, LB = f.lb, DB = f.db, n = Math.min(f.n, D.length);
       for (let i = 0; i < n; i++){ const m = MB[i]; D[i] = m === 255 ? (255 | (FB[i] << 8) | (LB[i] << 16)) : (m | ((FB[i] | (LB[i] << 1)) << 8) | (DB[i] << 16)); }
       dataSrc.update();
       renderObjects(objs);
+      renderFx(fx);
 
       set('uO', v.o[0], v.o[1]); set('uD', v.dax, v.dbx, v.day, v.dby); set('uG0', v.ga0, v.gb0, v.gsc);
       set('uT', v.tx, v.ty); set('uAnim', v.tick, v.ring);
