@@ -42,7 +42,7 @@ src/
   styles/main.css       le style de l’interface
   main.js               point d’entrée : charge les modules dans l’ordre
   game/00-shared.js     état partagé entre modules (SH)
-  game/01-core.js ...   le jeu, en modules ES chargés dans l’ordre de leur numéro
+  game/01-core.ts ...   le jeu, en modules ES chargés dans l’ordre de leur numéro
   platform/standalone.js  branche Claude et les téléchargements hors de claude.ai
 api/claude.js           fonction Vercel qui relaie vers l’API Claude
 vite.config.js          build, serveur local et /api/claude en local

@@ -1,31 +1,31 @@
 import { SH } from './00-shared.ts';
-import { COLOR, M, ROOF_OF, UP, bay, boxS, bz, clamp, drawFace, faceVisible, fput, gableRoof, gableWalls, hash2, lineS, makeSprite, moonDot, plateW, prj, wallFace, win, winColor } from './01-core.js';
+import type { Light, Part, Side } from './00-shared.ts';
+import type { PixFn, PlateOpt, Shade, Sprite, WallFn } from './01-core.ts';
+import { COLOR, M, ROOF_OF, UP, bay, boxS, bz, clamp, drawFace, faceVisible, fput, gableRoof, gableWalls, hash2, lineS, makeSprite, moonDot, plateW, prj, wallFace, win, winColor } from './01-core.ts';
 /* ================= decor : aides ================= */
 export const SIDE_N = [[0,1,0],[1,0,0],[0,-1,0],[-1,0,0]];
 export const WALL_T = SIDE_N.map(n => COLOR ? 0 : 2.4 * Math.max(0, moonDot(n)));
 [[M.USC, M.ROOF_USC], [M.USC2, M.ROOF_USC2], [M.USC3, M.ROOF_USC3], [M.USC4, M.ROOF_USC2], [M.USC5, M.ROOF_USC], [M.CCP, M.ROOF_CCP], [M.CCP2, M.ROOF_CCP], [M.CCP3, M.ROOF_CCP], [M.BRICK, M.ROOF_USC], [M.SANDSTONE, M.ROOF_USC2]].forEach(([w, r]) => ROOF_OF[w] = r);
-export const wallBase = (k, x, y) => bz(x, y) < WALL_T[k] ? 1 : 0;
-/** @type {(a: number, b: number, r: number, k?: number) => import('./00-shared.ts').Light} */
-export const Lc = (a, b, r, k) => ({ kind: 'circle', a, b, r, k: k || 1.1, att: .9 });
-/** @type {(a: number, b: number, zb: number, draw: (t: number) => void) => import('./00-shared.ts').Part} */
-export const part = (a, b, zb, draw) => ({ a, b, zb: zb || 0, draw });
-export function sideLight(a0, a1, b0, b1, k, r, kk){
+export const wallBase = (k: number, x: number, y: number) => bz(x, y) < WALL_T[k] ? 1 : 0;
+export const Lc = (a: number, b: number, r: number, k?: number): Light => ({ kind: 'circle', a, b, r, k: k || 1.1, att: .9 });
+export const part = (a: number, b: number, zb: number, draw: (t: number) => void): Part => ({ a, b, zb: zb || 0, draw });
+export function sideLight(a0: number, a1: number, b0: number, b1: number, k: number, r: number, kk?: number){
   const n = SIDE_N[k], ca = (a0 + a1) / 2, cb = (b0 + b1) / 2;
   return Lc(ca + n[0] * ((a1 - a0) / 2 + 4), cb + n[1] * ((b1 - b0) / 2 + 4), r || 7, kk);
 }
-export const frontVisible = (k) => faceVisible(SIDE_N[k]);
+export const frontVisible = (k: number) => faceVisible(SIDE_N[k]);
 // enseigne de facade lisible des deux cotes : sur la face +b quand on la voit, sinon sur la face -b
-export function facadePlate(s, a, bFront, bBack, z, opt){ return plateW(s, a, frontVisible(0) ? bFront : bBack, z, opt); }
+export function facadePlate(s: string, a: number, bFront: number, bBack: number, z: number, opt?: PlateOpt | null){ return plateW(s, a, frontVisible(0) ? bFront : bBack, z, opt); }
 // coordonnee le long d'un segment projete, pour les stores rayes
-export function alongSh(pa, pb, pz, qa, qb, qz, L, fn){
+export function alongSh(pa: number, pb: number, pz: number, qa: number, qb: number, qz: number, L: number, fn: (u: number, x: number, y: number) => number): PixFn {
   const P = prj(pa, pb, pz), Q = prj(qa, qb, qz), ex = Q[0] - P[0], ey = Q[1] - P[1], ee = ex * ex + ey * ey || 1;
-  return (x, y) => fn(((x + .5 - P[0]) * ex + (y + .5 - P[1]) * ey) / ee * L, x, y);
+  return (x: number, y: number) => fn(((x + .5 - P[0]) * ex + (y + .5 - P[1]) * ey) / ee * L, x, y);
 }
-export function smokeAt(px, py, t, seed){
+export function smokeAt(px: number, py: number, t: number, seed: number){
   const savedM = SH.CUR; SH.CUR = M.SMOKE;
   smokeAt2(px, py, t, seed); SH.CUR = savedM;
 }
-export function smokeAt2(px, py, t, seed){
+export function smokeAt2(px: number, py: number, t: number, seed: number){
   for (let k = 0; k < 3; k++){
     const p = ((t * 0.17 + k / 3 + seed * .21) % 1);
     const x = Math.round(px + p * 8 + Math.sin(t * 1.3 + k + seed) * 1.2), y = Math.round(py - p * 16);
@@ -35,10 +35,10 @@ export function smokeAt2(px, py, t, seed){
   }
 }
 // sprite dessine en caracteres : # blanc, . noir, + trame, espace transparent. Contour noir automatique.
-export function artSprite(rows){
+export function artSprite(rows: string[]){
   return makeSprite(put => {
     const h = rows.length, w = Math.max(...rows.map(r => r.length));
-    const at = (x, y) => (y >= 0 && y < h && x >= 0 && x < rows[y].length) ? rows[y][x] : ' ';
+    const at = (x: number, y: number) => (y >= 0 && y < h && x >= 0 && x < rows[y].length) ? rows[y][x] : ' ';
     for (let y = -1; y <= h; y++) for (let x = -1; x <= w; x++){
       const c = at(x, y);
       if (c === ' '){ if (at(x-1,y) !== ' ' || at(x+1,y) !== ' ' || at(x,y-1) !== ' ' || at(x,y+1) !== ' ') put(x - (w >> 1), y - h, 0); continue; }
@@ -48,8 +48,8 @@ export function artSprite(rows){
 }
 // le meme arbre redessine directement en petit pour la vue de loin (au lieu d'etre reduit) :
 // il garde un tronc d'au moins un pixel et un feuillage rond, a toutes les distances
-export const TREE_SPR_SC = {};
-export function treeSprSc(r, s){
+export const TREE_SPR_SC: Record<string, Sprite> = {};
+export function treeSprSc(r: number, s: number){
   const q = Math.max(1, Math.round(s * 20)), key = r + ':' + q; if (TREE_SPR_SC[key]) return TREE_SPR_SC[key];
   s = q / 20;
   // tres loin, l'arbre garde sa vraie taille : un point de feuillage (et un pixel de tronc tant qu'il en a la hauteur),
@@ -68,8 +68,8 @@ export function treeSprSc(r, s){
     }
   });
 }
-export const TREE_SPR = {};
-export function treeSpr(r){
+export const TREE_SPR: Record<number, Sprite> = {};
+export function treeSpr(r: number){
   if (TREE_SPR[r]) return TREE_SPR[r];
   return TREE_SPR[r] = makeSprite(put => {
     for (let y = -3; y <= 0; y++){ put(0, y, 1); put(1, y, 0); }
@@ -94,7 +94,9 @@ export const LAMP_SPR = makeSprite(put => {
 export const QUEUE_CAT = artSprite(['# #', '###', '.#.', '###', '###', '# #']);
 
 /* ================= maisons ================= */
-export function drawHouse(g){
+/** une maison a pignon : emprise, hauteur des murs (hh) et du toit (rh), faitage, fenetres allumees, face de la porte */
+export interface HouseGeo { a0: number; a1: number; b0: number; b1: number; hh: number; rh: number; axis: string; lit: boolean[]; door: number; ca: number; cb: number }
+export function drawHouse(g: HouseGeo){
   const { a0, a1, b0, b1, hh, rh, axis, lit, door } = g;
   const L = [a1 - a0, b1 - b0, a1 - a0, b1 - b0];
   gableWalls(a0, a1, b0, b1, hh, rh, axis, (u, h, x, y, k) => {
@@ -113,13 +115,13 @@ export function drawHouse(g){
   });
   gableRoof(a0, a1, b0, b1, hh, rh, axis, 1, 7, 1);
 }
-export function houseGeo(ca, cb, la, lb, hh, rh, seed, axis, door){
+export function houseGeo(ca: number, cb: number, la: number, lb: number, hh: number, rh: number, seed: number, axis?: string, door?: number | null): HouseGeo {
   const a0 = Math.round(ca - la / 2), b0 = Math.round(cb - lb / 2);
   const lit = [0, 1, 2, 3].map(j => hash2(seed * 31 + j, 97) < .55);
   return { a0, a1: a0 + la, b0, b1: b0 + lb, hh, rh, axis: axis || 'a', lit, door: door == null ? 0 : door, ca, cb };
 }
-export function houseLights(g){ const out = []; for (let k = 0; k < 4 && out.length < 2; k++) if (g.lit[k]) out.push(sideLight(g.a0, g.a1, g.b0, g.b1, k, 6, 1)); return out; }
-export function antennaAt(g){
+export function houseLights(g: HouseGeo){ const out: Light[] = []; for (let k = 0; k < 4 && out.length < 2; k++) if (g.lit[k]) out.push(sideLight(g.a0, g.a1, g.b0, g.b1, k, 6, 1)); return out; }
+export function antennaAt(g: HouseGeo){
   const p = g.axis === 'a' ? prj(g.a0 + (g.a1 - g.a0) * .3, (g.b0 + g.b1) / 2, g.hh + g.rh) : prj((g.a0 + g.a1) / 2, g.b0 + (g.b1 - g.b0) * .3, g.hh + g.rh);
   const x = Math.round(p[0]), y = Math.round(p[1]);
   const savedM = SH.CUR; SH.CUR = M.METAL;
@@ -129,36 +131,36 @@ export function antennaAt(g){
   fput(x - 3, y - 8, 1); fput(x + 3, y - 8, 1);
   SH.CUR = savedM;
 }
-export function chimneyOf(g){ return g.axis === 'a' ? [g.a0 + (g.a1 - g.a0) * .75, (g.b0 + g.b1) / 2] : [(g.a0 + g.a1) / 2, g.b0 + (g.b1 - g.b0) * .75]; }
-export function drawChimney(g, t, seed){
+export function chimneyOf(g: HouseGeo): [number, number] { return g.axis === 'a' ? [g.a0 + (g.a1 - g.a0) * .75, (g.b0 + g.b1) / 2] : [(g.a0 + g.a1) / 2, g.b0 + (g.b1 - g.b0) * .75]; }
+export function drawChimney(g: HouseGeo, t: number, seed: number){
   const [c0, c1] = chimneyOf(g), zt = g.hh + g.rh + 3;
   boxS(c0 - 1, c0 + 1, c1 - 1, c1 + 1, g.hh + g.rh - 2, zt, 0, 1);
   const p = prj(c0, c1, zt); smokeAt(p[0], p[1] - 1, t, seed);
 }
 // barriere blanche en bois, visible des deux cotes
-export function picket(pa, pb, qa, qb){
-  const fn = (u, h) => (h >= 1 && h < 1.5) ? 1 : ((Math.floor(u * 1.5) & 1) === 0 && h < 2.6 ? 1 : -1);
+export function picket(pa: number, pb: number, qa: number, qb: number){
+  const fn = (u: number, h: number) => (h >= 1 && h < 1.5) ? 1 : ((Math.floor(u * 1.5) & 1) === 0 && h < 2.6 ? 1 : -1);
   SH.CUR = M.NEUTRAL;
   if (!wallFace(pa, pb, qa, qb, 0, 2.6, fn, -1)) wallFace(qa, qb, pa, pb, 0, 2.6, fn, -1);
 }
 
 /* ================= voitures ================= */
 // axe de deplacement 'a' ou 'b', dir +1 / -1, style usc (ailerons) ou ccp (berline carree)
-export function drawCar(a, b, axis, dir, style){
+export function drawCar(a: number, b: number, axis: string, dir: number, style: string){
   const la = 6, lb = 3.4;
   const A0 = axis === 'a' ? a - la : a - lb, A1 = axis === 'a' ? a + la : a + lb;
   const B0 = axis === 'a' ? b - lb : b - la, B1 = axis === 'a' ? b + lb : b + la;
   const fa = axis === 'a' ? dir : 0, fb2 = axis === 'b' ? dir : 0;
   const usc = style === 'usc';
   SH.CUR = usc ? M.CAR_USC : M.CAR_CCP;
-  const body = usc ? ((u, h, x, y) => h < 1.2 ? 1 : (bz(x, y) < 6 ? 1 : 0)) : ((u, h, x, y) => h < .8 ? 1 : (bz(x, y) < 2 ? 1 : 0));
-  boxS(A0, A1, B0, B1, .8, usc ? 3.4 : 3.8, body, usc ? ((x, y) => bz(x, y) < 11 ? 1 : 0) : ((x, y) => bz(x, y) < 4 ? 1 : 0), 1);
+  const body = usc ? ((_u: number, h: number, x: number, y: number) => h < 1.2 ? 1 : (bz(x, y) < 6 ? 1 : 0)) : ((_u: number, h: number, x: number, y: number) => h < .8 ? 1 : (bz(x, y) < 2 ? 1 : 0));
+  boxS(A0, A1, B0, B1, .8, usc ? 3.4 : 3.8, body, usc ? ((x: number, y: number) => bz(x, y) < 11 ? 1 : 0) : ((x: number, y: number) => bz(x, y) < 4 ? 1 : 0), 1);
   // habitacle, recule vers l'arriere
   const off = usc ? -1.2 : -.4, cl = usc ? 2.6 : 3.2, cw = lb - .7;
   const ca = a + fa * off, cb = b + fb2 * off;
   const C0 = axis === 'a' ? ca - cl : ca - cw, C1 = axis === 'a' ? ca + cl : ca + cw;
   const D0 = axis === 'a' ? cb - cw : cb - cl, D1 = axis === 'a' ? cb + cw : cb + cl;
-  boxS(C0, C1, D0, D1, usc ? 3.4 : 3.8, usc ? 5.6 : 6.6, (u, h) => (h > .5 && h < 1.8) ? 1 : 0, 1, 1);
+  boxS(C0, C1, D0, D1, usc ? 3.4 : 3.8, usc ? 5.6 : 6.6, (_u: number, h: number) => (h > .5 && h < 1.8) ? 1 : 0, 1, 1);
   if (usc){
     // ailerons arriere
     for (const s of [-1, 1]){
@@ -179,38 +181,39 @@ export function drawCar(a, b, axis, dir, style){
 }
 
 /* ================= objets tournes : voitures en courbe, coques de bateaux ================= */
-export const rot2 = (a, b, ang, u, v) => { const c = Math.cos(ang), s = Math.sin(ang); return [a + u * c - v * s, b + u * s + v * c]; };
+export const rot2 = (a: number, b: number, ang: number, u: number, v: number): [number, number] => { const c = Math.cos(ang), s = Math.sin(ang); return [a + u * c - v * s, b + u * s + v * c]; };
 // boite tournee : coins dans l'ordre de boxS pour que les normales sortent
-export function rbox(a, b, ang, u0, u1, v0, v1, z0, z1, side, top, edge){
+export function rbox(a: number, b: number, ang: number, u0: number, u1: number, v0: number, v1: number, z0: number, z1: number, side: WallFn | Shade, top?: Shade, edge?: number | null){
   const P = [[u0, v1], [u1, v1], [u1, v0], [u0, v0]].map(([u, v]) => rot2(a, b, ang, u, v)), e = edge == null ? 1 : edge;
   for (let i = 0; i < 4; i++){ const p = P[i], q = P[(i + 1) & 3]; wallFace(p[0], p[1], q[0], q[1], z0, z1, side, e); }
   if (top != null) drawFace([P[3][0], P[3][1], z1, P[2][0], P[2][1], z1, P[1][0], P[1][1], z1, P[0][0], P[0][1], z1], UP, top, e);
 }
 // voiture dans n'importe quelle direction (ang : cap au sol)
-export function drawCarAng(a, b, ang, style){
+export function drawCarAng(a: number, b: number, ang: number, style: string){
   const usc = style === 'usc';
   SH.CUR = usc ? M.CAR_USC : M.CAR_CCP;
-  rbox(a, b, ang, -6, 6, -3.4, 3.4, .8, usc ? 3.4 : 3.8, usc ? ((u, h, x, y) => h < 1.2 ? 1 : (bz(x, y) < 6 ? 1 : 0)) : ((u, h, x, y) => h < .8 ? 1 : (bz(x, y) < 2 ? 1 : 0)), usc ? ((x, y) => bz(x, y) < 11 ? 1 : 0) : ((x, y) => bz(x, y) < 4 ? 1 : 0), 1);
+  rbox(a, b, ang, -6, 6, -3.4, 3.4, .8, usc ? 3.4 : 3.8, usc ? ((_u: number, h: number, x: number, y: number) => h < 1.2 ? 1 : (bz(x, y) < 6 ? 1 : 0)) : ((_u: number, h: number, x: number, y: number) => h < .8 ? 1 : (bz(x, y) < 2 ? 1 : 0)), usc ? ((x: number, y: number) => bz(x, y) < 11 ? 1 : 0) : ((x: number, y: number) => bz(x, y) < 4 ? 1 : 0), 1);
   const off = usc ? -1.2 : -.4, cl = usc ? 2.6 : 3.2, cw = 2.7;
-  rbox(a, b, ang, off - cl, off + cl, -cw, cw, usc ? 3.4 : 3.8, usc ? 5.6 : 6.6, (u, h) => (h > .5 && h < 1.8) ? 1 : 0, 1, 1);
+  rbox(a, b, ang, off - cl, off + cl, -cw, cw, usc ? 3.4 : 3.8, usc ? 5.6 : 6.6, (_u: number, h: number) => (h > .5 && h < 1.8) ? 1 : 0, 1, 1);
   SH.CUR = M.LAMP;
   const da = Math.cos(ang), db = Math.sin(ang);
   if (faceVisible([da, db, 0])) for (const s of [-1, 1]){ const p = rot2(a, b, ang, 6, s * 2.4), q = prj(p[0], p[1], 2); fput(Math.round(q[0]), Math.round(q[1]), 1); }
 }
 // coque : poupe carree, proue en pointe
-export function drawHull(a, b, ang, L, Wd, z0, z1, mat, deckMat, band){
+export function drawHull(a: number, b: number, ang: number, L: number, Wd: number, z0: number, z1: number, mat: number, deckMat: number, band?: number | null){
   const h = L / 2, w = Wd / 2, bow = Math.min(L * .2, Wd * 1.1);
   const P = [[-h, w], [h - bow, w], [h, 0], [h - bow, -w], [-h, -w]].map(([u, v]) => rot2(a, b, ang, u, v));
   if (band != null){ SH.CUR = band; for (let i = 0; i < P.length; i++){ const p = P[i], q = P[(i + 1) % P.length]; wallFace(p[0], p[1], q[0], q[1], z0, z0 + 1, 0, 1); } }
   SH.CUR = mat;
-  for (let i = 0; i < P.length; i++){ const p = P[i], q = P[(i + 1) % P.length]; wallFace(p[0], p[1], q[0], q[1], band != null ? z0 + 1 : z0, z1, (u, hh, x, y) => hh > (z1 - z0) - 1.3 ? 1 : (bz(x, y) < 3 ? 1 : 0), 1); }
+  for (let i = 0; i < P.length; i++){ const p = P[i], q = P[(i + 1) % P.length]; wallFace(p[0], p[1], q[0], q[1], band != null ? z0 + 1 : z0, z1, (_u: number, hh: number, x: number, y: number) => hh > (z1 - z0) - 1.3 ? 1 : (bz(x, y) < 3 ? 1 : 0), 1); }
   SH.CUR = deckMat;
-  const pts = []; for (let i = P.length - 1; i >= 0; i--) pts.push(P[i][0], P[i][1], z1);
-  drawFace(pts, UP, (x, y) => ((x + y) & 3) === 0 ? 0 : 1, 1);
+  const pts: number[] = []; for (let i = P.length - 1; i >= 0; i--) pts.push(P[i][0], P[i][1], z1);
+  drawFace(pts, UP, (x: number, y: number) => ((x + y) & 3) === 0 ? 0 : 1, 1);
 }
-export function bobZ(t, seed){ return Math.sin(t * 1.3 + seed) > .55 ? .6 : 0; }
+export function bobZ(t: number, seed: number){ return Math.sin(t * 1.3 + seed) > .55 ? .6 : 0; }
 // petit fanion de camp (bateaux, chantiers, piquets)
-export function pennant(x, y, side, t, seed){
+export function pennant(x: number, y: number, side: Side | string, t: number, seed?: number){
+
   SH.CUR = side === 'usc' ? M.FLAG_BLUE : M.FLAG_RED; const w = Math.round(Math.sin(t * 3 + (seed || 0)));
   for (let yy = 0; yy < 3; yy++) for (let xx = 1; xx <= 4; xx++) fput(x + xx, y + yy + (xx > 2 ? w : 0), side === 'usc' && yy === 1 && xx === 2 ? 1 : 0);
 }

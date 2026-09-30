@@ -1,7 +1,10 @@
-import { SH } from './00-shared.ts';
-import { BAYER, COLOR, GAME, GEO, GLOBE_ON, H, HOOKS, M, N, PC, PROJ_FIX, PS, RAYHIT, RP, SC, SHADOW_V, TAU, TX, TY, W, cam, clamp, dep, fb, fput, geoCast, geoProj, geoSet, getView, groundDelta, hash2, img, lb, litAt, mb, prj, px32, setProj, setView, state, unprj } from './01-core.js';
+import { SH, type Light, type ShadowHull } from './00-shared.ts';
+import type { Sprite } from './01-core.ts';
+import type { Drawable } from './07-world.ts';
+import type { Cat } from './10-town.ts';
+import { BAYER, COLOR, GAME, GEO, GLOBE_ON, H, HOOKS, M, N, PC, PROJ_FIX, PS, RAYHIT, RP, SC, SHADOW_V, TAU, TX, TY, W, cam, clamp, dep, fb, fput, geoCast, geoProj, geoSet, getView, groundDelta, hash2, img, lb, litAt, mb, prj, px32, setProj, setView, state, unprj } from './01-core.ts';
 import { GA0, GB0, GH, GQW, GSC, GW, TYPE_MAT, T_BEACH, T_DIRT, T_FOREST, T_GRASS, T_PIER, T_QUAY, T_ROAD, T_ROCK, T_SEA, T_WALK, cellOf, gPh, gSea, gTone, gType, gVar, mapScale } from './02-ground.ts';
-import { drawCarAng } from './03-buildings-base.js';
+import { drawCarAng } from './03-buildings-base.ts';
 import { VEST, drawGlow, drawLampHeads, drawLantern, drawSailboat, sailPos, towerSpot, treeDrawables } from './07-world.ts';
 import { TC, TER, terIdx } from './08-territory.ts';
 import { CARS } from './09-roads.ts';
@@ -27,29 +30,28 @@ export const PAL_HEX = [
   ['#467f38', '#5e9a48'], ['#e2ddd0', '#ffffff'], ['#7f98a8', '#dfe8ee']
 ];
 // la nuit, les lumieres gardent leur eclat
-export const NIGHT_LIGHT = { [M.RAIN]: '#6f86a3', [M.SNOW]: '#c9d4e2', [M.WIN]: '#ffd46b', [M.SIGN]: '#ff6fae', [M.SIGN_CCP]: '#ffd23f', [M.GLOW]: '#ffbe55', [M.BEAM]: '#fff1a8', [M.LAMP]: '#ffe7a3', [M.REDLIGHT]: '#ff3b3b', [M.FW_BLUE]: '#8fb8ff', [M.FW_GREEN]: '#8dffa0', [M.BUBBLE]: '#fff3d9', [M.ICON_R]: '#ff5a64', [M.ICON_Y]: '#ffd23f', [M.REFLECT]: '#e9b35a' };
+export const NIGHT_LIGHT: Record<number, string> = { [M.RAIN]: '#6f86a3', [M.SNOW]: '#c9d4e2', [M.WIN]: '#ffd46b', [M.SIGN]: '#ff6fae', [M.SIGN_CCP]: '#ffd23f', [M.GLOW]: '#ffbe55', [M.BEAM]: '#fff1a8', [M.LAMP]: '#ffe7a3', [M.REDLIGHT]: '#ff3b3b', [M.FW_BLUE]: '#8fb8ff', [M.FW_GREEN]: '#8dffa0', [M.BUBBLE]: '#fff3d9', [M.ICON_R]: '#ff5a64', [M.ICON_Y]: '#ffd23f', [M.REFLECT]: '#e9b35a' };
 export const LEVEL_F = [1, .9, .79, .67, .6];
-export const hex32 = (h) => { const n = parseInt(h.slice(1), 16); return (0xFF000000 | ((n & 255) << 16) | (n & 0xFF00) | ((n >> 16) & 255)) >>> 0; };
-export const rgb32 = (r, g, b) => (0xFF000000 | (clamp(Math.round(b), 0, 255) << 16) | (clamp(Math.round(g), 0, 255) << 8) | clamp(Math.round(r), 0, 255)) >>> 0;
+export const hex32 = (h: string) => { const n = parseInt(h.slice(1), 16); return (0xFF000000 | ((n & 255) << 16) | (n & 0xFF00) | ((n >> 16) & 255)) >>> 0; };
+export const rgb32 = (r: number, g: number, b: number) => (0xFF000000 | (clamp(Math.round(b), 0, 255) << 16) | (clamp(Math.round(g), 0, 255) << 8) | clamp(Math.round(r), 0, 255)) >>> 0;
 export const PALL = new Uint32Array(PAL_HEX.length * 2 * 5), PAL32 = new Uint32Array(PAL_HEX.length * 2);
 // melange jour / nuit : n = 0 plein jour, 1 pleine nuit ; warm = teinte orangee de l'aube et du couchant
 export const HEXRGB = PAL_HEX.map(pr => pr.map(h => { const v = parseInt(h.slice(1), 16); return [v >> 16, (v >> 8) & 255, v & 255]; }));
-export const GLOWRGB = {}; for (const k in NIGHT_LIGHT){ const v = parseInt(NIGHT_LIGHT[k].slice(1), 16); GLOWRGB[k] = [v >> 16, (v >> 8) & 255, v & 255]; }
+export const GLOWRGB: Record<number, [number, number, number]> = {}; for (const k in NIGHT_LIGHT){ const v = parseInt(NIGHT_LIGHT[k].slice(1), 16); GLOWRGB[k] = [v >> 16, (v >> 8) & 255, v & 255]; }
 SH.palKey = '';
 // saisons : teintes de remplacement pour quelques matieres (arbres, herbe, champs)
 SH.SEAS = {}; SH.SEAS_KEY = '';
 // meteo sur la palette : ciel couvert, brouillard, neige qui recouvre le sol et les toits
 export const WX = { over: 0, fog: 0, snow: 0 };
-export const SNOWY = {}; [[M.FOREST, .8], [M.GRASS, .9], [M.TREE, .55], [M.BEACH, .6], [M.FIELD, .85], [M.WHEAT, .8], [M.DIRT, .8], [M.GRAVEL, .7], [M.ROOF_USC, .85], [M.ROOF_CCP, .85], [M.ROOF_USC2, .85], [M.ROOF_USC3, .85], [M.ROCK, .5], [M.RAIL, .45], [M.ROAD, .22], [M.WALK, .6], [M.CONCRETE, .5], [M.STRIP, .6]].forEach(([m, k]) => { if (m != null) SNOWY[m] = k; });
-export function makeColors(n, warm){
-  if (typeof n === 'boolean') n = n ? 1 : 0;
-  warm = warm || 0;
+export const SNOWY: Record<number, number> = {}; [[M.FOREST, .8], [M.GRASS, .9], [M.TREE, .55], [M.BEACH, .6], [M.FIELD, .85], [M.WHEAT, .8], [M.DIRT, .8], [M.GRAVEL, .7], [M.ROOF_USC, .85], [M.ROOF_CCP, .85], [M.ROOF_USC2, .85], [M.ROOF_USC3, .85], [M.ROCK, .5], [M.RAIL, .45], [M.ROAD, .22], [M.WALK, .6], [M.CONCRETE, .5], [M.STRIP, .6]].forEach(([m, k]) => { if (m != null) SNOWY[m] = k; });
+export function makeColors(n: number, warmIn?: number){
+  const warm = warmIn || 0;
   const key = Math.round(n * 64) + ':' + Math.round(warm * 32) + ':' + Math.round(WX.over * 20) + ':' + Math.round(WX.fog * 20) + ':' + Math.round(WX.snow * 20) + SH.SEAS_KEY;
   if (key === SH.palKey) return; SH.palKey = key;
   const wr = 1 + .04 * warm * (1 - WX.over), wg = 1 - .16 * warm * (1 - WX.over), wb = 1 - .34 * warm * (1 - WX.over);
   const fogC = [206 - 160 * n, 211 - 160 * n, 216 - 150 * n];
   for (let m = 0; m < HEXRGB.length; m++) for (let bit = 0; bit < 2; bit++){
-    let [r, g, b] = (SH.SEAS[m] || HEXRGB[m])[bit]; const glow = bit === 1 ? GLOWRGB[m] : null;
+    let [r, g, b]: number[] = (SH.SEAS[m] || HEXRGB[m])[bit]; const glow = bit === 1 ? GLOWRGB[m] : null;
     const sk = (SNOWY[m] || 0) * WX.snow * (bit ? 1 : .85);
     if (sk > 0){ r += (240 - r) * sk; g += (245 - g) * sk; b += (250 - b) * sk; }
     for (let lv = 0; lv < 5; lv++){
@@ -72,8 +74,8 @@ export function makeColors(n, warm){
 // PALX[k * PL + i] : k = 0 neutre, 1 USC, 2 CCR, 3 frontiere USC, 4 frontiere CCR
 export const PL = PAL_HEX.length * 2 * 5, PALX = new Uint32Array(PL * 5);
 export const TINT_MATS = [M.GRASS, M.FOREST, M.BEACH, M.ROCK, M.DIRT, M.FIELD, M.WHEAT, M.GRAVEL, M.SNOW];
-export const TINT = [null, [52, 104, 236, .24], [226, 52, 52, .22], [64, 132, 255, .82], [255, 70, 64, .82]];
-export function tintPalettes(n){
+export const TINT: [number, number, number, number][] = [[0, 0, 0, 0], [52, 104, 236, .24], [226, 52, 52, .22], [64, 132, 255, .82], [255, 70, 64, .82]];
+export function tintPalettes(n: number){
   PALX.set(PALL, 0);
   for (let k = 1; k < 5; k++){
     PALX.set(PALL, k * PL);
@@ -87,15 +89,15 @@ export function tintPalettes(n){
 makeColors(0, 0);
 /* ================= horloge du jour ================= */
 export const CLOCK = { h: 10.5, auto: true, speed: 1, len: 180 };
-export function nightOf(h){
+export function nightOf(h: number){
   if (h >= 7.5 && h < 18.5) return 0;
   if (h >= 18.5 && h < 20.5) return (h - 18.5) / 2;
   if (h >= 5.5 && h < 7.5) return 1 - (h - 5.5) / 2;
   return 1;
 }
-export function warmOf(h){ const d = Math.min(Math.abs(h - 6.8), Math.abs(h - 19.2)); return clamp(1 - d / 1.6, 0, 1); }
+export function warmOf(h: number){ const d = Math.min(Math.abs(h - 6.8), Math.abs(h - 19.2)); return clamp(1 - d / 1.6, 0, 1); }
 SH.NIGHT = 0;
-export function stepClock(dt){
+export function stepClock(dt: number){
   if (CLOCK.auto) CLOCK.h = (CLOCK.h + dt * 24 / CLOCK.len * CLOCK.speed) % 24;
   SH.NIGHT = COLOR ? nightOf(CLOCK.h) : 1;
   SH.DAY = SH.NIGHT < .5;
@@ -104,9 +106,9 @@ export function stepClock(dt){
 }
 
 /* ================= meteo : soleil, pluie, neige, brouillard ================= */
-export const WEATHER = { mode: 'auto', kind: 'clair', k: 0, shown: 'clair', next: 40, changed: null };
+export const WEATHER: { mode: string; kind: string; k: number; shown: string; next: number; changed: string | null } = { mode: 'auto', kind: 'clair', k: 0, shown: 'clair', next: 40, changed: null };
 export const WX_KINDS = ['clair', 'pluie', 'neige', 'brouillard'];
-export function stepWeather(dt, t){
+export function stepWeather(dt: number, t: number){
   if (!COLOR) return;
   if (WEATHER.mode === 'auto'){
     if (t > WEATHER.next){
@@ -125,7 +127,7 @@ export function stepWeather(dt, t){
   WX.fog = sh === 'brouillard' ? k : sh === 'neige' ? k * .15 : 0;
   WX.snow = sh === 'neige' ? Math.min(1, WX.snow + dt * .04) : Math.max(0, WX.snow - dt * .025);
 }
-export function drawWeather(t){
+export function drawWeather(t: number){
   if (!COLOR || WEATHER.k < .05 || !SH.OPT.wx) return;
   // de loin, les gouttes et les flocons feraient de gros pixels devant la vue : ils s'estompent en dezoomant (la teinte du ciel reste)
   const fk = SC >= .999 ? 1 : clamp((SC - .55) / .4, 0, 1); if (fk <= 0) return;
@@ -152,18 +154,19 @@ export function drawWeather(t){
 }
 
 /* ================= ecran, zoom ================= */
-export const scene = document.getElementById('scene');
+export const scene = document.getElementById('scene') as HTMLCanvasElement;
 SH.ctx = scene.getContext('2d', { alpha: false });
-export let devW = 0, devH = 0, ob = null;
+// ob : tampon des objets (ce qui n'est pas le sol), pour la vue de loin
+export let devW = 0, devH = 0, ob = new Uint8Array(0);
 // Z : zoom affiche (pixels de l'ecran par pixel du jeu), continu et anime.
 // K : echelle entiere de rendu. En dessous de KMIN, on passe sur la vue de loin (OV_ON) : meme tampon, monde dessine en petit.
-SH.Z = 2; SH.ZT = 2; SH.ZANCH = null; export let ZLEVELS = [], OV_ON = false;
+SH.Z = 2; SH.ZT = 2; SH.ZANCH = null; export let ZLEVELS: number[] = [], OV_ON = false;
 // budget de pixels du rendu detaille : au-dela, tout ralentit ; la carte prend le relais
 export const PIX_BUDGET = 430000;
 // Juste sous KMIN (jusqu'a FAR_T * KMIN), on garde la vue rapprochee avec un tampon un peu plus grand (echelle de rendu
 // fractionnaire) : c'est le meme dessin qu'au zoom rapproche, en plus petit. Plus loin, on passe a la vue de loin (SC < 1).
 export const FAR_T = .7;
-export const renderK = (z) => z >= SH.KMIN - 1e-6 ? Math.max(SH.KMIN, Math.floor(z + 1e-6)) : z >= SH.KMIN * FAR_T - 1e-6 ? Math.max(SH.KMIN * FAR_T * .98, Math.floor(z * 16) / 16) : SH.KMIN;
+export const renderK = (z: number) => z >= SH.KMIN - 1e-6 ? Math.max(SH.KMIN, Math.floor(z + 1e-6)) : z >= SH.KMIN * FAR_T - 1e-6 ? Math.max(SH.KMIN * FAR_T * .98, Math.floor(z * 16) / 16) : SH.KMIN;
 export function applyK(){
   const w = Math.ceil(devW / SH.K), h = Math.ceil(devH / SH.K), n = w * h, im = SH.ctx.createImageData(w, h);
   setView({ W: w, H: h, N: n, img: im, px32: new Uint32Array(im.data.buffer), fb: new Uint8Array(n), mb: new Uint8Array(n), lb: new Uint8Array(n) });
@@ -172,7 +175,7 @@ export function applyK(){
   applyView(true);
 }
 // taille et position du canvas a l'ecran
-export function applyView(force){
+export function applyView(force?: boolean){
   const ov = SH.Z < SH.KMIN * FAR_T - 1e-6;
   if (ov !== OV_ON || force){
     OV_ON = ov;
@@ -215,7 +218,7 @@ export function zoomLevels(){
   if (!ZLEVELS.includes(SH.KDEF)){ ZLEVELS.push(SH.KDEF); ZLEVELS.sort((x, y) => x - y); }
 }
 // courbure du monde selon le zoom : nulle en vue rapprochee, elle monte en continu jusqu'a la planete entiere (a KMIN * .1)
-export function curvOf(z){
+export function curvOf(z: number){
   if (!GLOBE_ON) return 0;
   const z0 = SH.KMIN * FAR_T, z1 = SH.KMIN * .1;
   if (z >= z0 - 1e-6) return 0;
@@ -223,10 +226,11 @@ export function curvOf(z){
   return c < .002 ? 0 : c;
 }
 // tout au bout, le point vise remonte doucement : la planete finit au milieu de l'ecran
-export function centerOf(z){ const s = clamp(Math.log(SH.KMIN * .16 / z) / Math.log(.16 / .035), 0, 1); return s * s * (3 - 2 * s); }
+export function centerOf(z: number){ const s = clamp(Math.log(SH.KMIN * .16 / z) / Math.log(.16 / .035), 0, 1); return s * s * (3 - 2 * s); }
 // De pres, la camera reste au-dessus de l'ile. En dezoomant, elle peut s'en eloigner de plus en plus, jusqu'a faire le tour
 // de la planete ; en revenant, elle est ramenee doucement vers l'ile.
-export function camBox(c){
+export function camBox(c: number): [number, number, number, number] {
+
   const a0 = GA0 + 40, a1 = GA0 + GW / GSC - 40, b0 = GB0 + 30, b1 = GB0 + GH / GSC - 30;
   if (c <= 0) return [a0, a1, b0, b1];
   const ea = c > .999 ? Infinity : (Math.PI * RP - a1) * c * c * .98, eb = (1.3 * RP - b1) * c * c;
@@ -239,7 +243,7 @@ export function clampCam(){
   cam.a = clamp(cam.a, a0, a1); cam.b = clamp(cam.b, b0, b1);
 }
 // en zoomant vers l'ile depuis l'autre bout de la planete, la zone permise retrecit : la camera y revient en glissant
-export function camPull(dt){
+export function camPull(dt: number){
   const c = curvOf(SH.Z), [a0, a1, b0, b1] = camBox(c);
   if (c > .999){ camWrap(); return; }
   const ta = clamp(cam.a, a0, a1), tb = clamp(cam.b, b0, b1);
@@ -251,7 +255,7 @@ export function camPull(dt){
 }
 // point du sol sous un point de l'ecran (coordonnees CSS). De loin, on vise la sphere ; dans l'espace, RAYHIT.sky est vrai
 // et on rend le point qu'aurait donne le sol plat.
-export function screenToWorld(cx, cy, z){
+export function screenToWorld(cx: number, cy: number, z?: number): [number, number] {
   const zz = z || SH.Z, dx = (cx - window.innerWidth / 2) * SH.DPR / zz, dy = (cy - window.innerHeight / 2) * SH.DPR / zz, c = curvOf(zz);
   RAYHIT.sky = false;
   if (c > 0){
@@ -264,7 +268,7 @@ export function screenToWorld(cx, cy, z){
   const g = groundDelta(dx, dy); return [cam.a + g[0], cam.b + g[1]];
 }
 // et l'inverse : point de l'ecran (CSS) d'un point du sol (tres loin hors de l'ecran s'il est sur la face cachee)
-export function worldToScreen(a, b, z){
+export function worldToScreen(a: number, b: number, z?: number): [number, number] {
   const zz = z || SH.Z, c = curvOf(zz);
   if (c > 0){
     geoSet(c, centerOf(zz));
@@ -276,7 +280,7 @@ export function worldToScreen(a, b, z){
   const ar = (a - cam.a) * PC - (b - cam.b) * PS, br = (a - cam.a) * PS + (b - cam.b) * PC;
   return [window.innerWidth / 2 + (ar - br) * zz / SH.DPR, window.innerHeight / 2 + (ar + br) * .5 * zz / SH.DPR];
 }
-export function setZNow(nz){
+export function setZNow(nz: number){
   const ax = SH.ZANCH ? SH.ZANCH[0] : window.innerWidth / 2, ay = SH.ZANCH ? SH.ZANCH[1] : window.innerHeight / 2;
   setView({ PC: Math.cos(cam.phi), PS: Math.sin(cam.phi) });
   const g = screenToWorld(ax, ay), s1 = RAYHIT.sky;
@@ -288,7 +292,7 @@ export function setZNow(nz){
   if (curvOf(SH.Z) > .999) camWrap();
   const nk = renderK(SH.Z); if (nk !== SH.K){ SH.K = nk; applyK(); } else { setProj(); applyView(); }
 }
-export function stepZoom(dt){
+export function stepZoom(dt: number){
   camPull(dt);
   if (SH.Z === SH.ZT) return;
   const lz = Math.log(SH.Z), lt = Math.log(SH.ZT);
@@ -297,16 +301,16 @@ export function stepZoom(dt){
   setZNow(nl === lt ? SH.ZT : Math.exp(nl));
 }
 // palier suivant ou precedent a partir de la cible actuelle
-export function zoomStep(dir, ax, ay){
+export function zoomStep(dir: number, ax?: number, ay?: number){
   const cur = SH.ZT;
   let nz = cur;
   if (dir > 0){ for (const l of ZLEVELS) if (l > cur + 1e-6){ nz = l; break; } }
   else { for (let i = ZLEVELS.length - 1; i >= 0; i--) if (ZLEVELS[i] < cur - 1e-6){ nz = ZLEVELS[i]; break; } }
   return setZoom(nz, ax, ay);
 }
-export function setZoom(nz, ax, ay, instant){
-  if (!Number.isFinite(nz)) return false;
-  nz = clamp(nz, ZMIN(), SH.KMAX);
+export function setZoom(nzIn: number, ax?: number | null, ay?: number | null, instant?: boolean){
+  if (!Number.isFinite(nzIn)) return false;
+  const nz = clamp(nzIn, ZMIN(), SH.KMAX);
   SH.ZANCH = ax == null ? null : [ax, ay];
   if (Math.abs(nz - SH.ZT) < 1e-6 && !instant) return false;
   SH.ZT = nz;
@@ -314,29 +318,36 @@ export function setZoom(nz, ax, ay, instant){
   return true;
 }
 export function snapZoom(){ let best = ZLEVELS[0]; for (const l of ZLEVELS) if (Math.abs(Math.log(l / SH.ZT)) < Math.abs(Math.log(best / SH.ZT))) best = l; setZoom(best, SH.ZANCH ? SH.ZANCH[0] : null, SH.ZANCH ? SH.ZANCH[1] : null); }
-export function centerOn(a, b){ cam.a = a; cam.b = b; clampCam(); setProj(); }
+export function centerOn(a: number, b: number){ cam.a = a; cam.b = b; clampCam(); setProj(); }
 
 /* ================= carte strategique : l'ile a plat, une case de couleur pour 2 unites ================= */
 // on ne la redessine que par morceaux (cases de territoire gagnees, routes, batiments) : plus de gros calcul au dezoom
-export const MS = 2, MAPV = { W: GW / GSC / MS, H: GH / GSC / MS, cv: null, g: null, img: null, px: null, dirty: [], all: true };
+/** la carte a plat : son canvas, son image, et les rectangles a repeindre [x0, x1, y0, y1] */
+export interface MapView {
+  W: number; H: number; cv: HTMLCanvasElement | null; g: CanvasRenderingContext2D | null; img: ImageData | null; px: Uint32Array;
+  dirty: [number, number, number, number][]; all: boolean;
+}
+export const MS = 2, MAPV: MapView = { W: GW / GSC / MS, H: GH / GSC / MS, cv: null, g: null, img: null, px: new Uint32Array(0), dirty: [], all: true };
 export function mapInit(){
   MAPV.W = Math.round(GW / GSC / MS); MAPV.H = Math.round(GH / GSC / MS); MAPV.dirty.length = 0;
-  MAPV.cv = document.createElement('canvas'); MAPV.cv.width = MAPV.W; MAPV.cv.height = MAPV.H;
-  MAPV.g = MAPV.cv.getContext('2d'); MAPV.img = MAPV.g.createImageData(MAPV.W, MAPV.H); MAPV.px = new Uint32Array(MAPV.img.data.buffer);
+  const cv = document.createElement('canvas'); cv.width = MAPV.W; cv.height = MAPV.H;
+  const g = cv.getContext('2d'); if (!g) return;
+  const im = g.createImageData(MAPV.W, MAPV.H);
+  MAPV.cv = cv; MAPV.g = g; MAPV.img = im; MAPV.px = new Uint32Array(im.data.buffer);
   MAPV.all = true;
 }
 export function mapDirtyAll(){ MAPV.all = true; }
-export function mapDirtyRect(a0, a1, b0, b1, terOnly){
+export function mapDirtyRect(a0: number, a1: number, b0: number, b1: number, _terOnly?: boolean){
   if (MAPV.all) return;
   MAPV.dirty.push([Math.max(0, Math.floor((a0 - GA0) / MS)), Math.min(MAPV.W - 1, Math.ceil((a1 - GA0) / MS)), Math.max(0, Math.floor((b0 - GB0) / MS)), Math.min(MAPV.H - 1, Math.ceil((b1 - GB0) / MS))]);
   if (MAPV.dirty.length > 400) MAPV.all = true;
 }
-export function mapDirtyCell(i){ const x = i % TER.W, y = (i / TER.W) | 0; mapDirtyRect(GA0 + x * TC - 2, GA0 + (x + 1) * TC + 2, GB0 + y * TC - 2, GB0 + (y + 1) * TC + 2, true); }
-export const MCOL = {};
-[[T_SEA, '#1d5c96'], [T_GRASS, '#6aa44a'], [T_BEACH, '#e8d49c'], [T_ROAD, '#5f6166'], [T_WALK, '#b9b5aa'], [T_ROCK, '#8b8780'], [T_FOREST, '#3f7a33'], [T_DIRT, '#a8845a'], [T_PIER, '#7b5231'], [T_QUAY, '#bdbab2']].forEach(([t, h]) => MCOL[t] = hexRGB3(h));
-export function hexRGB3(h){ const v = parseInt(h.slice(1), 16); return [v >> 16, (v >> 8) & 255, v & 255]; }
-export const MTER = [null, [40, 92, 238], [236, 40, 44]];
-export function mapPaint(x0, x1, y0, y1){
+export function mapDirtyCell(i: number){ const x = i % TER.W, y = (i / TER.W) | 0; mapDirtyRect(GA0 + x * TC - 2, GA0 + (x + 1) * TC + 2, GB0 + y * TC - 2, GB0 + (y + 1) * TC + 2, true); }
+export const MCOL: Record<number, [number, number, number]> = {};
+([[T_SEA, '#1d5c96'], [T_GRASS, '#6aa44a'], [T_BEACH, '#e8d49c'], [T_ROAD, '#5f6166'], [T_WALK, '#b9b5aa'], [T_ROCK, '#8b8780'], [T_FOREST, '#3f7a33'], [T_DIRT, '#a8845a'], [T_PIER, '#7b5231'], [T_QUAY, '#bdbab2']] as [number, string][]).forEach(([t, h]) => MCOL[t] = hexRGB3(h));
+export function hexRGB3(h: string): [number, number, number] { const v = parseInt(h.slice(1), 16); return [v >> 16, (v >> 8) & 255, v & 255]; }
+export const MTER: [number, number, number][] = [[0, 0, 0], [40, 92, 238], [236, 40, 44]];
+export function mapPaint(x0: number, x1: number, y0: number, y1: number){
   const px = MAPV.px, Wm = MAPV.W, own = TER.own;
   for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++){
     const a = GA0 + (x + .5) * MS, b = GB0 + (y + .5) * MS, ci = cellOf(a, b), t = ci < 0 ? T_SEA : gType[ci];
@@ -383,15 +394,17 @@ export function mapPaint(x0, x1, y0, y1){
 // met a jour les morceaux sales, avec un budget par image
 export function mapUpdate(){
   if (!MAPV.cv) mapInit();
-  if (MAPV.all){ MAPV.all = false; MAPV.dirty.length = 0; mapPaint(0, MAPV.W - 1, 0, MAPV.H - 1); MAPV.g.putImageData(MAPV.img, 0, 0); return; }
+  const g = MAPV.g, im = MAPV.img; if (!g || !im) return;
+  if (MAPV.all){ MAPV.all = false; MAPV.dirty.length = 0; mapPaint(0, MAPV.W - 1, 0, MAPV.H - 1); g.putImageData(im, 0, 0); return; }
   if (!MAPV.dirty.length) return;
   let x0 = 1e9, x1 = -1, y0 = 1e9, y1 = -1, budget = 60000;
-  while (MAPV.dirty.length && budget > 0){
-    const [a, b, c, d] = MAPV.dirty.shift();
+  for (let r = MAPV.dirty.shift(); r && budget > 0; r = budget > 0 ? MAPV.dirty.shift() : undefined){
+    const [a, b, c, d] = r;
     mapPaint(a, b, c, d); budget -= (b - a + 1) * (d - c + 1);
     x0 = Math.min(x0, a); x1 = Math.max(x1, b); y0 = Math.min(y0, c); y1 = Math.max(y1, d);
   }
-  if (x1 >= x0) MAPV.g.putImageData(MAPV.img, 0, 0, x0, y0, x1 - x0 + 1, y1 - y0 + 1);
+  if (x1 >= x0) g.putImageData(im, 0, 0, x0, y0, x1 - x0 + 1, y1 - y0 + 1);
+
 }
 /* ================= sol, mer, faisceau des phares, teinte des territoires ================= */
 export function beamTan(){
@@ -402,7 +415,7 @@ export function beamTan(){
 }
 export const PTAB = new Uint8Array(16);
 export let OROW = new Uint8Array(1);
-export function renderGround(t){
+export function renderGround(t: number){
   const I = state.intensity, pat = state.pattern, noise = pat === 'noise';
   for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) PTAB[y * 4 + x] = litAt(x, y, pat, I) ? 1 : 0;
   const bc = Math.cos(state.theta), bs = Math.sin(state.theta), tn = beamTan(), all = tn === Infinity;
@@ -412,7 +425,7 @@ export function renderGround(t){
   const F = fb, MB = mb, LBF = lb, OB = ob, GV = gVar, GS = gSea, GT = gTone, GTY = gType, GP = gPh, TM = TYPE_MAT, BY = BAYER, PT = PTAB;
   const w = W, h = H, tx = TX, ty = TY, gw = GW, gh = GH, ga0 = GA0, gb0 = GB0, qw = GQW, gsc = GSC, tsh = GSC === 2 ? 3 : 2;
   // faisceau du phare le plus proche du centre de la vue, la nuit seulement
-  let bm = null;
+  let bm: number[] | null = null;
   if (COLOR && SH.NIGHT > .55 && BEACONS.length){ let bd = 1e9; for (const bk of BEACONS){ const d = Math.hypot(bk[0] - cam.a, bk[1] - cam.b); if (d < bd){ bd = d; bm = bk; } } }
   const LA = bm ? bm[0] : 0, LB = bm ? bm[1] : 0, MF = M.FOAM, MBm = M.BEAM, MS2 = M.SEA, MSS = M.SEA_SHALLOW, MSM = M.SEA_MID;
   const TO = TER.own, TW = TER.W, TFR = TER.fresh, gt = GAME.t, hasT = !!TO;
@@ -487,7 +500,7 @@ export function groundOwners(){
     }
   }
 }
-export function drawWaves(t){
+export function drawWaves(t: number){
   const cs = [unprj(0, 0), unprj(W, 0), unprj(0, H), unprj(W, H)];
   let a0 = 1e9, a1 = -1e9, b0 = 1e9, b1 = -1e9;
   for (const [a, b] of cs){ a0 = Math.min(a0, a); a1 = Math.max(a1, a); b0 = Math.min(b0, b); b1 = Math.max(b1, b); }
@@ -513,8 +526,8 @@ export function drawWaves(t){
 }
 
 /* ================= lumieres au sol ================= */
-export let LIGHTS = [];
-export function gatherLights(t, stat){
+export let LIGHTS: Light[] = [];
+export function gatherLights(t: number, stat?: boolean){
   LIGHTS = LIGHTS_STATIC.slice();
   if (!stat) for (const c of CARS) if (c.pos) LIGHTS.push(c.light);
   for (const tw of SH.WALL_TOWERS){ const sp = towerSpot(tw, t); LIGHTS.push({ kind: 'circle', a: sp[0], b: sp[1], r: 7, k: 1.6, att: .5, m: M.BEAM }); }
@@ -536,7 +549,7 @@ export function applyLights(){
       let ga = o[0] + (sy - y0) * day, gb = o[1] + (sy - y0) * dby;
       for (let sx = x0; sx <= x1; sx++, ga += dax, gb += dbx){
         const j = sy * W + sx; if (FB[j]) continue;
-        let tt;
+        let tt: number;
         if (Lt.kind === 'circle'){ const da = ga - Lt.a, db = gb - Lt.b, d2 = da * da + db * db; if (d2 > Lt.r * Lt.r) continue; tt = Math.sqrt(d2) / Lt.r; }
         else {
           const la = ga - Lt.a, lbb = gb - Lt.b, al = la * Lt.da + lbb * Lt.db, pe = lbb * Lt.da - la * Lt.db;
@@ -549,7 +562,7 @@ export function applyLights(){
 }
 
 /* ================= chats sur la carte ================= */
-export function drawCat(c, t){
+export function drawCat(c: Cat, t: number){
   const p = catPos(c, t);
   const q = prj(p.a, p.b, 0), bx = Math.round(q[0]), by = Math.round(q[1]);
   c.screen = [bx, by];
@@ -572,8 +585,8 @@ SH.hoverCat = null;
 
 /* ================= Spoutchat ================= */
 export const SAT_PERIOD = 46, SAT_SHOW = 14;
-export const satVisible = (t) => (t % SAT_PERIOD) < SAT_SHOW && (SH.SPACE.usc.stage > 0 || SH.SPACE.ccp.stage > 0);
-export function drawSatellite(t){
+export const satVisible = (t: number) => (t % SAT_PERIOD) < SAT_SHOW && (SH.SPACE.usc.stage > 0 || SH.SPACE.ccp.stage > 0);
+export function drawSatellite(t: number){
   if (!satVisible(t)) return;
   const p = (t % SAT_PERIOD) / SAT_SHOW; if (p >= 1) return;
   const x = Math.round(-8 + (W + 16) * p), y = Math.round(H * .1 + Math.sin(p * Math.PI) * -H * .04 + 14);
@@ -585,10 +598,10 @@ export function drawSatellite(t){
 }
 
 /* ================= rendu complet ================= */
-export let DYN_SHADOWS = [];
-export function dynamicDrawables(t){ const out = []; DYN_SHADOWS = []; for (const f of HOOKS.dyn) f(t, out); return out; }
+export let DYN_SHADOWS: ShadowHull[] = [];
+export function dynamicDrawables(t: number){ const out: Drawable[] = []; DYN_SHADOWS = []; for (const f of HOOKS.dyn) f(t, out); return out; }
 // De pres, chaque objet se dessine directement dans le tampon. De loin (SC < 1), il passe par farDraw : dessine a l'echelle 1 a part, puis recopie en petit.
-export function render(t){
+export function render(t: number){
   const far = SC < .999;
   setProj();
   // tres loin, si l'ile n'est plus du tout dans le tampon plat (on a tourne autour de la planete), on ne dessine que la planete
@@ -601,7 +614,7 @@ export function render(t){
   const shadowsOn = COLOR && SH.NIGHT < .6 && !far;
   if (shadowsOn) drawShadows();
   if (!COLOR || SH.NIGHT > .25){ gatherLights(t); applyLights(); }
-  const list = [];
+  const list: Drawable[] = [];
   const Mg = 110 * SC;
   for (const p of STATIC_PARTS){
     const q = prj(p.a, p.b, 0);
@@ -619,7 +632,7 @@ export function render(t){
   for (const it of list){ SH.CUR = it.m == null ? M.METAL : it.m; SH.CUR_SIDE = it.side || 'usc'; if (far) farDraw(it, t); else it.f(t); }
   if (!far){ for (const f of HOOKS.top) f(t); if (typeof SH.drawToolPreview === 'function') SH.drawToolPreview(t); }
   const glow = !COLOR || SH.NIGHT > .35;
-  if (far){ for (const bk of BEACONS) farDraw({ a: bk[0], b: bk[1], f: (tt) => { drawLantern(bk[0], bk[1]); if (glow) drawGlow(bk[0], bk[1], tt); } }, t); }
+  if (far){ for (const bk of BEACONS) farDraw({ a: bk[0], b: bk[1], f: (tt: number) => { drawLantern(bk[0], bk[1]); if (glow) drawGlow(bk[0], bk[1], tt); } }, t); }
   else if (glow){ for (const bk of BEACONS){ drawLantern(bk[0], bk[1]); drawGlow(bk[0], bk[1], t); } drawLampHeads(); }
   else for (const bk of BEACONS) drawLantern(bk[0], bk[1]);
   drawSatellite(t); drawWeather(t); if (COLOR) for (const f of HOOKS.post) f(t);
@@ -631,27 +644,27 @@ export function render(t){
 
 /* ================= ombres portees (version couleur, de jour) ================= */
 SH.SHADOWS = [];
-export function hull2(pts){
+export function hull2(pts: [number, number][]): [number, number][] {
   pts.sort((p, q) => p[0] - q[0] || p[1] - q[1]);
-  const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
-  const lo = [], up = [];
+  const cross = (o: number[], a: number[], b: number[]) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const lo: [number, number][] = [], up: [number, number][] = [];
   for (const p of pts){ while (lo.length >= 2 && cross(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p); }
   for (let i = pts.length - 1; i >= 0; i--){ const p = pts[i]; while (up.length >= 2 && cross(up[up.length - 2], up[up.length - 1], p) <= 0) up.pop(); up.push(p); }
   up.pop(); lo.pop();
   return lo.concat(up);
 }
-export function shadowHull(flat){
-  const pts = [];
+export function shadowHull(flat: number[]): ShadowHull | null {
+  const pts: [number, number][] = [];
   for (let i = 0; i < flat.length; i += 3){ const a = flat[i], b = flat[i + 1], z = Math.max(0, flat[i + 2]); pts.push([a, b], [a + z * SHADOW_V[0], b + z * SHADOW_V[1]]); }
   if (pts.length < 3) return null;
-  const h = hull2(pts);
+  const h: ShadowHull = hull2(pts);
   if (h.length < 3 || h.length > 60) return h.length >= 3 ? h.filter((p, i) => i % Math.ceil(h.length / 60) === 0) : null;
   let a0 = 1e9, a1 = -1e9, b0 = 1e9, b1 = -1e9;
   for (const [a, b] of h){ a0 = Math.min(a0, a); a1 = Math.max(a1, a); b0 = Math.min(b0, b); b1 = Math.max(b1, b); }
   h.box = [(a0 + a1) / 2, (b0 + b1) / 2, Math.hypot(a1 - a0, b1 - b0) / 2];
   return h;
 }
-export const circ = (a, b, r, z, n) => { const out = []; n = n || 10; for (let k = 0; k < n; k++){ const t = k * TAU / n; out.push(a + Math.cos(t) * r, b + Math.sin(t) * r, z); } return out; };
+export const circ = (a: number, b: number, r: number, z: number, nIn?: number) => { const out: number[] = [], n = nIn || 10; for (let k = 0; k < n; k++){ const t = k * TAU / n; out.push(a + Math.cos(t) * r, b + Math.sin(t) * r, z); } return out; };
 export const SX = new Float64Array(64), SY = new Float64Array(64);
 export function drawShadows(){
   const M2 = 60;
@@ -679,25 +692,29 @@ export function drawShadows(){
 // ce dessin en memoire et le refont par roulement (la vue a tourne, un drapeau flotte) ; ce qui bouge est refait a chaque image.
 export const SPW = 256, SPH = 256, SPAX = 128, SPAY = 196, EMPTY = 255;
 export const SPB = { fb: new Uint8Array(SPW * SPH), mb: new Uint8Array(SPW * SPH), lb: new Uint8Array(SPW * SPH), ob: new Uint8Array(SPW * SPH) };
-export const FAR = { budget: 5, bk: TAU / 360, age: 1200, cache: new WeakMap(), t0: 0 };
-export function sprRender(it, t){
+/** dessin d'un objet fait a part, a l'echelle 1 : forme, matiere, eclairage ; (x0, y0) par rapport au point d'ancrage */
+export interface FarSprite { x0: number; y0: number; w: number; h: number; fb: Uint8Array; mb: Uint8Array; lb: Uint8Array }
+/** dessin garde en memoire pour un objet de la vue de loin : le dessin, l'angle de vue ou il a ete fait, et quand */
+interface FarEntry { spr: FarSprite | null; bk: number; t0: number }
+export const FAR = { budget: 5, bk: TAU / 360, age: 1200, cache: new WeakMap<object, FarEntry>(), t0: 0 };
+export function sprRender(it: Pick<Drawable, 'f' | 'm' | 'side'>, a: number, b: number, t: number): FarSprite | null {
   const sv = getView(), svOb = ob;
   setView({ W: SPW, H: SPH, N: SPW * SPH, fb: SPB.fb, mb: SPB.mb, lb: SPB.lb }); ob = SPB.ob;
   fb.fill(0); mb.fill(EMPTY); lb.fill(0);
-  const ar = it.a * PC - it.b * PS, br = it.a * PS + it.b * PC;
+  const ar = a * PC - b * PS, br = a * PS + b * PC;
   setView({ SC: 1, PROJ_FIX: [Math.round(SPAX - (ar - br)), Math.round(SPAY - (ar + br) * .5)] });
   setProj();
   const ax = TX + ar - br, ay = TY + (ar + br) * .5;
-  let out = null;
+  let out: FarSprite | null = null;
   try {
     SH.CUR = it.m == null ? M.METAL : it.m; SH.CUR_SIDE = it.side || 'usc';
     it.f(t);
     let x0 = SPW, x1 = -1, y0 = SPH, y1 = -1;
     const MB = mb;
     for (let y = 0, i = 0; y < SPH; y++){
-      let any = false;
-      for (let x = 0; x < SPW; x++, i++) if (MB[i] !== EMPTY){ any = true; if (x < x0) x0 = x; if (x > x1) x1 = x; }
-      if (any){ if (y < y0) y0 = y; y1 = y; }
+      let hit = false;
+      for (let x = 0; x < SPW; x++, i++) if (MB[i] !== EMPTY){ hit = true; if (x < x0) x0 = x; if (x > x1) x1 = x; }
+      if (hit){ if (y < y0) y0 = y; y1 = y; }
     }
     if (x1 >= 0){
       const w = x1 - x0 + 1, h = y1 - y0 + 1, F = new Uint8Array(w * h), Mm = new Uint8Array(w * h), L = new Uint8Array(w * h);
@@ -710,7 +727,7 @@ export function sprRender(it, t){
   return out;
 }
 // recopie en petit d'un dessin fait a part (x, y : point d'ancrage dans le tampon)
-export function sprBlit(S, x, y, sc){
+export function sprBlit(S: FarSprite, x: number, y: number, sc: number){
   const X0 = x + S.x0 * sc, Y0 = y + S.y0 * sc, inv = 1 / sc, sw = S.w, sh = S.h, SM = S.mb, SF = S.fb, SL = S.lb;
   const FB = fb, MB = mb, LB = lb;
   const xa = Math.max(0, Math.floor(X0)), xb = Math.min(W - 1, Math.ceil(X0 + sw * sc) - 1);
@@ -726,7 +743,7 @@ export function sprBlit(S, x, y, sc){
   }
 }
 // meme chose pour les petits dessins tout faits (arbres) : 2 transparent, 3 fenetre, sinon la matiere courante
-export function blitSc(s, x, y, sc){
+export function blitSc(s: Sprite, x: number, y: number, sc: number){
   const X0 = x + s.x0 * sc, Y0 = y + s.y0 * sc, inv = 1 / sc, sw = s.w, sh = s.h, B = s.buf, cur = SH.CUR, lv = SH.LV, col = COLOR;
   const FB = fb, MB = mb, LB = lb;
   const xa = Math.max(0, Math.floor(X0)), xb = Math.min(W - 1, Math.ceil(X0 + sw * sc) - 1);
@@ -745,8 +762,8 @@ export function blitSc(s, x, y, sc){
 export const farBucket = () => Math.round(cam.phi / FAR.bk);
 // avant de dessiner : on refait d'abord les dessins en memoire les plus anciens, dans la limite du budget
 // (still : ce qui ne bouge jamais, comme une montagne, n'est refait que si la vue a tourne)
-export function farRefresh(list, t){
-  const now = performance.now(), bk = farBucket(), stale = [];
+export function farRefresh(list: Drawable[], t: number){
+  const now = performance.now(), bk = farBucket(), stale: [Drawable, FarEntry][] = [];
   FAR.t0 = now;
   for (const it of list){
     if (!it.key) continue;
@@ -757,25 +774,29 @@ export function farRefresh(list, t){
   for (const [it, c] of stale){
     if (performance.now() - now > FAR.budget) break;
     SH.CUR = it.m == null ? M.METAL : it.m; SH.CUR_SIDE = it.side || 'usc';
-    c.spr = sprRender(it, t); c.bk = bk; c.t0 = performance.now();
+    if (it.a == null || it.b == null) continue;
+    c.spr = sprRender(it, it.a, it.b, t); c.bk = bk; c.t0 = performance.now();
   }
 }
-export function farDraw(it, t){
+export function farDraw(it: Omit<Drawable, 'd'>, t: number){
   if (it.raw){ it.f(t); return; }
-  if (it.a == null) return;
-  let S;
+  const a = it.a, b = it.b;
+  if (a == null || b == null) return;
+  let S: FarSprite | null;
   if (it.key){
     let c = FAR.cache.get(it.key);
     if (!c){
       // pas encore dessine : on le fait tout de suite, sauf si l'image a deja pris trop de temps (il viendra a la suivante)
       if (performance.now() - FAR.t0 > 24) return;
-      c = { spr: sprRender(it, t), bk: farBucket(), t0: performance.now() };
+      c = { spr: sprRender(it, a, b, t), bk: farBucket(), t0: performance.now() };
       FAR.cache.set(it.key, c);
     }
     S = c.spr;
-  } else S = sprRender(it, t);
+  } else S = sprRender(it, a, b, t);
+
   if (!S) return;
-  const q = prj(it.a, it.b, 0);
+  const q = prj(a, b, 0);
+
   // les bateaux restent lisibles de loin (jusqu'a la planete, ou ils reprennent leur vraie taille)
   sprBlit(S, q[0], q[1], it.big ? Math.max(SC, Math.min(.5, SC * 3) * (1 - SH.CURV)) : SC);
 }

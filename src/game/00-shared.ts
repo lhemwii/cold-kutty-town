@@ -58,6 +58,9 @@ export interface BuiltParts {
   turned?: (a: number, b: number) => [number, number];
 }
 
+/** ombre portee d'un objet : son contour au sol, et un cercle qui l'englobe [a, b, rayon] pour l'ecarter vite hors de l'ecran */
+export type ShadowHull = [number, number][] & { box?: [number, number, number] };
+
 /**
  * Ce que porte SH. Les champs deja convertis en TypeScript sont types ; les autres restent libres
  * le temps de la conversion (voir docs/PLAN.md, etape 0.19).
@@ -69,7 +72,11 @@ export interface Shared {
   WALL_TOWERS: WallTower[];
   CATS: Cat[];
   BOATS: Boat[];
+  SHADOWS: ShadowHull[];
+  /** pendant la capture des ombres, les points (a, b, z) des faces dessinees ; null sinon */
+  CAPTURE: number[] | null;
   NIGHT: number;
+
   TOWN_VER: number;
   [name: string]: any;
 }

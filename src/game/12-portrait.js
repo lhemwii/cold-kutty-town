@@ -1,7 +1,7 @@
 import { SH } from './00-shared.ts';
-import { BAYER, BLACK, COLOR, STAR7, WHITE, clamp, flagSmall, hash2 } from './01-core.js';
+import { BAYER, BLACK, COLOR, STAR7, WHITE, clamp, flagSmall, hash2 } from './01-core.ts';
 import { glyphAt } from './07-world.ts';
-import { PAL32, hex32 } from './11-render.js';
+import { PAL32, hex32 } from './11-render.ts';
 /* ================= portrait detaille du chat, en 1-bit ================= */
 export const PW = 160, PH = 120;
 export const pMask = new Uint8Array(PW * PH), pCol = new Uint8Array(PW * PH);

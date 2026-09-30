@@ -1,11 +1,11 @@
 import { SH } from './00-shared.ts';
 import type { Building, BuiltParts, Light, Part, Side } from './00-shared.ts';
 import type { Vec2 } from './02-ground.ts';
-import { COLOR, HOOKS, M, MOON, PC, PS, SC, SUN, TAU, TX, TY, bay, blitAt, fb, fput, hash2, prj, setView } from './01-core.js';
+import { COLOR, HOOKS, M, MOON, PC, PS, SC, SUN, TAU, TX, TY, bay, blitAt, fb, fput, hash2, prj, setView } from './01-core.ts';
 import { GA0, GB0, GH, GSC, GW, T_BEACH, T_ROCK, T_SEA, baseAt, landDAt, seaDAt } from './02-ground.ts';
-import { LAMP_SPR, Lc, part } from './03-buildings-base.js';
-import { TYPES, seedOf } from './04-types.js';
-import { DIR_V } from './06-types-more.js';
+import { LAMP_SPR, Lc, part } from './03-buildings-base.ts';
+import { TYPES, seedOf } from './04-types.ts';
+import { DIR_V } from './06-types-more.ts';
 import { LAMP_POS, VEST, drawTower, drawWallPiece, peaksIn } from './07-world.ts';
 import { sideAt } from './08-territory.ts';
 import { RW, rectRoadDist } from './09-roads.ts';

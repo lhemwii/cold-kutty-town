@@ -1,10 +1,10 @@
 import { SH } from './00-shared.ts';
 import type { Building, Side } from './00-shared.ts';
 import type { Drawable } from './07-world.ts';
-import { CAMP_FULL, GAME, H, M, SC, SIDES, TAU, W, bz, cam, clamp, dep, fput, hash2, line3, other, prj, state } from './01-core.js';
-import { pennant } from './03-buildings-base.js';
-import { TYPES } from './04-types.js';
-import { typeName } from './05-types-extra.js';
+import { CAMP_FULL, GAME, H, M, SC, SIDES, TAU, W, bz, cam, clamp, dep, fput, hash2, line3, other, prj, state } from './01-core.ts';
+import { pennant } from './03-buildings-base.ts';
+import { TYPES } from './04-types.ts';
+import { typeName } from './05-types-extra.ts';
 import { cutTrees } from './07-world.ts';
 import { SID, TER, lockCells, rebuildLocks, terPct } from './08-territory.ts';
 import { reseatCars, roadAccess } from './09-roads.ts';

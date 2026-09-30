@@ -1,12 +1,12 @@
 import { SH } from './00-shared.ts';
-import { CAMP_FULL, GAME, H, M, PC, PS, SC, TX, TY, W, clamp, dep, fb, getView, img, lb, mb, setView, state } from './01-core.js';
+import { CAMP_FULL, GAME, H, M, PC, PS, SC, TX, TY, W, clamp, dep, fb, getView, img, lb, mb, setView, state } from './01-core.ts';
 import { nearestShore } from './02-ground.ts';
-import { TYPES } from './04-types.js';
-import { typeName } from './05-types-extra.js';
+import { TYPES } from './04-types.ts';
+import { typeName } from './05-types-extra.ts';
 import { VEST_DEF, drawVestige } from './07-world.ts';
 import { TER, influenceOf, sideAt, terPct } from './08-territory.ts';
 import { footOf } from './10-town.ts';
-import { FAR, PALL } from './11-render.js';
+import { FAR, PALL } from './11-render.ts';
 import { $, setTool, toast } from './13-ui.js';
 /* ================= interface : barre du haut, menu de construction, batiment selectionne ================= */
 // icones et drapeaux en pixels : un dessin en caracteres, une couleur par lettre, rendu en SVG net

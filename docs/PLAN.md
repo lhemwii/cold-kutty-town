@@ -121,7 +121,7 @@ Les demandes qui arrivent en cours de route et ne rentrent dans aucune étape de
 
 ## Étape 0.15. Retour à la vue plate, avec plus de recul (fait)
 
-- [x] Le globe est gardé dans le code mais éteint (`GLOBE_ON = false` dans 01-core.js) : le jeu reste une île vue de dessus, sans planète. Il reviendra avec le mode espace (étape 10.1).
+- [x] Le globe est gardé dans le code mais éteint (`GLOBE_ON = false` dans 01-core.ts) : le jeu reste une île vue de dessus, sans planète. Il reviendra avec le mode espace (étape 10.1).
 - [x] Deux paliers de recul en plus sous l’île entière (10 % et 6 % de KMIN) : l’île au milieu de la mer.
 - [x] L’accueil montre de nouveau l’île qui tourne doucement sur elle-même, de loin.
 - [x] On garde des étapes 0.13 et 0.14 les arbres à leur vraie taille de très loin : l’herbe et les montagnes restent visibles.
@@ -161,7 +161,7 @@ Le jeu passe à une base prête pour la haute définition et pour Steam, sans ri
   - [x] Le territoire : `08-territory` (grille, conquête, verrous).
   - [x] L’économie : `15-economy` (fiches des bâtiments, ressources, chantiers, événements, course à l’espace).
   - [x] La suite du monde : `07-world` (forêts, montagnes, vestiges, murs), `09-roads` (routes, graphe, voitures), `10-town` (chats, pose des bâtiments, décor statique), `16-boats` (barges, chalutiers, navigation). Au passage : les graffitis des murs s’affichent enfin (le mur gardait un numéro, le dessin attendait un texte).
-  - [ ] Le cœur et le rendu : `01-core`, `11-render`, puis les bâtiments (`03` à `06`) : à faire juste avant PixiJS, puisque le rendu change.
+  - [x] Le cœur et le rendu : `01-core` (état, caméra, vue, primitives de dessin : `PixFn`, `Shade`, `SideFn`, `Sprite`, `View`), `03` à `06` (fiches des bâtiments, `BuildingType`), `11-render` (palette, zoom, carte à plat, lumières, vue de loin). Converti avant PixiJS pour que le passage au nouveau rendu soit vérifié par les types.
   - [ ] L’interface et le reste : `12` à `14`, `17` à `23`.
 - [ ] 3. PixiJS à la place du rendu actuel : le sol et les objets en textures, le style pixel gardé avec un filtre.
 - [ ] 4. Electron et steamworks.js (succès, sauvegardes Steam) dès qu’il y a une démo jouable. Plus tard, Gemma sur la machine du joueur avec node-llama-cpp.

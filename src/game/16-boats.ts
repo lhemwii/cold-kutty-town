@@ -2,13 +2,13 @@ import { SH } from './00-shared.ts';
 import type { Building, Side } from './00-shared.ts';
 import type { Vec2 } from './02-ground.ts';
 import type { Drawable } from './07-world.ts';
-import { GAME, H, HOOKS, M, TAU, W, clamp, dep, fput, hash2, line3, prj } from './01-core.js';
+import { GAME, H, HOOKS, M, TAU, W, clamp, dep, fput, hash2, line3, prj } from './01-core.ts';
 import { GA0, GB0, GH, GSC, GW, islandNear, seaDAt } from './02-ground.ts';
-import { PED_FUR, bobZ, drawHull, pennant, rbox, rot2 } from './03-buildings-base.js';
-import { DIR_ANG, DIR_V, drawCargo } from './06-types-more.js';
+import { PED_FUR, bobZ, drawHull, pennant, rbox, rot2 } from './03-buildings-base.ts';
+import { DIR_ANG, DIR_V, drawCargo } from './06-types-more.ts';
 import { claimDisc } from './08-territory.ts';
 import { findSpot, makeBuilding } from './10-town.ts';
-import { worldToScreen } from './11-render.js';
+import { worldToScreen } from './11-render.ts';
 import { $, toast } from './13-ui.js';
 /* ================= en mer : barges de debarquement, chalutiers, cargos ================= */
 // grille de navigation : une case = 8 unites, un peu plus grande que l'ile pour arriver du large

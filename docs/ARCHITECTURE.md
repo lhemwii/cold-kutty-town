@@ -10,8 +10,8 @@ Les modules sont de **vrais modules ES**, avec trois règles :
 
 - **Tout ce qui est déclaré au niveau d’un module est exporté.**
 - **Un module n’importe que des modules plus petits en numéro.** L’ordre d’exécution au chargement reste donc celui des numéros, comme avant : un module peut utiliser au chargement tout ce que les modules précédents ont défini.
-- **La vue** (projection `PC`, `PS`, `TX`, `TY`, échelle `SC`, taille `W`, `H`, `N`, tampons `fb`, `mb`, `lb`, `px32`) reste faite de variables de `01-core.js`, importées partout : elles sont lues à chaque pixel, et une variable de module est bien plus rapide qu’une propriété d’objet. Un autre module la change par `setView({ … })`, et la garde par `getView()` pour la remettre ensuite (dessin des vignettes, dessin d’un objet de loin).
-- **L’objet partagé `SH` (`00-shared.js`)** porte le reste. D’abord les variables que plusieurs modules modifient : le zoom (`SH.Z`, `SH.K`, `SH.KMIN`…), le dessin en cours (`SH.CUR`, `SH.CUR_SIDE`, `SH.LV`) et les listes du monde (`SH.BLD`, `SH.ROADS`, `SH.BOATS`…). Ensuite ce qu’un module appelle dans un module plus grand en numéro : celui-ci s’y enregistre à la fin de son chargement (`Object.assign(SH, { saveSoon, … })`), et l’appelant écrit `SH.saveSoon()`. Ces appels ne se font jamais au chargement.
+- **La vue** (projection `PC`, `PS`, `TX`, `TY`, échelle `SC`, taille `W`, `H`, `N`, tampons `fb`, `mb`, `lb`, `px32`) reste faite de variables de `01-core.ts`, importées partout : elles sont lues à chaque pixel, et une variable de module est bien plus rapide qu’une propriété d’objet. Un autre module la change par `setView({ … })`, et la garde par `getView()` pour la remettre ensuite (dessin des vignettes, dessin d’un objet de loin).
+- **L’objet partagé `SH` (`00-shared.ts`)** porte le reste. D’abord les variables que plusieurs modules modifient : le zoom (`SH.Z`, `SH.K`, `SH.KMIN`…), le dessin en cours (`SH.CUR`, `SH.CUR_SIDE`, `SH.LV`) et les listes du monde (`SH.BLD`, `SH.ROADS`, `SH.BOATS`…). Ensuite ce qu’un module appelle dans un module plus grand en numéro : celui-ci s’y enregistre à la fin de son chargement (`Object.assign(SH, { saveSoon, … })`), et l’appelant écrit `SH.saveSoon()`. Ces appels ne se font jamais au chargement.
 
 La conversion depuis l’ancienne portée unique a été faite par un script (analyse des portées avec eslint-scope), sans toucher à la logique.
 
@@ -23,19 +23,19 @@ La conversion depuis l’ancienne portée unique a été faite par un script (an
 
 | Fichier | Rôle |
 |---|---|
-| `01-core.js` | Bases : matières, crochets (HOOKS), état de partie (`GAME`), caméra, projection isométrique, primitives de dessin, police 3x5, plaques et panneaux collés au monde (`wallBitmap`, `plateW`), drapeaux à tête de chat. |
-| `02-ground.js` | Le monde tiré au sort : tailles de carte (`MAP_SIZES`, `setMapSize`) et formes (`MAP_CONFS` : une île, deux, quatre, archipel, atoll), îles et îlots, plages, chaînes de montagnes, forêts, grille du sol (2 cellules par unité, 1 au-delà de « grande »), défrichage. La grille, le territoire (`TER`), la carte `MAPV` et la navigation (`NAV`) sont redimensionnés à chaque nouvelle partie ; les distances à la côte restent en demi-unités quelle que soit la finesse. |
-| `03-buildings-base.js` | Aides de décor : lumières, fumée, arbres, maisons à pignon, voitures (aussi en biais), coques de bateaux, fanions. |
-| `04-types.js`, `05-types-extra.js`, `06-types-more.js` | Catalogue des bâtiments. Chaque type sait se dessiner. `06` contient aussi QG, port (3 niveaux), pêcherie, bergerie, phare, avant-poste, Checkpoint. |
+| `01-core.ts` | Bases : matières, crochets (HOOKS), état de partie (`GAME`), caméra, projection isométrique, primitives de dessin, police 3x5, plaques et panneaux collés au monde (`wallBitmap`, `plateW`), drapeaux à tête de chat. |
+| `02-ground.ts` | Le monde tiré au sort : tailles de carte (`MAP_SIZES`, `setMapSize`) et formes (`MAP_CONFS` : une île, deux, quatre, archipel, atoll), îles et îlots, plages, chaînes de montagnes, forêts, grille du sol (2 cellules par unité, 1 au-delà de « grande »), défrichage. La grille, le territoire (`TER`), la carte `MAPV` et la navigation (`NAV`) sont redimensionnés à chaque nouvelle partie ; les distances à la côte restent en demi-unités quelle que soit la finesse. |
+| `03-buildings-base.ts` | Aides de décor : lumières, fumée, arbres, maisons à pignon, voitures (aussi en biais), coques de bateaux, fanions. |
+| `04-types.ts`, `05-types-extra.ts`, `06-types-more.ts` | Catalogue des bâtiments. Chaque type sait se dessiner. `06` contient aussi QG, port (3 niveaux), pêcherie, bergerie, phare, avant-poste, Checkpoint. |
 | `07-world.ts` | Forêts et montagnes rangées par cases, Rideau de Laine en pans libres, miradors, phare, lampadaires, voilier, vestiges catzi (`VEST`, `VEST_DEF`). |
-| `08-territory.js` | Territoires : grille de cases de 4 unités, influence des bâtiments, expansion en direct, pression aux frontières, verrous. |
+| `08-territory.ts` | Territoires : grille de cases de 4 unités, influence des bâtiments, expansion en direct, pression aux frontières, verrous. |
 | `09-roads.ts` | Routes droites et courbes : peinture au sol, graphe, raccords, accès au QG, voitures. |
 | `10-town.ts` | Bâtiments posés (`BLD`), règles de pose, chats nommés qui arrivent avec leur bâtiment, reconstruction de la scène. Bâtiments tournés d’un quart de tour (`buildParts`, `turnDraw`). |
-| `11-render.js` | Palette jour et nuit, météo, zoom, vue de loin en direct, rendu du sol avec territoires, objets, ombres. |
+| `11-render.ts` | Palette jour et nuit, météo, zoom, vue de loin en direct, rendu du sol avec territoires, objets, ombres. |
 | `12-portrait.js` | Portrait détaillé du chat dans la fenêtre de discussion. |
 | `13-ui.js` | Outils : observer, construire, routes, Rideau, démolir, annuler ; souris, tactile, clavier ; pause et vitesse. |
 | `14-hud.js` | Barre du haut, détail des ressources, menu de construction par catégories, panneau du bâtiment sélectionné. |
-| `15-economy.js` | Croquettes, laine, ronrons : table `ECO`, bilans, chantiers, améliorations, événements, course à l’espace. |
+| `15-economy.ts` | Croquettes, laine, ronrons : table `ECO`, bilans, chantiers, améliorations, événements, course à l’espace. |
 | `16-boats.ts` | Navigation en mer (A*), barges, chalutiers, cargos, équipages. |
 | `17-calendar.js` | Calendrier et saisons, journal du matin, mémoire des chats, bulles, pensées. |
 | `18-life.js` | Feux d’artifice, passants, matchs, reflets de nuit. |
@@ -48,7 +48,7 @@ La conversion depuis l’ancienne portée unique a été faite par un script (an
 ## Le rendu
 
 - **Projection isométrique.** Le monde a deux axes au sol, `a` (ouest vers est) et `b` (nord vers sud), plus la hauteur `z`. `prj(a, b, z)` donne le pixel à l’écran, `unprj(x, y)` fait l’inverse au sol. La caméra tourne librement (`cam.phi`).
-- **Trois buffers par pixel.** `fb` (allumé ou éteint), `mb` (la matière : herbe, route, toit, fenêtre...) et `lb` (le niveau d’éclairage, de 0 plein soleil à 4 ombre portée). À la fin de l’image, la palette transforme chaque triplet en couleur. Cette version utilise la palette couleur (`COLOR = true` dans `01-core.js`).
+- **Trois buffers par pixel.** `fb` (allumé ou éteint), `mb` (la matière : herbe, route, toit, fenêtre...) et `lb` (le niveau d’éclairage, de 0 plein soleil à 4 ombre portée). À la fin de l’image, la palette transforme chaque triplet en couleur. Cette version utilise la palette couleur (`COLOR = true` dans `01-core.ts`).
 - **Palette.** Chaque matière a deux teintes (sombre, claire), déclinées en cinq niveaux de lumière et mélangées selon l’heure, la météo, la neige et la saison. Les matières lumineuses (fenêtres, néons, lampadaires, feux d’artifice) gardent leur éclat la nuit.
 - **Sol.** La grille du sol (`gType`, `gTone`, 2 cellules par unité) est parcourue une fois par image : herbe, plages, écume animée, routes, rails, quais.
 - **Objets.** Bâtiments, murs, lampadaires sont des « pièces » statiques reconstruites quand la ville change (`rebuildTown`). Les arbres sont rangés par cases et seuls ceux à l’écran sont dessinés. Voitures, chats, bateaux sont dynamiques. Tout est trié par profondeur (`dep(a, b)`) puis dessiné de l’arrière vers l’avant.
@@ -59,7 +59,7 @@ La conversion depuis l’ancienne portée unique a été faite par un script (an
 
 ## Les crochets
 
-Les modules récents s’accrochent au moteur sans le modifier, via `HOOKS` (déclaré dans `01-core.js`) :
+Les modules récents s’accrochent au moteur sans le modifier, via `HOOKS` (déclaré dans `01-core.ts`) :
 
 | Crochet | Appelé | Exemple |
 |---|---|---|

@@ -1,7 +1,7 @@
 import { SH } from './00-shared.ts';
 import type { Building, Light, Side } from './00-shared.ts';
 import type { Vec2 } from './02-ground.ts';
-import { M, SIDES, clamp, hash2 } from './01-core.js';
+import { M, SIDES, clamp, hash2 } from './01-core.ts';
 import { GA0, GB0, GH, GSC, GW, T_ROAD, T_ROCK, T_SEA, T_WALK, cellOf, gBase, gLand, gTone, gType, resetArea, typeAt } from './02-ground.ts';
 import { LAMP_POS, cutTreesAlong } from './07-world.ts';
 import { sideAt } from './08-territory.ts';

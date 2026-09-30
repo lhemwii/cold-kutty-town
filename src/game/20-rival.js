@@ -1,5 +1,5 @@
 import { SH } from './00-shared.ts';
-import { GAME, SIDES, TAU, hash2, other } from './01-core.js';
+import { GAME, SIDES, TAU, hash2, other } from './01-core.ts';
 import { GA0, GB0, ISEED, W_ISLE_MIN, islandNear, mapScale, nearestShore } from './02-ground.ts';
 import { SID, TC, TER, sideAt } from './08-territory.ts';
 import { RW, RWS, addRoad, nearRoad, polyAt, roadCost, roadProblem, sampleLine } from './09-roads.ts';

@@ -1,9 +1,9 @@
 import { SH } from './00-shared.ts';
-import { COLOR, GAME, H, HOOKS, M, N, PC, PS, TAU, W, clamp, dep, fb, fput, hash2, lb, mb, prj, unprj } from './01-core.js';
-import { PED_FUR } from './03-buildings-base.js';
+import { COLOR, GAME, H, HOOKS, M, N, PC, PS, TAU, W, clamp, dep, fb, fput, hash2, lb, mb, prj, unprj } from './01-core.ts';
+import { PED_FUR } from './03-buildings-base.ts';
 import { sideAt } from './08-territory.ts';
 import { RW, nearRoad, polyAt } from './09-roads.ts';
-import { CLOCK, OV_ON, PAL_HEX, WEATHER } from './11-render.js';
+import { CLOCK, OV_ON, PAL_HEX, WEATHER } from './11-render.ts';
 import { feteOf } from './17-calendar.js';
 /* ================= fetes : sapins illumines et feux d'artifice ================= */
 SH.XMAS_ON = false;

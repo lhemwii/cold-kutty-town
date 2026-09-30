@@ -1,7 +1,7 @@
 import { SH } from './00-shared.ts';
-import { GAME, GEO, H, N, PC, PS, RAYHIT, RP, SC, SQ3, TAU, TX, TY, W, cam, clamp, hash2, img, prj, px32, vnoise } from './01-core.js';
+import { GAME, GEO, H, N, PC, PS, RAYHIT, RP, SC, SQ3, TAU, TX, TY, W, cam, clamp, hash2, img, prj, px32, vnoise } from './01-core.ts';
 import { GA0, GB0, GH, GSC, GW } from './02-ground.ts';
-import { CLOCK, MAPV, mapUpdate } from './11-render.js';
+import { CLOCK, MAPV, mapUpdate } from './11-render.ts';
 /* ================= la planete : on dezoome en continu de l'ile jusqu'au globe entier, l'espace derriere ================= */
 // L'ile est un morceau de la surface d'une planete de rayon RP (en unites du monde) : a = longitude * RP, b = -latitude * RP.
 // Le jeu se dessine toujours a plat ; de loin, planetWarp pose cette image sur une sphere dont le rayon GR descend en continu

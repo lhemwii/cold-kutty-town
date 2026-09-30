@@ -1,6 +1,6 @@
 import { SH } from './00-shared.ts';
 import type { Building, Side } from './00-shared.ts';
-import { GAME, SIDES, clamp, hash2, other } from './01-core.js';
+import { GAME, SIDES, clamp, hash2, other } from './01-core.ts';
 import { GA0, GB0, GH, GSC, GW, T_SEA, baseAt } from './02-ground.ts';
 /* ================= territoires : chaque camp etend sa couleur case par case, en direct ================= */
 // une case = TC x TC unites. own : 0 personne, 1 USC, 2 CCR. Seule la terre ferme se conquiert.

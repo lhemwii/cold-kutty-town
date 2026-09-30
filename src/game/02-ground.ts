@@ -1,4 +1,4 @@
-import { M, TAU, clamp, hash2, vnoise } from './01-core.js';
+import { M, TAU, clamp, hash2, vnoise } from './01-core.ts';
 /* ================= l'ile : tiree au sort a chaque partie, vide, avec forets, plages, rochers et ilots ================= */
 // (a, b) : axes du monde au sol, en unites. L'ile est centree sur (0, 0).
 export const IS = { ca: 0, cb: 0, ra: 660, rb: 430 };

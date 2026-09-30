@@ -1,14 +1,14 @@
-import { SH } from './00-shared.ts';
-import { COLOR, FONT, M, TAU, blit, boxS, bz, cam, clamp, drawFace, flagSmall, fput, hash2, line3, plateW, prj, win, winColor } from './01-core.js';
-import { Lc, artSprite, drawCar, facadePlate, part, wallBase } from './03-buildings-base.js';
-import { TYPES } from './04-types.js';
+import { SH, type Building, type Light, type Part } from './00-shared.ts';
+import { COLOR, FONT, M, TAU, blit, boxS, bz, cam, clamp, drawFace, flagSmall, fput, hash2, line3, plateW, prj, win, winColor } from './01-core.ts';
+import { Lc, artSprite, drawCar, facadePlate, part, wallBase } from './03-buildings-base.ts';
+import { TYPES } from './04-types.ts';
 /* ================= nouveaux batiments ================= */
 export const PIN_SPR = artSprite(['  ##  ', ' #### ', ' #### ', '  ##  ', '  ..  ', '  ##  ', ' #### ', '######', '######', '######', ' #### ', '  ##  ']);
 Object.assign(TYPES, {
-  motel: { name: 'Motel', nameCCP: 'Hôtel du Peuple', fem: false, build(lot, seed){
+  motel: { name: 'Motel', nameCCP: 'Hôtel du Peuple', fem: false, build(lot: Building, seed: number){
     const ccp = lot.side === 'ccp';
     const a0 = Math.round(lot.a0 + 2), a1 = a0 + 27, b0 = Math.round(lot.cb - 10), b1 = b0 + 10;
-    const body = () => boxS(a0, a1, b0, b1, 0, 6, (u, h, x, y, k) => {
+    const body = () => boxS(a0, a1, b0, b1, 0, 6, (u: number, h: number, x: number, y: number, k: number) => {
       if (k === 0){
         if (h > 5.3) return 1;
         const r = u % 4.5;
@@ -19,10 +19,10 @@ Object.assign(TYPES, {
       return wallBase(k, x, y);
     }, 0);
     const porch = () => {
-      drawFace([a0, b1, 5, a1, b1, 5, a1, b1 + 3, 4.4, a0, b1 + 3, 4.4], [0, 1, 6], (x, y) => bz(x, y) < 3 ? 1 : 0, 1);
+      drawFace([a0, b1, 5, a1, b1, 5, a1, b1 + 3, 4.4, a0, b1 + 3, 4.4], [0, 1, 6], (x: number, y: number) => bz(x, y) < 3 ? 1 : 0, 1);
       for (let u = 0; u <= 27; u += 9) line3(a0 + u, b1 + 3, 0, a0 + u, b1 + 3, 4.4, 1);
     };
-    const sign = (t) => {
+    const sign = (t: number) => {
       SH.CUR = M.METAL;
       const p0 = prj(a1 + 3, b1 + 5, 0), x = Math.round(p0[0]), y = Math.round(p0[1]);
       for (let k = 0; k < 22; k++){ fput(x, y - k, 1); fput(x + 1, y - k, 0); }
@@ -34,14 +34,14 @@ Object.assign(TYPES, {
     if (!ccp) for (const ca of [a0 + 7, a0 + 18]) parts.push(part(ca, b1 + 10, 0, () => drawCar(ca, b1 + 10, 'b', -1, 'usc')));
     return { parts, lights: [Lc(lot.ca, b1 + 6, 12, 1.2), Lc(a1 + 3, b1 + 5, 9, 1.4)] };
   } },
-  drivein: { name: 'Drive-in', nameCCP: 'Ciné plein air', fem: false, build(lot, seed){
+  drivein: { name: 'Drive-in', nameCCP: 'Ciné plein air', fem: false, build(lot: Building, seed: number){
     const ccp = lot.side === 'ccp';
     const a0 = lot.a0 + 4, a1 = lot.a1 - 4, sb = lot.b0 + 4, L = a1 - a0;
-    const screen = (t) => {
+    const screen = (t: number) => {
       SH.CUR = M.METAL;
       for (const pa of [a0 + 4, a1 - 4]) line3(pa, sb - .5, 0, pa, sb - .5, 5, 1);
       SH.CUR = M.SCREEN;
-      boxS(a0, a1, sb - 1, sb, 5, 17, (u, h, x, y, k) => {
+      boxS(a0, a1, sb - 1, sb, 5, 17, (u: number, h: number, x: number, y: number, k: number) => {
         if (k !== 0) return bz(x, y) < 2 ? 1 : 0;
         if (h < .6 || h > 11.4 || u < .6 || u > L - .6) return 1;
         const px = ((t * 3) % (L + 12)) - 6, py = 6 + Math.sin(t * 2) * 1.5, dx = u - px, dy = h - py;
@@ -65,10 +65,10 @@ Object.assign(TYPES, {
     parts.push(part(lot.a1 - 3, lot.b1 - 3, 0, () => { const sa = lot.a1 - 3, sb = lot.b1 - 3; SH.CUR = M.METAL; line3(sa - 6, sb, 0, sa - 6, sb, 8, 1); line3(sa + 6, sb, 0, sa + 6, sb, 8, 1); plateW(ccp ? 'CINE' : 'DRIVE IN', sa, sb, 8); }));
     return { parts, lights: [Lc(lot.ca, sb + 12, 17, 1.2)] };
   } },
-  bowling: { name: 'Bowling', fem: false, build(lot, seed){
+  bowling: { name: 'Bowling', fem: false, build(lot: Building, seed: number){
     const la = 28, lb = 17, hh = 8;
     const a0 = Math.round(lot.ca - la / 2), a1 = a0 + la, b0 = Math.round(lot.cb - lb / 2) - 2, b1 = b0 + lb;
-    const body = () => boxS(a0, a1, b0, b1, 0, hh, (u, h, x, y, k) => {
+    const body = () => boxS(a0, a1, b0, b1, 0, hh, (u: number, h: number, x: number, y: number, k: number) => {
       if (h > hh - 1.4) return (Math.floor(u * 1.5) & 1) ? 1 : 0;
       if (k === 0){
         if (u >= 12 && u < 16 && h < 5) return (u < 12.5 || u >= 15.5 || h >= 4.6) ? 1 : 3;
@@ -77,18 +77,18 @@ Object.assign(TYPES, {
       }
       return wallBase(k, x, y);
     }, 0);
-    const sign = (t) => {
+    const sign = (t: number) => {
       const p = prj(lot.ca - 8, b1 - 2, hh), x = Math.round(p[0]), y = Math.round(p[1]);
       SH.CUR = M.NEUTRAL; blit(PIN_SPR, x, y);
       const on = (COLOR && SH.DAY) || Math.floor(t * 3) % 6 !== 5; facadePlate('BOWLING', lot.ca + 4, b1, b0, hh + 1, { off: !on });
     };
     return { parts: [part(lot.ca, lot.cb - 2, 0, body), part(lot.ca, lot.cb - 2, .5, sign)], lights: [Lc(lot.ca, b1 + 7, 14, 1.4)] };
   } },
-  radio: { name: 'Tour radio', fem: true, build(lot, seed){
+  radio: { name: 'Tour radio', fem: true, build(lot: Building, seed: number){
     const ca = lot.ca - 5, cb = lot.cb - 3, HT = 50, ccp = lot.side === 'ccp';
     const legs = [[-6, -6], [6, -6], [6, 6], [-6, 6]];
-    const at = (d, z) => d * (1 - .82 * z / HT);
-    const mast = (t) => {
+    const at = (d: number, z: number) => d * (1 - .82 * z / HT);
+    const mast = (t: number) => {
       SH.CUR = M.METAL;
       for (const [da, db] of legs) line3(ca + da, cb + db, 0, ca + at(da, HT), cb + at(db, HT), HT, 1);
       for (let z = 0; z < HT - 4; z += 7) for (let i = 0; i < 4; i++){
@@ -106,22 +106,22 @@ Object.assign(TYPES, {
       }
     };
     const cabin = () => {
-      boxS(lot.ca + 5, lot.ca + 14, lot.cb + 3, lot.cb + 10, 0, 5, (u, h, x, y, k) => { const kk = win(u, h, 2, 2, 3, 2); if (kk) return winColor(kk, true, x, y); return wallBase(k, x, y); }, 0);
+      boxS(lot.ca + 5, lot.ca + 14, lot.cb + 3, lot.cb + 10, 0, 5, (u: number, h: number, x: number, y: number, k: number) => { const kk = win(u, h, 2, 2, 3, 2); if (kk) return winColor(kk, true, x, y); return wallBase(k, x, y); }, 0);
       facadePlate(ccp ? 'RADIO MS' : 'RADIO KL', lot.ca + 9.5, lot.cb + 10, lot.cb + 3, 6);
     };
     return { parts: [part(ca, cb, 0, mast), part(lot.ca + 9.5, lot.cb + 6.5, 0, cabin)], lights: [Lc(lot.ca + 9.5, lot.cb + 14, 9, 1.2)] };
   } },
-  fusee: { name: 'Base spatiale', nameCCP: 'Cosmodrome', fem: false, build(lot, seed){
+  fusee: { name: 'Base spatiale', nameCCP: 'Cosmodrome', fem: false, build(lot: Building, seed: number){
     const ca = lot.ca - 2, cb = lot.cb, ccp = lot.side === 'ccp';
     const pad = () => {
       SH.CUR = M.METAL;
-      boxS(ca - 11, ca + 11, cb - 10, cb + 10, 0, 1.5, 0, (x, y) => bz(x, y) < 3 ? 1 : 0);
+      boxS(ca - 11, ca + 11, cb - 10, cb + 10, 0, 1.5, 0, (x: number, y: number) => bz(x, y) < 3 ? 1 : 0);
       const ga = ca + 7, gb = cb - 2;
       for (const [da, db] of [[0, 0], [3, 0], [3, 3], [0, 3]]) line3(ga + da, gb + db, 1.5, ga + da, gb + db, 36, 1);
       for (let z = 4; z < 36; z += 5){ line3(ga, gb + 3, z, ga + 3, gb + 3, z + 5, 1); line3(ga, gb, z, ga, gb + 3, z + 5, 1); }
       for (const z of [12, 26]) line3(ga, gb + 1.5, z, ca + 1.5, cb, z, 1);
     };
-    const rocket = (t) => {
+    const rocket = (t: number) => {
       const L = SH.SPACE[lot.side] && SH.SPACE[lot.side].launchT;
       const p = L == null ? 0 : 64 + (t - L), rise = p < 70 ? 0 : (p - 70) * (p - 70) * 1.3;
       const base = prj(ca, cb, 2), bx = Math.round(base[0]), by0 = Math.round(base[1]);
@@ -153,12 +153,12 @@ Object.assign(TYPES, {
     };
     return { parts: [part(ca, cb, 0, pad), part(ca, cb, .5, rocket)], lights: [Lc(ca, cb + 4, 15, 1.2)] };
   } },
-  cirque: { name: 'Cirque', nameCCP: 'Cirque du Peuple', fem: false, build(lot, seed){
+  cirque: { name: 'Cirque', nameCCP: 'Cirque du Peuple', fem: false, build(lot: Building, seed: number){
     const ca = lot.ca, cb = lot.cb - 2, R = 12, ccp = lot.side === 'ccp';
-    const draw = (t) => {
+    const draw = (t: number) => {
       const C = prj(ca, cb, 0), cx = Math.round(C[0]), cy = Math.round(C[1]);
       const rx = R * 1.414, ry = rx / 2, wallH = 7, apexY = cy - wallH - 19, baseY = cy - wallH;
-      const stripe = (th) => (Math.floor(((th + cam.phi) / TAU) * 18 + 100) & 1);
+      const stripe = (th: number) => (Math.floor(((th + cam.phi) / TAU) * 18 + 100) & 1);
       SH.CUR = M.TENT;
       for (let dx = -Math.ceil(rx); dx <= Math.ceil(rx); dx++){
         const s = Math.sqrt(Math.max(0, 1 - (dx / (rx + .5)) ** 2)); if (s <= 0) continue;
@@ -186,13 +186,13 @@ Object.assign(TYPES, {
     const sign = () => { const sb = cb + R + 4; SH.CUR = M.METAL; line3(ca - 8, sb, 0, ca - 8, sb, 4, 1); line3(ca + 8, sb, 0, ca + 8, sb, 4, 1); plateW('CIRQUE', ca, sb, 4); };
     return { parts: [part(ca, cb, 0, draw), part(ca, cb + R + 4, 0, sign)], lights: [Lc(ca, cb + 14, 13, 1.4), Lc(ca, cb, 10, .8)] };
   } },
-  fontaine: { name: 'Fontaine', fem: true, build(lot, seed){
+  fontaine: { name: 'Fontaine', fem: true, build(lot: Building, seed: number){
     const ca = lot.ca, cb = lot.cb;
     const decal = () => {
       SH.CUR = M.WALK;
       for (const [r, st] of [[14, .05], [11.5, .09]]) for (let a = 0; a < TAU; a += st){ const p = prj(ca + Math.cos(a) * r, cb + Math.sin(a) * r, 0); fput(Math.round(p[0]), Math.round(p[1]), 1); }
     };
-    const draw = (t) => {
+    const draw = (t: number) => {
       const C = prj(ca, cb, 0), cx = Math.round(C[0]), cy = Math.round(C[1]);
       const rx = 11, ry = 5.5;
       for (let dx = -rx; dx <= rx; dx++){
@@ -214,8 +214,8 @@ Object.assign(TYPES, {
       }
       if ((t * 4 | 0) & 1) fput(cx, cy - 10, 1);
     };
-    const bench = (ba, bb) => part(ba, bb, 0, () => { SH.CUR = M.PIER; line3(ba - 3, bb, 2, ba + 3, bb, 2, 1); line3(ba - 3, bb, 0, ba - 3, bb, 2, 1); line3(ba + 3, bb, 0, ba + 3, bb, 2, 1); });
+    const bench = (ba: number, bb: number) => part(ba, bb, 0, () => { SH.CUR = M.PIER; line3(ba - 3, bb, 2, ba + 3, bb, 2, 1); line3(ba - 3, bb, 0, ba - 3, bb, 2, 1); line3(ba + 3, bb, 0, ba + 3, bb, 2, 1); });
     return { parts: [part(ca, cb, 0, draw), bench(ca, cb + 12), bench(ca, cb - 12)], decals: [decal], lights: [Lc(ca, cb, 13, 1.1)] };
   } }
 });
-export const typeName = (key, side) => (side === 'ccp' && TYPES[key].nameCCP) ? TYPES[key].nameCCP : TYPES[key].name;
+export const typeName = (key: string, side: string) => (side === 'ccp' && TYPES[key].nameCCP) ? TYPES[key].nameCCP : TYPES[key].name;

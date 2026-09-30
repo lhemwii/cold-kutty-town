@@ -1,14 +1,14 @@
 import { SH } from './00-shared.ts';
-import { BLACK, GAME, H, M, PC, PS, TAU, W, WHITE, cam, clamp, dep, fput, groundDelta, lineS, prj, setProj, state, unprj } from './01-core.js';
+import { BLACK, GAME, H, M, PC, PS, TAU, W, WHITE, cam, clamp, dep, fput, groundDelta, lineS, prj, setProj, state, unprj } from './01-core.ts';
 import { T_SEA, baseAt, landDAt, nearestShore } from './02-ground.ts';
-import { pennant } from './03-buildings-base.js';
-import { TYPES } from './04-types.js';
-import { typeName } from './05-types-extra.js';
+import { pennant } from './03-buildings-base.ts';
+import { TYPES } from './04-types.ts';
+import { typeName } from './05-types-extra.ts';
 import { GRAFFITI, cutTreesAlong, drawWallPiece, vestAt } from './07-world.ts';
 import { TER, influenceOf, rebuildLocks, sideAt } from './08-territory.ts';
 import { RW, addRoad, nearRoad, removeRoad, roadCost, roadProblem, sampleCurve, sampleLine, segDist, snapRoadPoint } from './09-roads.ts';
 import { bldAt, buildParts, coastDir, makeBuilding, placeProblem, rebuildTown } from './10-town.ts';
-import { CLOCK, OV_ON, WEATHER, ZMIN, clampCam, mapDirtyAll, scene, screenToWorld, setZNow, setZoom, snapZoom, zoomStep } from './11-render.js';
+import { CLOCK, OV_ON, WEATHER, ZMIN, clampCam, mapDirtyAll, scene, screenToWorld, setZNow, setZoom, snapZoom, zoomStep } from './11-render.ts';
 /* ================= outils du joueur : observer, construire, routes, Rideau de Laine, demolir ================= */
 /** @type {(id: string) => HTMLElement} */
 export const $ = (id) => /** @type {HTMLElement} */ (document.getElementById(id));

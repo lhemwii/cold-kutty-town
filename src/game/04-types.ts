@@ -1,6 +1,6 @@
-import { SH } from './00-shared.ts';
-import { COLOR, CONST_SH, M, TAU, UP, blitAt, boxS, bz, clamp, dep, drawFace, drawFlagPole, drawStar, drawText, fillConvex, fput, gableRoof, hash2, line3, lineS, plateW, prj, textW, wallBitmap, wallFace, win, winColor } from './01-core.js';
-import { Lc, QUEUE_CAT, alongSh, antennaAt, artSprite, drawCar, drawChimney, drawHouse, facadePlate, frontVisible, houseGeo, houseLights, part, picket, sideLight, smokeAt, treeSpr, wallBase } from './03-buildings-base.js';
+import { SH, type Building, type BuiltParts, type Light, type Part } from './00-shared.ts';
+import { COLOR, CONST_SH, M, TAU, UP, blitAt, boxS, bz, clamp, dep, drawFace, drawFlagPole, drawStar, drawText, fillConvex, fput, gableRoof, hash2, line3, lineS, plateW, prj, textW, wallBitmap, wallFace, win, winColor } from './01-core.ts';
+import { Lc, QUEUE_CAT, alongSh, antennaAt, artSprite, drawCar, drawChimney, drawHouse, facadePlate, frontVisible, houseGeo, houseLights, part, picket, sideLight, smokeAt, treeSpr, wallBase } from './03-buildings-base.ts';
 /* ================= statues ================= */
 export const STATUE_CCP = artSprite([
   '  # #        ',
@@ -45,10 +45,11 @@ export const STATUE_USC = artSprite([
 ]);
 
 /* ================= les types de batiments ================= */
-export function seedOf(lot){ return Math.abs(Math.round(lot.ca * 7 + lot.cb * 13)) % 97; }
-/** @type {Record<string, { name: string, nameCCP?: string, fem?: boolean, build: (lot: import('./00-shared.ts').Building, seed: number) => import('./00-shared.ts').BuiltParts }>} */
-export const TYPES = {
-  maison: { name: 'Maison', fem: true, build(lot, seed){
+export function seedOf(lot: Building){ return Math.abs(Math.round(lot.ca * 7 + lot.cb * 13)) % 97; }
+/** un type de batiment : son nom (et celui de la CCR), son genre pour les phrases, s'il se pose sur la cote, et son dessin */
+export interface BuildingType { name: string; nameCCP?: string; fem: boolean; coast?: boolean; build: (lot: Building, seed: number) => BuiltParts }
+export const TYPES: Record<string, BuildingType> = {
+  maison: { name: 'Maison', fem: true, build(lot: Building, seed: number){
     const lv = lot.lvl || 1;
     const la = 14 + (seed % 3) * 2 + (lv === 3 ? 6 : 0), lb = 12 + (lv === 3 ? 2 : 0), hh = 8 + (seed % 2) + (lv >= 2 ? 5 : 0), rh = 6;
     const g = houseGeo(lot.ca, lot.cb - 2, la, lb, hh, rh, seed, 'a', 0);
@@ -59,7 +60,7 @@ export const TYPES = {
     if (lv === 3){
       // piscine a l'ouest, potager a l'est
       const pa0 = lot.a0 + 3, pb0 = lot.b1 - 9;
-      decals.push(() => { const sv = SH.CUR; SH.CUR = usc ? M.WATER : M.FIELD; drawFace([pa0, pb0, 0, pa0 + 8, pb0, 0, pa0 + 8, pb0 + 5, 0, pa0, pb0 + 5, 0], UP, usc ? ((x, y) => bz(x, y) < 3 ? 1 : 0) : ((x, y) => (x + y) & 1), usc ? 1 : 0); SH.CUR = sv; });
+      decals.push(() => { const sv = SH.CUR; SH.CUR = usc ? M.WATER : M.FIELD; drawFace([pa0, pb0, 0, pa0 + 8, pb0, 0, pa0 + 8, pb0 + 5, 0, pa0, pb0 + 5, 0], UP, usc ? ((x: number, y: number) => bz(x, y) < 3 ? 1 : 0) : ((x: number, y: number) => (x + y) & 1), usc ? 1 : 0); SH.CUR = sv; });
     }
     if (usc){
       const fb0 = lot.b1 - 2;
@@ -70,7 +71,7 @@ export const TYPES = {
     }
     return { parts, decals, lights: houseLights(g) };
   } },
-  mairie: { name: 'Mairie', fem: true, build(lot, seed){
+  mairie: { name: 'Mairie', fem: true, build(lot: Building, seed: number){
     const g = houseGeo(lot.ca, lot.cb - 2, 26, 18, 12, 8, seed, 'a', 0);
     g.lit = [true, true, false, true];
     const parts = [part(g.ca, g.cb, 0, () => drawHouse(g)), part(g.ca, g.cb, .5, (t) => {
@@ -83,10 +84,10 @@ export const TYPES = {
       part(g.ca, g.cb, .6, () => facadePlate('MAIRIE', g.ca, g.b1, g.b0, g.hh - 1))];
     return { parts, lights: houseLights(g).concat([Lc(g.ca, g.b1 + 9, 14, 1.3)]) };
   } },
-  diner: { name: 'Diner', fem: false, build(lot, seed){
+  diner: { name: 'Diner', fem: false, build(lot: Building, seed: number){
     const la = 26, lb = 12, hh = 7;
     const a0 = Math.round(lot.ca - la / 2), a1 = a0 + la, b0 = Math.round(lot.cb - lb / 2), b1 = b0 + lb;
-    const body = () => boxS(a0, a1, b0, b1, 0, hh, (u, h, x, y, k) => {
+    const body = () => boxS(a0, a1, b0, b1, 0, hh, (u: number, h: number, x: number, y: number, k: number) => {
       if (h < 1.2) return 1;
       if (h >= 6) return bz(x, y) < 8 ? 1 : 0;
       if (k === 0 && u >= 11 && u < 14 && h < 5.5) return (u < 11.6 || u >= 13.4 || h >= 5) ? 1 : 0;
@@ -95,7 +96,7 @@ export const TYPES = {
       if (k === 2){ const kk = win(u, h, 4, 2.3, 3, 3); if (kk) return winColor(kk, false, x, y); }
       return 0;
     }, 0);
-    const sign = (t) => {
+    const sign = (t: number) => {
       const on = (COLOR && SH.DAY) || Math.floor(t * 2.5) % 5 !== 4;
       const p = prj(lot.ca, lot.cb, hh), bx = Math.round(p[0]);
       SH.CUR = M.METAL; line3(lot.ca - 6, lot.cb, hh, lot.ca - 6, lot.cb, hh + 3, 1); line3(lot.ca + 6, lot.cb, hh, lot.ca + 6, lot.cb, hh + 3, 1);
@@ -105,10 +106,10 @@ export const TYPES = {
     return { parts: [part(lot.ca, lot.cb, 0, body), part(lot.ca, lot.cb, .5, sign)],
       lights: [Lc(lot.ca, b1 + 7, 15, 1.45), sideLight(a0, a1, b0, b1, 1, 9, 1.2), sideLight(a0, a1, b0, b1, 3, 9, 1.2)] };
   } },
-  cinema: { name: 'Cinéma', fem: false, build(lot, seed){
+  cinema: { name: 'Cinéma', fem: false, build(lot: Building, seed: number){
     const la = 22, lb = 18, hh = 15;
     const a0 = Math.round(lot.ca - la / 2), a1 = a0 + la, b0 = Math.round(lot.cb - lb / 2) - 2, b1 = b0 + lb;
-    const body = () => boxS(a0, a1, b0, b1, 0, hh, (u, h, x, y, k) => {
+    const body = () => boxS(a0, a1, b0, b1, 0, hh, (u: number, h: number, x: number, y: number, k: number) => {
       if (h >= 11) return (Math.floor(u) % 3 === 0) ? 1 : 0;
       if (k === 0){
         if (u >= 8 && u < 14 && h < 5.5) return (u < 8.6 || u >= 13.4 || h >= 5 || Math.abs(u - 11) < .5) ? 1 : 0;
@@ -117,14 +118,14 @@ export const TYPES = {
       }
       return wallBase(k, x, y);
     }, 0);
-    const marquee = (t) => {
-      boxS(a0 + 1, a1 - 1, b1, b1 + 4, 7, 10, 0, (x, y) => bz(x, y) < 6 ? 1 : 0);
+    const marquee = (t: number) => {
+      boxS(a0 + 1, a1 - 1, b1, b1 + 4, 7, 10, 0, (x: number, y: number) => bz(x, y) < 6 ? 1 : 0);
       if (!frontVisible(0)) return;
       const ph = Math.floor(t * 4) & 1;
       SH.CUR = M.WIN;
       for (let u = 1; u < la - 2; u += 2){ const p = prj(a0 + 1 + u + .5, b1 + 4, 8.5); fput(Math.round(p[0]), Math.round(p[1]), ((u >> 1) & 1) === ph ? 1 : 0); }
     };
-    const blade = (t) => {
+    const blade = (t: number) => {
       const p = prj(a1 - 3, b1 + 2, 10), bx = Math.round(p[0]), by = Math.round(p[1]);
       const word = 'CINE', h = word.length * 6 + 3, k = Math.floor(t * 6) % 5;
       SH.CUR = M.SIGN;
@@ -137,16 +138,16 @@ export const TYPES = {
     return { parts: [part(lot.ca, lot.cb - 2, 0, body), part(lot.ca, lot.cb - 2, .3, marquee), part(lot.ca, lot.cb - 2, .6, blade)],
       lights: [Lc(lot.ca, b1 + 9, 18, 1.6)] };
   } },
-  station: { name: 'Station-service', fem: true, build(lot, seed){
+  station: { name: 'Station-service', fem: true, build(lot: Building, seed: number){
     const a0 = Math.round(lot.a0 + 5), b0 = Math.round(lot.b0 + 3);
-    const kiosk = () => boxS(a0, a0 + 10, b0, b0 + 9, 0, 7, (u, h, x, y, k) => {
+    const kiosk = () => boxS(a0, a0 + 10, b0, b0 + 9, 0, 7, (u: number, h: number, x: number, y: number, k: number) => {
       if (k === 0){ if (u >= 6.5 && u < 9 && h < 5.2) return (u < 7 || h >= 4.7) ? 1 : 0; const kk = win(u, h, 1.5, 2.3, 4, 3.4); return kk ? winColor(kk, true, x, y) : 0; }
       return wallBase(k, x, y);
     }, 0);
-    const pump = (pa) => () => boxS(pa, pa + 2, b0 + 16, b0 + 18, 0, 5, (u, h) => h > 3 ? 1 : 0, 1);
+    const pump = (pa: number) => () => boxS(pa, pa + 2, b0 + 16, b0 + 18, 0, 5, (u: number, h: number) => h > 3 ? 1 : 0, 1);
     const canopy = () => {
       for (const [pa, pb] of [[a0 + 3, b0 + 22], [a0 + 22, b0 + 22], [a0 + 22, b0 + 12], [a0 + 3, b0 + 12]]) line3(pa, pb, 0, pa, pb, 9, 1);
-      boxS(a0 + 1, a0 + 24, b0 + 11, b0 + 24, 9, 10.5, 1, (x, y) => bz(x, y) < 5 ? 1 : 0);
+      boxS(a0 + 1, a0 + 24, b0 + 11, b0 + 24, 9, 10.5, 1, (x: number, y: number) => bz(x, y) < 5 ? 1 : 0);
     };
     const sign = () => {
       const pp = prj(a0 + 27, b0 + 2, 0), px = Math.round(pp[0]), py = Math.round(pp[1]);
@@ -159,17 +160,17 @@ export const TYPES = {
       part(a0 + 12.5, b0 + 17.5, 1, canopy), part(a0 + 27, b0 + 2, 0, sign)],
       lights: [Lc(a0 + 13, b0 + 17, 16, 1.6)] };
   } },
-  epicerie: { name: 'Épicerie', nameCCP: 'Gastronom', fem: true, build(lot, seed){
+  epicerie: { name: 'Épicerie', nameCCP: 'Gastronom', fem: true, build(lot: Building, seed: number){
     const la = 16, lb = 12, hh = 9, ccp = lot.side === 'ccp';
     const a0 = Math.round(lot.ca - la / 2), a1 = a0 + la, b0 = Math.round(lot.cb - lb / 2) - 3, b1 = b0 + lb;
-    const body = () => boxS(a0, a1, b0, b1, 0, hh, (u, h, x, y, k) => {
+    const body = () => boxS(a0, a1, b0, b1, 0, hh, (u: number, h: number, x: number, y: number, k: number) => {
       if (k === 0){ if (h >= 1 && h < 4.8 && u >= 1.5 && u < la - 1.5) return (Math.floor(u) % 4 === 0) ? 0 : (ccp && Math.floor(u) % 4 === 2 ? 0 : 3); return 0; }
       return wallBase(k, x, y);
     }, 0);
     const awning = () => {
       const savedM = SH.CUR; if (!ccp) SH.CUR = M.FLAG_RED;
       drawFace([a0 + 1, b1, 7, a1 - 1, b1, 7, a1 - 1, b1 + 4, 5, a0 + 1, b1 + 4, 5], [0, 2, 4],
-        ccp ? ((x, y) => bz(x, y) < 3 ? 1 : 0) : alongSh(a0 + 1, b1 + 4, 5, a1 - 1, b1 + 4, 5, la - 2, (u) => (Math.floor(u / 1.5) & 1) ? 1 : 0), 1);
+        ccp ? ((x: number, y: number) => bz(x, y) < 3 ? 1 : 0) : alongSh(a0 + 1, b1 + 4, 5, a1 - 1, b1 + 4, 5, la - 2, (u) => (Math.floor(u / 1.5) & 1) ? 1 : 0), 1);
       SH.CUR = savedM;
       facadePlate(ccp ? 'GASTRONOM' : 'EPICERIE', lot.ca, b1, b0, hh + .5);
     };
@@ -183,11 +184,11 @@ export const TYPES = {
     })); }
     return { parts, lights: [Lc(lot.ca, b1 + 6, 12, 1.3)] };
   } },
-  chateau: { name: 'Château d’eau', fem: false, build(lot, seed){
+  chateau: { name: 'Château d’eau', fem: false, build(lot: Building, seed: number){
     const ca = lot.ca, cb = lot.cb, ccp = lot.side === 'ccp';
     const draw = () => {
       SH.CUR = M.METAL;
-      const legs = [[-6,-6],[6,-6],[6,6],[-6,6]], at = (d, z) => d * (1 - .2 * z / 20);
+      const legs = [[-6,-6],[6,-6],[6,6],[-6,6]], at = (d: number, z: number) => d * (1 - .2 * z / 20);
       for (const [da, db] of legs) line3(ca + da, cb + db, 0, ca + da * .8, cb + db * .8, 20, 1);
       for (const z of [7, 14]) for (let i = 0; i < 4; i++){ const p = legs[i], q = legs[(i + 1) % 4]; line3(ca + at(p[0], z), cb + at(p[1], z), z, ca + at(q[0], z), cb + at(q[1], z), z, 1); }
       const C = prj(ca, cb, 20), cx = Math.round(C[0]), cy = Math.round(C[1]);
@@ -203,10 +204,10 @@ export const TYPES = {
       else { for (let y = cy - 7; y <= cy - 1; y++) for (let x = cx - 10; x <= cx + 10; x++) fput(x, y, 0); drawText(fput, 'KUTTY', cx - 9, cy - 6, 1); }
       for (let r = 0; r <= 8; r++){ const hw = Math.round(rx * (1 - r / 8)); for (let x = -hw; x <= hw; x++) fput(cx + x, cy - H2 - r - 1, (x === -hw || x === hw) ? 1 : (x < 0 && bz(cx + x, cy - H2 - r) < 4 ? 1 : 0)); }
     };
-    const beacon = (t) => { const C = prj(ca, cb, 20), cx = Math.round(C[0]), cy = Math.round(C[1]); const on = (t % 1.6) < .5; fput(cx, cy - 22, on ? 1 : 0); if (on){ fput(cx - 1, cy - 22, 1); fput(cx + 1, cy - 22, 1); fput(cx, cy - 23, 1); } };
+    const beacon = (t: number) => { const C = prj(ca, cb, 20), cx = Math.round(C[0]), cy = Math.round(C[1]); const on = (t % 1.6) < .5; fput(cx, cy - 22, on ? 1 : 0); if (on){ fput(cx - 1, cy - 22, 1); fput(cx + 1, cy - 22, 1); fput(cx, cy - 23, 1); } };
     return { parts: [part(ca, cb, 0, draw), part(ca, cb, .5, beacon)], lights: [] };
   } },
-  kiosque: { name: 'Kiosque à musique', fem: false, build(lot, seed){
+  kiosque: { name: 'Kiosque à musique', fem: false, build(lot: Building, seed: number){
     const ca = lot.ca, cb = lot.cb;
     const draw = () => {
       SH.CUR = M.NEUTRAL;
@@ -233,7 +234,7 @@ export const TYPES = {
     };
     return { parts: [part(ca, cb, 0, draw)], lights: [Lc(ca, cb, 14, 1.3)] };
   } },
-  parc: { name: 'Parc', fem: false, build(lot, seed){
+  parc: { name: 'Parc', fem: false, build(lot: Building, seed: number){
     const T = [[lot.ca - 8, lot.cb - 6, 5], [lot.ca + 9, lot.cb - 3, 4], [lot.ca - 2, lot.cb + 8, 5]];
     const parts = T.map(([a, b, r]) => part(a, b, 0, () => { SH.CUR = M.TREE; blitAt(treeSpr(r), a, b, 0); }));
     const ba = lot.ca + 6, bb = lot.cb + 7;
@@ -244,11 +245,11 @@ export const TYPES = {
     }));
     return { parts, lights: [] };
   } },
-  immeuble: { name: 'Immeuble', fem: false, build(lot, seed){
+  immeuble: { name: 'Immeuble', fem: false, build(lot: Building, seed: number){
     const lv = lot.lvl || 1, la = 28, lb = 13, hh = [22, 32, 44][lv - 1];
     const a0 = Math.round(lot.ca - la / 2), a1 = a0 + la, b0 = Math.round(lot.cb - lb / 2), b1 = b0 + lb;
-    const litW = (k, col, fl) => hash2(seed * 7 + k * 31 + col, fl * 13 + 5) < .34;
-    const body = () => boxS(a0, a1, b0, b1, 0, hh, (u, h, x, y, k) => {
+    const litW = (k: number, col: number, fl: number) => hash2(seed * 7 + k * 31 + col, fl * 13 + 5) < .34;
+    const body = () => boxS(a0, a1, b0, b1, 0, hh, (u: number, h: number, x: number, y: number, k: number) => {
       const len = (k & 1) ? lb : la;
       if (k === 0 && u >= len / 2 - 2 && u < len / 2 + 2 && h < 4) return (u < len / 2 - 1.4 || u >= len / 2 + 1.4 || h >= 3.5) ? 1 : 0;
       if (h >= 1 && h < hh - 1.5){
@@ -263,22 +264,22 @@ export const TYPES = {
       const p = prj(lot.ca, lot.cb, hh), x = Math.round(p[0]), y = Math.round(p[1]);
       if (seed % 4 === 0){ for (let k = 0; k < 7; k++) fput(x, y - k, 1); drawStar(fput, x - 3, y - 14, 1, true); }
       else if (seed % 4 === 1){ line3(lot.ca - 5, lot.cb, hh, lot.ca - 5, lot.cb, hh + 2, 1); line3(lot.ca + 5, lot.cb, hh, lot.ca + 5, lot.cb, hh + 2, 1); plateW('CCR', lot.ca, lot.cb, hh + 2, { inv: true }); }
-      else boxS(lot.ca + 4, lot.ca + 8, lot.cb - 3, lot.cb + 1, hh, hh + 3, (u, h, xx, yy, k) => wallBase(k, xx, yy), 0);
+      else boxS(lot.ca + 4, lot.ca + 8, lot.cb - 3, lot.cb + 1, hh, hh + 3, (u: number, h: number, xx: number, yy: number, k: number) => wallBase(k, xx, yy), 0);
     };
     const lights = [];
     for (const k of [seed % 4, (seed + 2) % 4]) lights.push(sideLight(a0, a1, b0, b1, k, 7, .9));
     return { parts: [part(lot.ca, lot.cb, 0, body), part(lot.ca, lot.cb, .5, roof)], lights };
   } },
-  peuple: { name: 'Palais du Peuple', fem: false, build(lot, seed){
+  peuple: { name: 'Palais du Peuple', fem: false, build(lot: Building, seed: number){
     const ca = lot.ca, cb = lot.cb;
-    const tier = (hw, hb, z0, z1, cols) => () => boxS(ca - hw, ca + hw, cb - hb, cb + hb, z0, z1, (u, h, x, y, k) => {
+    const tier = (hw: number, hb: number, z0: number, z1: number, cols: number) => () => boxS(ca - hw, ca + hw, cb - hb, cb + hb, z0, z1, (u: number, h: number, x: number, y: number, k: number) => {
       if (z0 === 0 && k === 0 && h < 8 && u > 6 && u < hw * 2 - 6) return (Math.floor(u) % 3 === 0) ? 1 : 0;
       if (h > (z1 - z0) - 1.2) return 1;
       const ph = u % cols;
       if (ph >= cols * .35 && ph < cols * .7 && h > 2 && h < (z1 - z0) - 3) return hash2(Math.floor(u / cols) + k * 17, Math.floor(h / 4) + z0) < .5 ? 3 : (bz(x, y) < 3 ? 1 : 0);
       return wallBase(k, x, y);
     }, 0);
-    const spire = (t) => {
+    const spire = (t: number) => {
       line3(ca, cb, 33, ca, cb, 45, 1);
       const p = prj(ca, cb, 45), x = Math.round(p[0]), y = Math.round(p[1]);
       SH.CUR = M.SIGN_CCP;
@@ -289,44 +290,44 @@ export const TYPES = {
       part(ca + 12, cb + 13, 0, (t) => drawFlagPole(ca + 12, cb + 13, 0, 22, 'ccp', t))],
       lights: [Lc(ca, cb + 17, 16, 1.4), sideLight(ca - 15, ca + 15, cb - 11, cb + 11, 1, 9, 1.1), sideLight(ca - 15, ca + 15, cb - 11, cb + 11, 3, 9, 1.1)] };
   } },
-  usine: { name: 'Usine', fem: true, build(lot, seed){
+  usine: { name: 'Usine', fem: true, build(lot: Building, seed: number){
     const la = 28, lb = 18, hh = 10, ccp = lot.side === 'ccp';
     const a0 = Math.round(lot.ca - la / 2), a1 = a0 + la, b0 = Math.round(lot.cb - lb / 2), b1 = b0 + lb;
-    const body = () => boxS(a0, a1, b0, b1, 0, hh, (u, h, x, y, k) => {
+    const body = () => boxS(a0, a1, b0, b1, 0, hh, (u: number, h: number, x: number, y: number, k: number) => {
       const len = (k & 1) ? lb : la;
       if (k === 0 && u >= 3 && u < 9 && h < 7) return (u < 3.6 || u >= 8.4 || h >= 6.4) ? 1 : ((Math.floor(h) & 1) ? 1 : 0);
       if (h >= 4 && h < 8){ const ph = u % 4; if (ph >= 1 && ph < 3.4) return (hash2(Math.floor(u / 4) + k * 9, seed) < .6) ? ((Math.floor(ph * 2) === 4) ? 0 : 3) : 0; }
       return wallBase(k, x, y);
     }, 0);
     const parts = [part(lot.ca, lot.cb, 0, body)];
-    for (let i = 0; i < 3; i++){ const s0 = a0 + 2 + i * 8.5; parts.push(part(s0 + 3, lot.cb, .4, () => { wallFace(s0, b1 - 1, s0 + 6, b1 - 1, hh, hh, (u, h) => h > .8 && h < 2 && u > 1.5 && u < 4.5 ? 1 : 0, 1, hh + 3); wallFace(s0 + 6, b0 + 1, s0, b0 + 1, hh, hh, 0, 1, hh + 3); gableRoof(s0, s0 + 6, b0 + 1, b1 - 1, hh, 3, 'b', 1, 6, 0); })); }
+    for (let i = 0; i < 3; i++){ const s0 = a0 + 2 + i * 8.5; parts.push(part(s0 + 3, lot.cb, .4, () => { wallFace(s0, b1 - 1, s0 + 6, b1 - 1, hh, hh, (u: number, h: number) => h > .8 && h < 2 && u > 1.5 && u < 4.5 ? 1 : 0, 1, hh + 3); wallFace(s0 + 6, b0 + 1, s0, b0 + 1, hh, hh, 0, 1, hh + 3); gableRoof(s0, s0 + 6, b0 + 1, b1 - 1, hh, 3, 'b', 1, 6, 0); })); }
     for (const [cx, cy2, sd] of [[a0 + 4, b0 + 3, 1], [a1 - 5, b0 + 3, 2]]){
       parts.push(part(cx, cy2, .5, (t) => {
-        boxS(cx - 1.5, cx + 1.5, cy2 - 1.5, cy2 + 1.5, hh, 32, (u, h) => (Math.floor(h) % 6 === 0) ? 1 : 0, 0);
+        boxS(cx - 1.5, cx + 1.5, cy2 - 1.5, cy2 + 1.5, hh, 32, (u: number, h: number) => (Math.floor(h) % 6 === 0) ? 1 : 0, 0);
         const p = prj(cx, cy2, 32); smokeAt(p[0], p[1] - 1, t * 1.4, sd + seed); smokeAt(p[0] + 2, p[1] - 3, t * 1.1 + .5, sd * 3 + seed);
       }));
     }
     parts.push(part(lot.ca, lot.cb, .7, () => facadePlate(ccp ? 'USINE 7' : 'KUTTY MOTORS', lot.ca, b1, b0, hh + .5)));
     return { parts, lights: [sideLight(a0, a1, b0, b1, 0, 10, 1.2), sideLight(a0, a1, b0, b1, 1, 8, 1.1)] };
   } },
-  statue: { name: 'Statue', fem: true, build(lot, seed){
+  statue: { name: 'Statue', fem: true, build(lot: Building, seed: number){
     const ca = lot.ca, cb = lot.cb, ccp = lot.side === 'ccp';
     const draw = () => {
-      boxS(ca - 5, ca + 5, cb - 5, cb + 5, 0, 1.5, (u, h, x, y, k) => bz(x, y) < 5 ? 1 : 0, 0);
-      boxS(ca - 3.5, ca + 3.5, cb - 3.5, cb + 3.5, 1.5, 9, (u, h, x, y, k) => { const kk = win(u, h, 1.5, 2.5, 4, 3); if (kk) return kk === 'frame' ? 1 : 0; return wallBase(k, x, y); }, 0);
+      boxS(ca - 5, ca + 5, cb - 5, cb + 5, 0, 1.5, (u: number, h: number, x: number, y: number, k: number) => bz(x, y) < 5 ? 1 : 0, 0);
+      boxS(ca - 3.5, ca + 3.5, cb - 3.5, cb + 3.5, 1.5, 9, (u: number, h: number, x: number, y: number, k: number) => { const kk = win(u, h, 1.5, 2.5, 4, 3); if (kk) return kk === 'frame' ? 1 : 0; return wallBase(k, x, y); }, 0);
       SH.CUR = M.STATUE; blitAt(ccp ? STATUE_CCP : STATUE_USC, ca, cb, 9);
     };
     return { parts: [part(ca, cb, 0, draw)], lights: [Lc(ca, cb + 8, 13, 1.4)] };
   } },
-  panneau: { name: 'Panneau', fem: false, build(lot, seed){
+  panneau: { name: 'Panneau', fem: false, build(lot: Building, seed: number){
     const ca = lot.ca, cb = lot.cb, ccp = lot.side === 'ccp';
     const L1 = ccp ? 'GLOIRE AU' : 'BOIS', L2 = ccp ? 'PLAN !' : 'KUTTY COLA';
-    const draw = (t) => {
+    const draw = (t: number) => {
       SH.CUR = M.METAL;
       line3(ca - 12, cb, 0, ca - 12, cb, 9, 1); line3(ca + 12, cb, 0, ca + 12, cb, 9, 1);
       SH.CUR = ccp ? M.SIGN_CCP : M.SIGN;
       // le panneau est dessine a plat puis pose debout entre ses deux poteaux : il tourne avec la ville
-      const w = 45, h = 20, pix = new Int8Array(w * h).fill(-1), put = (x, y, v) => { if (x >= 0 && y >= 0 && x < w && y < h) pix[y * w + x] = v; };
+      const w = 45, h = 20, pix = new Int8Array(w * h).fill(-1), put = (x: number, y: number, v: number) => { if (x >= 0 && y >= 0 && x < w && y < h) pix[y * w + x] = v; };
       for (let yy = 0; yy < h; yy++) for (let xx = 0; xx < w; xx++){ const e = xx === 0 || xx === w - 1 || yy === 0 || yy === h - 1; put(xx, yy, e ? 1 : (ccp ? 1 : 0)); }
       const c = ccp ? 0 : 1, x = w >> 1;
       drawText(put, L1, x - (textW(L1) >> 1), 3, c); drawText(put, L2, x - (textW(L2) >> 1), 10, c);

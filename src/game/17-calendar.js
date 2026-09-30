@@ -1,9 +1,9 @@
 import { SH } from './00-shared.ts';
-import { COLOR, GAME, H, HOOKS, M, N, SIDES, TAU, W, cam, clamp, fput, hash2, other, state } from './01-core.js';
-import { TYPES } from './04-types.js';
+import { COLOR, GAME, H, HOOKS, M, N, SIDES, TAU, W, cam, clamp, fput, hash2, other, state } from './01-core.ts';
+import { TYPES } from './04-types.ts';
 import { terPct } from './08-territory.ts';
 import { catPos } from './10-town.ts';
-import { CLOCK, OV_ON, WEATHER, render, scene } from './11-render.js';
+import { CLOCK, OV_ON, WEATHER, render, scene } from './11-render.ts';
 import { $, toast } from './13-ui.js';
 /* ================= calendrier : un jour de jeu = un mois ================= */
 export const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
