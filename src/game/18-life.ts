@@ -5,7 +5,7 @@ import type { Side } from './00-shared.ts';
 import type { Drawable } from './07-world.ts';
 import { sideAt } from './08-territory.ts';
 import { RW, nearRoad, polyAt, type Road } from './09-roads.ts';
-import { CLOCK, OV_ON, PAL_HEX, WEATHER } from './11-render.ts';
+import { CLOCK, GLOWS, KEEP_TINT, OV_ON, WATERS, WEATHER } from './11-render.ts';
 import { feteOf, type FeteSide } from './17-calendar.ts';
 /* ================= fetes : sapins illumines et feux d'artifice ================= */
 SH.XMAS_ON = false;
@@ -144,13 +144,13 @@ HOOKS.dyn.push((t, out) => {
 /* ================= reflets de nuit : lumieres dans l'eau et sur les routes mouillees ================= */
 export let WET = 0;
 HOOKS.step.push((dt) => { const rain = WEATHER.shown === 'pluie' ? WEATHER.k : 0; WET = rain > .3 ? Math.min(1, WET + dt * .25 * rain) : Math.max(0, WET - dt / 90); });
-export const GLOWS = new Uint8Array(PAL_HEX.length);
-[M.WIN, M.LAMP, M.SIGN, M.SIGN_CCP, M.REDLIGHT, M.FW_BLUE, M.FW_GREEN, M.ICON_R, M.ICON_Y].forEach(m => GLOWS[m] = 1);
-export const WATERS = new Uint8Array(PAL_HEX.length); [M.SEA, M.SEA_MID, M.SEA_SHALLOW, M.FOAM].forEach(m => WATERS[m] = 1);
-export const KEEP_TINT = new Uint8Array(PAL_HEX.length); [M.SIGN, M.SIGN_CCP, M.REDLIGHT, M.FW_BLUE, M.FW_GREEN, M.ICON_R, M.ICON_Y].forEach(m => KEEP_TINT[m] = 1);
+// (les matieres lumineuses, l'eau et celles qui gardent leur teinte sont dans 11-render : GLOWS, WATERS, KEEP_TINT)
 export function reflections(t: number){
   if (SH.NIGHT < .45 || N > 900000) return;
   const road = WET > .15, MR = M.ROAD, RF = M.REFLECT, tick = (t * 7) | 0, maxW = Math.round(20 + 10 * (SH.K <= 2 ? 1 : 0)), maxR = Math.round(9 * WET);
+  // sol calcule par la carte graphique : elle fait aussi les reflets, avec ces reglages
+  if (SH.GPU_GROUND){ SH.REFL = { road, maxW, maxR, tick, wet: WET }; return; }
+
   const FB = fb, MB = mb, LB = lb;
   for (let x = 0; x < W; x++){
     let gy = -999, gm = 0;

@@ -76,6 +76,14 @@ export interface Shared {
   /** pendant la capture des ombres, les points (a, b, z) des faces dessinees ; null sinon */
   CAPTURE: number[] | null;
   NIGHT: number;
+  /** vrai quand le sol de l'image en cours est calcule par la carte graphique (11-render, etape 3.2) */
+  GPU_GROUND: boolean;
+  /** pour comparer : force le calcul du sol par le processeur */
+  CPU_GROUND?: boolean;
+
+  /** reflets de nuit a faire par la carte graphique pour l'image en cours (18-life), null sinon */
+  REFL: { road: boolean; maxW: number; maxR: number; tick: number; wet: number } | null;
+
 
   TOWN_VER: number;
   [name: string]: any;

@@ -2,7 +2,7 @@ import { SH } from './00-shared.ts';
 import type { Building, Light, Side } from './00-shared.ts';
 import type { Vec2 } from './02-ground.ts';
 import { M, SIDES, clamp, hash2 } from './01-core.ts';
-import { GA0, GB0, GH, GSC, GW, T_ROAD, T_ROCK, T_SEA, T_WALK, cellOf, gBase, gLand, gTone, gType, resetArea, typeAt } from './02-ground.ts';
+import { GA0, GB0, GH, GSC, GW, T_ROAD, T_ROCK, T_SEA, T_WALK, cellOf, gBase, gLand, groundDirty, gTone, gType, resetArea, typeAt } from './02-ground.ts';
 import { LAMP_POS, cutTreesAlong } from './07-world.ts';
 import { sideAt } from './08-territory.ts';
 /* ================= routes : droites ou courbes, raccordees entre elles, parcourues par les voitures ================= */
@@ -105,7 +105,9 @@ export function paintTile(ia0: number, ia1: number, ib0: number, ib1: number): v
     gTone[i] = (d < .5 && (Math.floor(along / 5) & 1) === 0 && along > RW + 2 && along < r.len - RW - 2) ? 16 : 0;
   });
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (cnt[y * w + x] > 1) gTone[(ib0 + y) * GW + ia0 + x] = 0;
+  groundDirty(ia0, ia1, ib0, ib1);
 }
+
 // le sol vient d'etre refait : on ne repeint que la ou passent des routes (repeindre toute la carte prenait une demi-seconde sur les grandes)
 export function repaintAllRoads(): void { for (const r of SH.ROADS) repaintRoad(r); }
 export function repaintRoad(r: Road): void { paintRoadsArea(r.box[0] - RWS - 2, r.box[1] + RWS + 2, r.box[2] - RWS - 2, r.box[3] + RWS + 2); SH.mapDirtyRect(r.box[0] - RWS, r.box[1] + RWS, r.box[2] - RWS, r.box[3] + RWS); }

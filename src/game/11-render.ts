@@ -2,9 +2,9 @@ import { SH, type Light, type ShadowHull } from './00-shared.ts';
 import type { Sprite } from './01-core.ts';
 import type { Drawable } from './07-world.ts';
 import type { Cat } from './10-town.ts';
-import { createPresenter, type Presenter } from '../gpu/present.ts';
+import { createPresenter, type GroundView, type Presenter } from '../gpu/present.ts';
 import { BAYER, COLOR, GAME, GEO, GLOBE_ON, H, HOOKS, M, N, PC, PROJ_FIX, PS, RAYHIT, RP, SC, SHADOW_V, TAU, TX, TY, W, cam, clamp, dep, fb, fput, geoCast, geoProj, geoSet, getView, groundDelta, hash2, img, lb, litAt, mb, prj, px32, setProj, setView, state, unprj } from './01-core.ts';
-import { GA0, GB0, GH, GQW, GSC, GW, TYPE_MAT, T_BEACH, T_DIRT, T_FOREST, T_GRASS, T_PIER, T_QUAY, T_ROAD, T_ROCK, T_SEA, T_WALK, cellOf, gPh, gSea, gTone, gType, gVar, mapScale } from './02-ground.ts';
+import { GA0, GB0, GDIRTY, GH, GQH, GQW, GSC, GW, TYPE_MAT, T_BEACH, T_DIRT, T_FOREST, T_GRASS, T_PIER, T_QUAY, T_ROAD, T_ROCK, T_SEA, T_WALK, cellOf, gPh, gSea, gTone, gType, gVar, mapScale } from './02-ground.ts';
 import { drawCarAng } from './03-buildings-base.ts';
 import { VEST, drawGlow, drawLampHeads, drawLantern, drawSailboat, sailPos, towerSpot, treeDrawables } from './07-world.ts';
 import { TC, TER, terIdx } from './08-territory.ts';
@@ -33,6 +33,12 @@ export const PAL_HEX = [
 // la nuit, les lumieres gardent leur eclat
 export const NIGHT_LIGHT: Record<number, string> = { [M.RAIN]: '#6f86a3', [M.SNOW]: '#c9d4e2', [M.WIN]: '#ffd46b', [M.SIGN]: '#ff6fae', [M.SIGN_CCP]: '#ffd23f', [M.GLOW]: '#ffbe55', [M.BEAM]: '#fff1a8', [M.LAMP]: '#ffe7a3', [M.REDLIGHT]: '#ff3b3b', [M.FW_BLUE]: '#8fb8ff', [M.FW_GREEN]: '#8dffa0', [M.BUBBLE]: '#fff3d9', [M.ICON_R]: '#ff5a64', [M.ICON_Y]: '#ffd23f', [M.REFLECT]: '#e9b35a' };
 export const LEVEL_F = [1, .9, .79, .67, .6];
+// reflets de nuit (18-life, ou le shader du sol) : matieres lumineuses, eau, et celles qui gardent leur teinte dans un reflet
+export const GLOWS = new Uint8Array(256);
+[M.WIN, M.LAMP, M.SIGN, M.SIGN_CCP, M.REDLIGHT, M.FW_BLUE, M.FW_GREEN, M.ICON_R, M.ICON_Y].forEach(m => GLOWS[m] = 1);
+export const WATERS = new Uint8Array(256); [M.SEA, M.SEA_MID, M.SEA_SHALLOW, M.FOAM].forEach(m => WATERS[m] = 1);
+export const KEEP_TINT = new Uint8Array(256); [M.SIGN, M.SIGN_CCP, M.REDLIGHT, M.FW_BLUE, M.FW_GREEN, M.ICON_R, M.ICON_Y].forEach(m => KEEP_TINT[m] = 1);
+
 export const hex32 = (h: string) => { const n = parseInt(h.slice(1), 16); return (0xFF000000 | ((n & 255) << 16) | (n & 0xFF00) | ((n >> 16) & 255)) >>> 0; };
 export const rgb32 = (r: number, g: number, b: number) => (0xFF000000 | (clamp(Math.round(b), 0, 255) << 16) | (clamp(Math.round(g), 0, 255) << 8) | clamp(Math.round(r), 0, 255)) >>> 0;
 export const PALL = new Uint32Array(PAL_HEX.length * 2 * 5), PAL32 = new Uint32Array(PAL_HEX.length * 2);
@@ -159,6 +165,7 @@ export const scene = document.getElementById('scene') as HTMLCanvasElement;
 // affichage : PixiJS (WebGL2, mise en couleur sur la carte graphique) ; sinon, ou avec ?gl=0 dans l'adresse, le canvas 2D d'avant
 export const GPU: Presenter | null = new URLSearchParams(location.search).get('gl') === '0' ? null : await createPresenter(scene, 1, 1);
 
+SH.GPU_GROUND = false; SH.REFL = null;
 SH.ctx = GPU ? null : scene.getContext('2d', { alpha: false });
 // ob : tampon des objets (ce qui n'est pas le sol), pour la vue de loin
 export let devW = 0, devH = 0, ob = new Uint8Array(0);
@@ -412,6 +419,13 @@ export function mapUpdate(){
 
 }
 /* ================= sol, mer, faisceau des phares, teinte des territoires ================= */
+// faisceau du phare le plus proche du centre de la vue, la nuit seulement
+export function beaconNear(): number[] | null {
+  let bm: number[] | null = null;
+  if (COLOR && SH.NIGHT > .55 && BEACONS.length){ let bd = 1e9; for (const bk of BEACONS){ const d = Math.hypot(bk[0] - cam.a, bk[1] - cam.b); if (d < bd){ bd = d; bm = bk; } } }
+  return bm;
+}
+
 export function beamTan(){
   const e = state.spread;
   if (e <= 0) return .082;
@@ -429,9 +443,7 @@ export function renderGround(t: number){
   const o = unprj(.5, .5);
   const F = fb, MB = mb, LBF = lb, OB = ob, GV = gVar, GS = gSea, GT = gTone, GTY = gType, GP = gPh, TM = TYPE_MAT, BY = BAYER, PT = PTAB;
   const w = W, h = H, tx = TX, ty = TY, gw = GW, gh = GH, ga0 = GA0, gb0 = GB0, qw = GQW, gsc = GSC, tsh = GSC === 2 ? 3 : 2;
-  // faisceau du phare le plus proche du centre de la vue, la nuit seulement
-  let bm: number[] | null = null;
-  if (COLOR && SH.NIGHT > .55 && BEACONS.length){ let bd = 1e9; for (const bk of BEACONS){ const d = Math.hypot(bk[0] - cam.a, bk[1] - cam.b); if (d < bd){ bd = d; bm = bk; } } }
+  const bm = beaconNear();
   const LA = bm ? bm[0] : 0, LB = bm ? bm[1] : 0, MF = M.FOAM, MBm = M.BEAM, MS2 = M.SEA, MSS = M.SEA_SHALLOW, MSM = M.SEA_MID;
   const TO = TER.own, TW = TER.W, TFR = TER.fresh, gt = GAME.t, hasT = !!TO;
   if (OROW.length !== w) OROW = new Uint8Array(w);
@@ -483,7 +495,69 @@ export function renderGround(t: number){
     }
   }
 }
+/* ================= le sol sur la carte graphique (etape 3.2) ================= */
+// Quand c'est possible, renderGround n'est plus appele : le shader (gpu/ground-glsl.ts) calcule le sol au pixel.
+// Le processeur part alors de tampons vides (matiere 255 : rien) et ne dessine que ce qui est pose sur le sol ;
+// pour un pixel vide, les ombres mettent l'eclairage a 4 et les lumieres de nuit laissent leur matiere dans la forme.
+export const EMPTY_PX = 255;
+// grille du sol empaquetee pour la carte graphique : 2 octets par case (type | classe de mer << 4, teinte), et le quart
+let GCELLS = new Uint8Array(0), GQUART = new Uint8Array(0), gridOf: Uint8Array | null = null;
+// territoire pour la carte graphique : camp de chaque case, + 2 si elle vient d'etre conquise
+let TERPX = new Uint8Array(0);
+if (GPU) GPU.groundMats({ typeMat: TYPE_MAT, sea: M.SEA, seaMid: M.SEA_MID, seaShallow: M.SEA_SHALLOW, foam: M.FOAM, beam: M.BEAM, road: M.ROAD, reflect: M.REFLECT, glows: GLOWS, waters: WATERS, keepTint: KEEP_TINT });
+// le sol peut-il etre calcule par la carte graphique pour cette image ? (pas pour le globe, ni si la grille depasse ses textures)
+export function groundOnGpu(): boolean { return !!GPU && !SH.CPU_GROUND && gType.length > 0 && GW <= GPU.maxTex && GH <= GPU.maxTex && SH.CURV <= 0; }
+function packCells(x0: number, x1: number, y0: number, y1: number){
+  const C = GCELLS, T = gType, O = gTone, S = gSea, w = GW;
+  for (let y = y0; y <= y1; y++) for (let x = x0, i = y * w + x0; x <= x1; x++, i++){
+    const t = T[i], cls = t === T_SEA ? (S[i] < 16 ? 0 : S[i] < 50 ? 1 : 2) : 0;
+    C[i * 2] = t | (cls << 4); C[i * 2 + 1] = O[i];
+  }
+}
+// envoie a la carte graphique ce qui a change dans la grille du sol depuis la derniere image
+export function syncGround(){
+  if (!GPU) return;
+  const d = GDIRTY;
+  if (d.full || gridOf !== gType || GCELLS.length !== GW * GH * 2){
+    if (GCELLS.length !== GW * GH * 2) GCELLS = new Uint8Array(GW * GH * 2);
+    if (GQUART.length !== GQW * GQH * 2) GQUART = new Uint8Array(GQW * GQH * 2);
+    packCells(0, GW - 1, 0, GH - 1);
+    for (let i = 0, n = GQW * GQH; i < n; i++){ GQUART[i * 2] = gVar[i]; GQUART[i * 2 + 1] = gPh[i]; }
+    GPU.groundGrid({ gw: GW, gh: GH, cells: GCELLS, qw: GQW, qh: GQH, quarter: GQUART });
+    gridOf = gType; d.full = false; d.x1 = -1; return;
+  }
+  if (d.x1 >= d.x0){
+    const x0 = Math.max(0, d.x0), x1 = Math.min(GW - 1, d.x1), y0 = Math.max(0, d.y0), y1 = Math.min(GH - 1, d.y1);
+    if (x1 >= x0 && y1 >= y0){ packCells(x0, x1, y0, y1); GPU.groundPatch(x0, y0, x1, y1); }
+    d.x1 = -1; d.x0 = 0;
+  }
+}
+// ce que le shader du sol doit savoir de l'image en cours
+export function groundView(t: number): GroundView {
+  const I = state.intensity, pat = state.pattern;
+  let pt = 0; for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) if (litAt(x, y, pat, I)) pt |= 1 << (y * 4 + x);
+  const bm = beaconNear();
+  const o = unprj(.5, .5);
+  let ter: GroundView['ter'] = null;
+  if (TER.N > 0 && TER.own.length === TER.N){
+    if (TERPX.length !== TER.N) TERPX = new Uint8Array(TER.N);
+    const TO = TER.own, TFR = TER.fresh, P = TERPX, gt = GAME.t;
+    let changed = false;
+    for (let i = 0, n = TER.N; i < n; i++){ let v = TO[i]; if (v && gt - TFR[i] < 1.1) v += 2; if (P[i] !== v){ P[i] = v; changed = true; } }
+    ter = { w: TER.W, h: TER.H, sh: GSC === 2 ? 3 : 2, own: P, changed };
+  }
+  return {
+    o, dax: (.5 * PC - .5 * PS) / SC, dbx: (-.5 * PS - .5 * PC) / SC, day: (PC + PS) / SC, dby: (PC - PS) / SC,
+    ga0: GA0, gb0: GB0, gsc: GSC, tx: TX, ty: TY, tick: Math.floor(t * 5), ring: t * 1.1,
+    ter,
+    beam: bm ? { a: bm[0], b: bm[1], c: Math.cos(state.theta), s: Math.sin(state.theta), tn: beamTan(), I, noise: pat === 'noise', pt } : null,
+    refl: SH.REFL,
+  };
+}
+// un pixel de l'image est-il eclaire (allume par le sol ou par une lumiere de nuit) ?
+export function pixelLit(j: number): boolean { return SH.GPU_GROUND && mb[j] === EMPTY_PX ? fb[j] !== 0 : fb[j] === 1; }
 // recalcule seulement les camps par pixel (teinte et frontieres), d'apres la geometrie du sol
+
 export function groundOwners(){
   const dax = (.5 * PC - .5 * PS) / SC, dbx = (-.5 * PS - .5 * PC) / SC, day = (PC + PS) / SC, dby = (PC - PS) / SC, o = unprj(.5, .5);
   const OB = ob, GTY = gType, TO = TER.own, TW = TER.W, TFR = TER.fresh, gt = GAME.t, w = W, h = H, gw = GW, gh = GH, gsc = GSC, tsh = GSC === 2 ? 3 : 2;
@@ -549,7 +623,7 @@ export function applyLights(){
     const y0 = Math.max(0, Math.floor(c[1] - ey)), y1 = Math.min(H - 1, Math.ceil(c[1] + ey));
     if (x0 > x1 || y0 > y1) continue;
     const Ik = clamp(I * Lt.k * (COLOR ? clamp((SH.NIGHT - .2) * 1.6, 0, 1) : 1), 0, 1), lm = Lt.m == null ? M.GLOW : Lt.m;
-    const o = unprj(x0 + .5, y0 + .5), FB = fb, MB = mb, LB = lb;
+    const o = unprj(x0 + .5, y0 + .5), FB = fb, MB = mb, LB = lb, GG = SH.GPU_GROUND;
     for (let sy = y0; sy <= y1; sy++){
       let ga = o[0] + (sy - y0) * day, gb = o[1] + (sy - y0) * dby;
       for (let sx = x0; sx <= x1; sx++, ga += dax, gb += dbx){
@@ -560,7 +634,11 @@ export function applyLights(){
           const la = ga - Lt.a, lbb = gb - Lt.b, al = la * Lt.da + lbb * Lt.db, pe = lbb * Lt.da - la * Lt.db;
           if (al < 0 || al > Lt.len || Math.abs(pe) > al * Lt.tan + Lt.w0) continue; tt = al / Lt.len;
         }
-        if (litAt(sx - TX, sy - TY, pat, Ik * (1 - Lt.att * tt))){ FB[j] = 1; MB[j] = lm; if (COLOR) LB[j] = 0; }
+        if (litAt(sx - TX, sy - TY, pat, Ik * (1 - Lt.att * tt))){
+          // sol calcule par la carte graphique : on laisse la matiere de la lumiere, elle ne vaut que sur un pixel sombre du sol
+          if (GG && MB[j] === EMPTY_PX) FB[j] = lm;
+          else { FB[j] = 1; MB[j] = lm; if (COLOR) LB[j] = 0; }
+        }
       }
     }
   }
@@ -573,7 +651,7 @@ export function drawCat(c: Cat, t: number){
   c.screen = [bx, by];
   let f = c.fixed ? (c.face || -1) : 1;
   if (p.moving && !c.fixed){ const sx = (p.da * PC - p.db * PS) - (p.da * PS + p.db * PC); f = sx >= 0 ? 1 : -1; }
-  const lit = (bx >= 0 && by >= 0 && bx < W && by < H && fb[by * W + bx] === 1) || c === state.chatCat;
+  const lit = (bx >= 0 && by >= 0 && bx < W && by < H && pixelLit(by * W + bx)) || c === state.chatCat;
   const fr = p.moving && !c.paused ? (Math.floor(t * 7 + p.a + p.b) & 1) : 2;
   const pix = catPixels(c, fr, f, lit);
   SH.CUR = catMat(c);
@@ -611,7 +689,10 @@ export function render(t: number){
   setProj();
   // tres loin, si l'ile n'est plus du tout dans le tampon plat (on a tourne autour de la planete), on ne dessine que la planete
   if (SH.CURV > 0 && !SH.planetFlatNeeded()){ SH.planetWarp(t, false); return; }
-  renderGround(t);
+  const gg = groundOnGpu();
+  SH.GPU_GROUND = gg; SH.REFL = null;
+  if (gg){ syncGround(); mb.fill(EMPTY_PX); fb.fill(0); lb.fill(0); }
+  else renderGround(t);
   drawWaves(t);
   if (!far) for (const d of DECALS) d(t);
   const dyn = dynamicDrawables(t);
@@ -641,7 +722,9 @@ export function render(t: number){
   else if (glow){ for (const bk of BEACONS){ drawLantern(bk[0], bk[1]); drawGlow(bk[0], bk[1], t); } drawLampHeads(); }
   else for (const bk of BEACONS) drawLantern(bk[0], bk[1]);
   drawSatellite(t); drawWeather(t); if (COLOR) for (const f of HOOKS.post) f(t);
+  if (GPU && gg){ GPU.palette(PALX, PL, SH.palKey); GPU.drawGround({ fb, mb, lb, ob, n: N }, groundView(t)); return; }
   if (GPU && SH.CURV <= 0){ GPU.palette(PALX, PL, SH.palKey); GPU.draw({ fb, mb, lb, ob, n: N }); return; }
+
   toRGBA();
   if (SH.CURV > 0){ SH.planetWarp(t, true); return; }
   presentImage();

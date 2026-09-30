@@ -211,7 +211,18 @@ export function buildGround(seed: number, conf: string): void {
     gType[i] = gBase[i];
     gTone[i] = (gBase[i] === T_SEA && gSea[i] > 10) ? 0 : baseTone(gBase[i], gLand[i], gSea[i], ia, ib);
   }
+  groundDirtyAll();
 }
+// Parties de la grille du sol modifiees depuis le dernier envoi a la carte graphique (11-render) :
+// un rectangle en cases qui englobe tout ce qui a change, ou toute la grille (full). ver change a chaque modification.
+export const GDIRTY = { ver: 0, full: true, x0: 0, y0: 0, x1: -1, y1: -1 };
+export function groundDirty(ia0: number, ia1: number, ib0: number, ib1: number): void {
+  const d = GDIRTY; d.ver++;
+  if (d.full) return;
+  if (d.x1 < d.x0){ d.x0 = ia0; d.x1 = ia1; d.y0 = ib0; d.y1 = ib1; return; }
+  d.x0 = Math.min(d.x0, ia0); d.x1 = Math.max(d.x1, ia1); d.y0 = Math.min(d.y0, ib0); d.y1 = Math.max(d.y1, ib1);
+}
+export function groundDirtyAll(): void { GDIRTY.ver++; GDIRTY.full = true; }
 export function baseTone(t: number, ld: number, sd: number, ia: number, ib: number): number {
   switch (t){
     case T_SEA: return (sd >= 1 && sd <= 10) ? 32 + sd : 0;
@@ -229,7 +240,9 @@ export function resetArea(ia0: number, ia1: number, ib0: number, ib1: number): v
     const i = ib * GW + ia; gType[i] = gBase[i];
     gTone[i] = (gBase[i] === T_SEA && gSea[i] > 10) ? 0 : baseTone(gBase[i], gLand[i], gSea[i], ia, ib);
   }
+  groundDirty(ia0, ia1, ib0, ib1);
 }
+
 // defricher : la foret redevient de l'herbe sous un batiment ou une route
 export function clearForest(a0: number, a1: number, b0: number, b1: number): number {
   const ia0 = Math.max(0, Math.floor((a0 - GA0) * GSC)), ia1 = Math.min(GW - 1, Math.ceil((a1 - GA0) * GSC));
