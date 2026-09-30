@@ -1,6 +1,6 @@
-import { SH } from './00-shared.js';
+import { SH } from './00-shared.ts';
 import { COLOR, FONT, H, M, PC, PS, SC, SHADOW_V, TAU, UP, W, bay, blit, blitAt, boxS, bz, cam, clamp, dep, drawFace, fput, hash2, lb, line3, prj, state, textW, unprj, wallFace } from './01-core.js';
-import { GA0, GB0, GH, GSC, GW, IS, ISEED, MOUNT_T, T_FOREST, T_GRASS, T_ROCK, baseAt, cellOf, clearForest, gBase, gLand, landDAt, mapScale, mountN } from './02-ground.js';
+import { GA0, GB0, GH, GSC, GW, IS, ISEED, MOUNT_T, T_FOREST, T_GRASS, T_ROCK, baseAt, cellOf, clearForest, gBase, gLand, landDAt, mapScale, mountN } from './02-ground.ts';
 import { pennant, treeSpr, treeSprSc } from './03-buildings-base.js';
 /* ================= forets : des milliers d'arbres, ranges par cases pour ne dessiner que ceux a l'ecran ================= */
 export const TB = 64;                     // taille d'une case d'arbres, en unites

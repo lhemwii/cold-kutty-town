@@ -15,6 +15,8 @@ Les modules sont de **vrais modules ES**, avec trois règles :
 
 La conversion depuis l’ancienne portée unique a été faite par un script (analyse des portées avec eslint-scope), sans toucher à la logique.
 
+**TypeScript.** Les modules passent un par un de `.js` à `.ts` (liste dans le plan, étape 0.19). `tsc` en mode strict vérifie les modules `.ts` (`npm run typecheck`, lancé aussi par `npm run build`) ; Vite ne fait que retirer les types. Les types communs sont dans `00-shared.ts` (`Side`, `Building`, et les champs de `SH` déjà typés). Les modules encore en JavaScript ne sont pas vérifiés, mais TypeScript lit leurs annotations JSDoc (`@type`) : c’est ainsi que `GAME`, `cam`, `SIDES`, `TYPES` ou `$` sont typés pour les modules convertis. Un import pointe vers le vrai fichier (`'./02-ground.ts'`).
+
 `npm run dev` sert le jeu avec rechargement à chaud (et `/api/claude` en local), `npm run build` écrit un site statique dans `dist/` (une page, un CSS et un script avec une empreinte dans le nom, pour un cache long), `npm run preview` le sert tel qu’il sera en ligne.
 
 ## Les modules

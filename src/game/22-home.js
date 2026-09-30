@@ -1,7 +1,7 @@
-import { SH } from './00-shared.js';
+import { SH } from './00-shared.ts';
 import { CAMP_SHORT, GAME, GLOBE_ON, HOOKS, RP, TAU, cam, other, reduceMotion, setProj, state } from './01-core.js';
-import { IS, MAP_CONFS, MAP_SIZES, mapScale } from './02-ground.js';
-import { terPct } from './08-territory.js';
+import { IS, MAP_CONFS, MAP_SIZES, mapScale } from './02-ground.ts';
+import { terPct } from './08-territory.ts';
 import { CLOCK, MAPV, centerOn, clampCam, setZoom } from './11-render.js';
 import { $, drag, setPaused, setSpeed, toast } from './13-ui.js';
 import { FLAG_HEX, FLAG_HI, flagSVG } from './14-hud.js';

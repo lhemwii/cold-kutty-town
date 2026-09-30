@@ -1,18 +1,18 @@
-import { SH } from './00-shared.js';
+import { SH } from './00-shared.ts';
 import { CAMP_FULL, DASHES, GAME, H, HOOKS, RP, SC, SIDES, TAU, W, cam, clamp, geoCast, geoProj, groundDelta, other, prj, reduceMotion, state, unprj } from './01-core.js';
-import { IS, ISEED, MAP_CONFS, MAP_SIZES, buildGround, clearForest, islandNear, mapScale, nearestShore, setMapSize } from './02-ground.js';
+import { IS, ISEED, MAP_CONFS, MAP_SIZES, buildGround, clearForest, islandNear, mapScale, nearestShore, setMapSize } from './02-ground.ts';
 import { TYPES } from './04-types.js';
 import { typeName } from './05-types-extra.js';
 import { DIR_V } from './06-types-more.js';
 import { LAMP_POS, PEAKS, TREES, VEST, buildForests, buildMountains, buildVestiges } from './07-world.js';
-import { SNAME, TER, claimDisc, initTerritory, rebuildLocks, stepTerritory, terBoxRebuild, terPct } from './08-territory.js';
+import { SNAME, TER, claimDisc, initTerritory, rebuildLocks, stepTerritory, terBoxRebuild, terPct } from './08-territory.ts';
 import { CARS, RW, RWS, addRoad, buildGraph, makeRoad, repaintAllRoads, reseatCars, roadProblem, sampleCurve, sampleLine, stepCars } from './09-roads.js';
 import { catPos, findSpot, makeBuilding, placeProblem, rebuildTown } from './10-town.js';
 import { CLOCK, FAR, MAPV, OV_ON, WEATHER, ZLEVELS, ZMIN, centerOn, clampCam, layout, mapDirtyAll, mapInit, render, screenToWorld, setZoom, stepClock, stepWeather, stepZoom, worldToScreen, zoomLevels } from './11-render.js';
 import { drawFlagIcon, drawPortrait } from './12-portrait.js';
 import { $, HISTORY, addWall, drawCompass, setSpeed, setTool, stepKeys, toast, updateClockUI, updateUndo } from './13-ui.js';
 import { THUMBS, buildMenu, flagSVG, lootVestige } from './14-hud.js';
-import { DEMOS, EV, buildTime, newRes, stepEco, stepEvents, stepSpace } from './15-economy.js';
+import { DEMOS, EV, buildTime, newRes, stepEco, stepEvents, stepSpace } from './15-economy.ts';
 import { CREWS, buildNav, offshoreFrom, stepBoats } from './16-boats.js';
 import { PAPER, applySeason, deliverPaper, memGreeting, memRemember, updateCalUI } from './17-calendar.js';
 import { RIVAL, newBrain, rivalLanding, stepRival } from './20-rival.js';
@@ -419,7 +419,7 @@ export function start(){
   SH.homeIsland(1 + Math.floor(Math.random() * 99999));
   radioNext();
   SH.openIntro();
-  window.__okt = { state, cam, GAME, RES: SH.RES, BLD: () => SH.BLD, ROADS: () => SH.ROADS, WALLS: () => SH.WALLS, BOATS: () => SH.BOATS, CATS: () => SH.CATS, TER, TREES, MAPV, get VEST(){ return VEST; }, lootVestige, SPACE: SH.SPACE, EV, RIVAL, CLOCK, CAL: SH.CAL, TYPES, ECO: SH.ECO, PEAKS,
+  window.__okt = { SH, state, cam, GAME, RES: SH.RES, BLD: () => SH.BLD, ROADS: () => SH.ROADS, WALLS: () => SH.WALLS, BOATS: () => SH.BOATS, CATS: () => SH.CATS, TER, TREES, MAPV, get VEST(){ return VEST; }, lootVestige, SPACE: SH.SPACE, EV, RIVAL, CLOCK, CAL: SH.CAL, TYPES, ECO: SH.ECO, PEAKS,
     setZoom, centerOn, unprj, prj, worldToScreen, screenToWorld, placeProblem, findSpot, makeBuilding, startBuilding: SH.startBuilding, addRoad, roadProblem, sampleLine, sampleCurve, addWall, sendBarge: SH.sendBarge, chooseLanding, terPct, claimDisc,
     render, FAR, rebuildTown, snapshot, loadGame, newWorld, enterPlay, applySeason, updateCalUI, deliverPaper, forceEvent: () => { EV.next = 0; }, autoBoth: () => { RIVAL.auto = { usc: true, ccp: true }; }, selectBuilding: SH.selectBuilding, setTool, upgradeBuilding: SH.upgradeBuilding, rivalStep: stepRival,
     get Z(){ return SH.Z; }, get K(){ return SH.K; }, get KMIN(){ return SH.KMIN; }, get KDEF(){ return SH.KDEF; }, get ZLEVELS(){ return ZLEVELS; }, get OV_ON(){ return OV_ON; }, get view(){ return [W, H]; }, get NIGHT(){ return SH.NIGHT; }, get CURV(){ return SH.CURV; }, geoCast, geoProj, WARP: SH.WARP, get SC(){ return SC; }, islandNear, ISL: () => ISEED.isl, saveNow: SH.saveNow, newWorldOpts: () => [GAME.size, GAME.conf] };

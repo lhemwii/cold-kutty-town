@@ -1,8 +1,8 @@
-import { SH } from './00-shared.js';
+import { SH } from './00-shared.ts';
 import { M, SIDES, clamp, hash2 } from './01-core.js';
-import { GA0, GB0, GH, GSC, GW, T_ROAD, T_ROCK, T_SEA, T_WALK, cellOf, gBase, gLand, gTone, gType, resetArea, typeAt } from './02-ground.js';
+import { GA0, GB0, GH, GSC, GW, T_ROAD, T_ROCK, T_SEA, T_WALK, cellOf, gBase, gLand, gTone, gType, resetArea, typeAt } from './02-ground.ts';
 import { LAMP_POS, cutTreesAlong } from './07-world.js';
-import { sideAt } from './08-territory.js';
+import { sideAt } from './08-territory.ts';
 /* ================= routes : droites ou courbes, raccordees entre elles, parcourues par les voitures ================= */
 export const RW = 6, SW = 3, RWS = RW + SW;
 SH.ROADS = []; export let ROAD_ID = 1;

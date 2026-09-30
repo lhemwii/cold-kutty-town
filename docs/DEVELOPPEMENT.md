@@ -5,7 +5,8 @@
 ```bash
 npm install        # une fois : installe Vite
 npm run dev        # http://localhost:5173, recharge à chaque sauvegarde
-npm run build      # construit le site dans dist/
+npm run typecheck  # vérifie les types des modules en TypeScript
+npm run build      # vérifie les types, puis construit le site dans dist/
 npm run preview    # sert dist/ tel qu’il sera en ligne (http://localhost:4173)
 ```
 

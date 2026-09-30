@@ -6,14 +6,16 @@
   "description": "Cold Kutty Town : city builder cozy de chats pendant la guerre froide (1961), moteur pixel écrit à la main.",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "typecheck": "tsc -p .",
+    "build": "tsc -p . && vite build",
     "preview": "vite preview --port 4173 --strictPort",
-    "check": "vite build"
+    "check": "tsc -p . && vite build"
   },
   "engines": {
     "node": ">=20.19"
   },
   "devDependencies": {
+    "typescript": "^7.0.2",
     "vite": "^8.3.1"
   }
 }

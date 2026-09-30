@@ -1,7 +1,7 @@
-import { SH } from './00-shared.js';
+import { SH } from './00-shared.ts';
 import { CAMP_SHORT, COLOR, GAME, H, HOOKS, N, TAU, W, cam, clamp, state } from './01-core.js';
-import { GA0, GB0, T_SEA, typeAt } from './02-ground.js';
-import { sideAt } from './08-territory.js';
+import { GA0, GB0, T_SEA, typeAt } from './02-ground.ts';
+import { sideAt } from './08-territory.ts';
 import { CLOCK, MAPV, MS, OV_ON, WEATHER, clampCam, devH, devW, mapUpdate, render, scene, screenToWorld } from './11-render.js';
 import { $, toast } from './13-ui.js';
 import { MONTHS, closePaper } from './17-calendar.js';

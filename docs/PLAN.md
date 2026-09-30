@@ -154,7 +154,15 @@ Au lancement d’une partie, on choisit la taille de la carte et la forme du mon
 Le jeu passe à une base prête pour la haute définition et pour Steam, sans rien réécrire de la logique : TypeScript (du JavaScript typé), PixiJS pour dessiner avec la carte graphique, Vite pour le build, Electron et steamworks.js pour la version Steam. La version web reste sur Vercel pour faire tester. Dans cet ordre :
 
 - [x] 1. Vite et modules ES à la place de la concaténation. Chaque module importe ce qu’il utilise des modules plus petits en numéro ; ce qui est appelé vers l’avant, et les variables que plusieurs modules modifient, passent par un objet partagé (`SH`, dans `00-shared.js`). Conversion faite par un script, puis vérifiée partie en main.
-- [ ] 2. TypeScript module par module, en commençant par le monde et l’économie.
+- [ ] 2. TypeScript module par module, en commençant par le monde et l’économie. `tsc` en mode strict vérifie les modules convertis ; `npm run build` refuse de construire si un type ne va pas.
+  - [x] Outillage : TypeScript 7, `tsconfig.json`, `npm run typecheck`, vérification dans `npm run build`.
+  - [x] `00-shared` : types communs (`Side`, `Building`) et objet partagé `SH`.
+  - [x] Le monde : `02-ground` (tailles de carte, formes, îles, trame du sol).
+  - [x] Le territoire : `08-territory` (grille, conquête, verrous).
+  - [x] L’économie : `15-economy` (fiches des bâtiments, ressources, chantiers, événements, course à l’espace).
+  - [ ] La suite du monde : `07-world` (forêts, montagnes, vestiges), `09-roads`, `10-town`, `16-boats`.
+  - [ ] Le cœur et le rendu : `01-core`, `11-render`, puis les bâtiments (`03` à `06`) : à faire juste avant PixiJS, puisque le rendu change.
+  - [ ] L’interface et le reste : `12` à `14`, `17` à `23`.
 - [ ] 3. PixiJS à la place du rendu actuel : le sol et les objets en textures, le style pixel gardé avec un filtre.
 - [ ] 4. Electron et steamworks.js (succès, sauvegardes Steam) dès qu’il y a une démo jouable. Plus tard, Gemma sur la machine du joueur avec node-llama-cpp.
 

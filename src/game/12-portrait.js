@@ -1,4 +1,4 @@
-import { SH } from './00-shared.js';
+import { SH } from './00-shared.ts';
 import { BAYER, BLACK, COLOR, STAR7, WHITE, clamp, flagSmall, hash2 } from './01-core.js';
 import { glyphAt } from './07-world.js';
 import { PAL32, hex32 } from './11-render.js';

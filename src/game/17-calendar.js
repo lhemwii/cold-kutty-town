@@ -1,7 +1,7 @@
-import { SH } from './00-shared.js';
+import { SH } from './00-shared.ts';
 import { COLOR, GAME, H, HOOKS, M, N, SIDES, TAU, W, cam, clamp, fput, hash2, other, state } from './01-core.js';
 import { TYPES } from './04-types.js';
-import { terPct } from './08-territory.js';
+import { terPct } from './08-territory.ts';
 import { catPos } from './10-town.js';
 import { CLOCK, OV_ON, WEATHER, render, scene } from './11-render.js';
 import { $, toast } from './13-ui.js';

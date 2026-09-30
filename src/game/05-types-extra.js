@@ -1,4 +1,4 @@
-import { SH } from './00-shared.js';
+import { SH } from './00-shared.ts';
 import { COLOR, FONT, M, TAU, blit, boxS, bz, cam, clamp, drawFace, flagSmall, fput, hash2, line3, plateW, prj, win, winColor } from './01-core.js';
 import { Lc, artSprite, drawCar, facadePlate, part, wallBase } from './03-buildings-base.js';
 import { TYPES } from './04-types.js';

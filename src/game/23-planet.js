@@ -1,6 +1,6 @@
-import { SH } from './00-shared.js';
+import { SH } from './00-shared.ts';
 import { GAME, GEO, H, N, PC, PS, RAYHIT, RP, SC, SQ3, TAU, TX, TY, W, cam, clamp, hash2, img, prj, px32, vnoise } from './01-core.js';
-import { GA0, GB0, GH, GSC, GW } from './02-ground.js';
+import { GA0, GB0, GH, GSC, GW } from './02-ground.ts';
 import { CLOCK, MAPV, mapUpdate } from './11-render.js';
 /* ================= la planete : on dezoome en continu de l'ile jusqu'au globe entier, l'espace derriere ================= */
 // L'ile est un morceau de la surface d'une planete de rayon RP (en unites du monde) : a = longitude * RP, b = -latitude * RP.

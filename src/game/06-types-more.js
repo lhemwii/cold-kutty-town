@@ -1,4 +1,4 @@
-import { SH } from './00-shared.js';
+import { SH } from './00-shared.ts';
 import { COLOR, FONT, M, TAU, UP, boxS, bz, cam, clamp, dep, drawFace, drawFlagPole, drawStar, fput, gableRoof, gableWalls, hash2, line3, lineS, plateW, prj, wallFace } from './01-core.js';
 import { Lc, alongSh, bobZ, drawCar, drawHull, facadePlate, houseGeo, part, pennant, rbox, rot2, sideLight, wallBase } from './03-buildings-base.js';
 import { TYPES } from './04-types.js';

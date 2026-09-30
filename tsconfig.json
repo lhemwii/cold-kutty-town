@@ -1,0 +1,19 @@
+{
+  // TypeScript vérifie les modules déjà convertis (.ts) ; les autres restent en JavaScript le temps de la conversion.
+  // Vite ne fait que retirer les types au build : c'est « npm run typecheck » (lancé par « npm run build ») qui vérifie.
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "noEmit": true,
+    "allowJs": true,
+    "checkJs": false,
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true
+  },
+  "include": ["src"]
+}

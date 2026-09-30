@@ -1,4 +1,4 @@
-import { SH } from './00-shared.js';
+import { SH } from './00-shared.ts';
 import { COLOR, CONST_SH, M, TAU, UP, blitAt, boxS, bz, clamp, dep, drawFace, drawFlagPole, drawStar, drawText, fillConvex, fput, gableRoof, hash2, line3, lineS, plateW, prj, textW, wallBitmap, wallFace, win, winColor } from './01-core.js';
 import { Lc, QUEUE_CAT, alongSh, antennaAt, artSprite, drawCar, drawChimney, drawHouse, facadePlate, frontVisible, houseGeo, houseLights, part, picket, sideLight, smokeAt, treeSpr, wallBase } from './03-buildings-base.js';
 /* ================= statues ================= */
@@ -46,6 +46,7 @@ export const STATUE_USC = artSprite([
 
 /* ================= les types de batiments ================= */
 export function seedOf(lot){ return Math.abs(Math.round(lot.ca * 7 + lot.cb * 13)) % 97; }
+/** @type {Record<string, { name: string, nameCCP?: string, fem?: boolean, build: (lot: any, seed: number) => any }>} */
 export const TYPES = {
   maison: { name: 'Maison', fem: true, build(lot, seed){
     const lv = lot.lvl || 1;

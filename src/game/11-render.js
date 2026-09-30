@@ -1,9 +1,9 @@
-import { SH } from './00-shared.js';
+import { SH } from './00-shared.ts';
 import { BAYER, COLOR, GAME, GEO, GLOBE_ON, H, HOOKS, M, N, PC, PROJ_FIX, PS, RAYHIT, RP, SC, SHADOW_V, TAU, TX, TY, W, cam, clamp, dep, fb, fput, geoCast, geoProj, geoSet, getView, groundDelta, hash2, img, lb, litAt, mb, prj, px32, setProj, setView, state, unprj } from './01-core.js';
-import { GA0, GB0, GH, GQW, GSC, GW, TYPE_MAT, T_BEACH, T_DIRT, T_FOREST, T_GRASS, T_PIER, T_QUAY, T_ROAD, T_ROCK, T_SEA, T_WALK, cellOf, gPh, gSea, gTone, gType, gVar, mapScale } from './02-ground.js';
+import { GA0, GB0, GH, GQW, GSC, GW, TYPE_MAT, T_BEACH, T_DIRT, T_FOREST, T_GRASS, T_PIER, T_QUAY, T_ROAD, T_ROCK, T_SEA, T_WALK, cellOf, gPh, gSea, gTone, gType, gVar, mapScale } from './02-ground.ts';
 import { drawCarAng } from './03-buildings-base.js';
 import { VEST, drawGlow, drawLampHeads, drawLantern, drawSailboat, sailPos, towerSpot, treeDrawables } from './07-world.js';
-import { TC, TER, terIdx } from './08-territory.js';
+import { TC, TER, terIdx } from './08-territory.ts';
 import { CARS } from './09-roads.js';
 import { BEACONS, DECALS, LIGHTS_STATIC, STATIC_PARTS, catMat, catPixels, catPos } from './10-town.js';
 /* ================= palette de la version couleur : pour chaque matiere, teinte sombre puis claire ================= */

@@ -1,10 +1,10 @@
-import { SH } from './00-shared.js';
+import { SH } from './00-shared.ts';
 import { CAMP_FULL, GAME, H, M, PC, PS, SC, TX, TY, W, clamp, dep, fb, getView, img, lb, mb, setView, state } from './01-core.js';
-import { nearestShore } from './02-ground.js';
+import { nearestShore } from './02-ground.ts';
 import { TYPES } from './04-types.js';
 import { typeName } from './05-types-extra.js';
 import { VEST_DEF, drawVestige } from './07-world.js';
-import { TER, influenceOf, sideAt, terPct } from './08-territory.js';
+import { TER, influenceOf, sideAt, terPct } from './08-territory.ts';
 import { footOf } from './10-town.js';
 import { FAR, PALL } from './11-render.js';
 import { $, setTool, toast } from './13-ui.js';

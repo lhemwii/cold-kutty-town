@@ -1,16 +1,17 @@
-import { SH } from './00-shared.js';
+import { SH } from './00-shared.ts';
 import { BLACK, GAME, H, M, PC, PS, TAU, W, WHITE, cam, clamp, dep, fput, groundDelta, lineS, prj, setProj, state, unprj } from './01-core.js';
-import { T_SEA, baseAt, landDAt, nearestShore } from './02-ground.js';
+import { T_SEA, baseAt, landDAt, nearestShore } from './02-ground.ts';
 import { pennant } from './03-buildings-base.js';
 import { TYPES } from './04-types.js';
 import { typeName } from './05-types-extra.js';
 import { GRAFFITI, cutTreesAlong, drawWallPiece, vestAt } from './07-world.js';
-import { TER, influenceOf, rebuildLocks, sideAt } from './08-territory.js';
+import { TER, influenceOf, rebuildLocks, sideAt } from './08-territory.ts';
 import { RW, addRoad, nearRoad, removeRoad, roadCost, roadProblem, sampleCurve, sampleLine, segDist, snapRoadPoint } from './09-roads.js';
 import { bldAt, buildParts, coastDir, makeBuilding, placeProblem, rebuildTown } from './10-town.js';
 import { CLOCK, OV_ON, WEATHER, ZMIN, clampCam, mapDirtyAll, scene, screenToWorld, setZNow, setZoom, snapZoom, zoomStep } from './11-render.js';
 /* ================= outils du joueur : observer, construire, routes, Rideau de Laine, demolir ================= */
-export const $ = (id) => document.getElementById(id);
+/** @type {(id: string) => HTMLElement} */
+export const $ = (id) => /** @type {HTMLElement} */ (document.getElementById(id));
 // state.tool : walk, build, road, curve, wall, demolish, barge (choix d'une cote), landing (choix de la plage)
 state.tool = 'walk'; state.buildType = 'maison'; state.sel = null;
 export const HINTS = {

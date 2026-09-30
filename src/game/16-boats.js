@@ -1,9 +1,9 @@
-import { SH } from './00-shared.js';
+import { SH } from './00-shared.ts';
 import { GAME, H, HOOKS, M, TAU, W, clamp, dep, fput, hash2, line3, prj } from './01-core.js';
-import { GA0, GB0, GH, GSC, GW, islandNear, seaDAt } from './02-ground.js';
+import { GA0, GB0, GH, GSC, GW, islandNear, seaDAt } from './02-ground.ts';
 import { PED_FUR, bobZ, drawHull, pennant, rbox, rot2 } from './03-buildings-base.js';
 import { DIR_ANG, DIR_V, drawCargo } from './06-types-more.js';
-import { claimDisc } from './08-territory.js';
+import { claimDisc } from './08-territory.ts';
 import { findSpot, makeBuilding } from './10-town.js';
 import { worldToScreen } from './11-render.js';
 import { $, toast } from './13-ui.js';

@@ -1,4 +1,4 @@
-import { SH } from './00-shared.js';
+import { SH } from './00-shared.ts';
 /* ================= bases ================= */
 export const BAYER = new Uint8Array([0,8,2,10, 12,4,14,6, 3,11,1,9, 15,7,13,5]);
 export const TAU = Math.PI * 2;
@@ -64,6 +64,7 @@ export const state = {
 
 /* ================= camera : rotation libre, zoom par paliers entiers ================= */
 // (a, b) : axes de la ville au sol, z : hauteur. La camera tourne autour de (cam.a, cam.b).
+/** @type {{ a: number, b: number, phi: number, phiT: number | null, target: [number, number] | null, follow?: any }} */
 export const cam = { a: 40, b: -20, phi: 0, phiT: null, target: null };
 // la vue (projection, taille et tampons de l'image) : variables du module, lues partout par import ;
 // un autre module la change par setView (et la garde par getView pour la remettre ensuite)
@@ -84,9 +85,14 @@ export function setView(v){
   if ('PROJ_FIX' in v) PROJ_FIX = v.PROJ_FIX; if ('img' in v) img = v.img; if ('px32' in v) px32 = v.px32;
 }
 // partie : 'menu' (accueil), 'landing' (choix de la plage), 'play', 'over'. side : le camp du joueur, rival : l'IA en face
+/** @typedef {import('./00-shared.ts').Side} Side */
+/** @type {{ mode: string, side: Side, rival: Side, speed: number, paused: boolean, t: number, seed: number, winner: Side | null, size: string, conf: string, slot?: string, name?: string, landing?: [number, number] | null, rivalLanding?: [number, number] | null }} */
 export const GAME = { mode: 'menu', side: 'usc', rival: 'ccp', speed: 1, paused: false, t: 0, seed: 1, winner: null, size: 'moyenne', conf: 'une' };
+/** @type {Side[]} */
 export const SIDES = ['usc', 'ccp'];
+/** @type {(s: Side) => Side} */
 export const other = (s) => s === 'usc' ? 'ccp' : 'usc';
+/** @type {Record<Side, string>} */
 export const CAMP_FULL = { usc: 'United Sands of Cats', ccp: 'Cats Communist Republic' };
 export const CAMP_SHORT = { usc: 'USC', ccp: 'CCR' };
 // Vue de loin courbee : tout au bout du dezoom, le monde est pose sur une sphere de rayon GR (immense juste sous la vue rapprochee,

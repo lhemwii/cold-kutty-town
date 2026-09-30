@@ -34,7 +34,7 @@ Le dépôt est relié à Vercel : chaque push sur `main` part en production, cha
 
 ## Comment c’est fait
 
-Du JavaScript en modules ES, construit avec Vite, rendu pixel par pixel dans un canvas. La suite prévue : TypeScript, PixiJS pour le rendu en haute définition, Electron pour Steam (voir le plan, étape 0.19). Le moteur isométrique est écrit à la main : buffers de pixels, palette jour et nuit, tri des objets par profondeur, lumières, ombres. Pas d’image : chaque bâtiment, chat, voiture et avion est dessiné par du code.
+Du JavaScript en modules ES, qui passe module par module en TypeScript, construit avec Vite, rendu pixel par pixel dans un canvas. La suite prévue : PixiJS pour le rendu en haute définition, Electron pour Steam (voir le plan, étape 0.19). Le moteur isométrique est écrit à la main : buffers de pixels, palette jour et nuit, tri des objets par profondeur, lumières, ombres. Pas d’image : chaque bâtiment, chat, voiture et avion est dessiné par du code.
 
 ```
 src/

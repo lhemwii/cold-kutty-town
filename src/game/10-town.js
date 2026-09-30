@@ -1,11 +1,11 @@
-import { SH } from './00-shared.js';
+import { SH } from './00-shared.ts';
 import { COLOR, HOOKS, M, MOON, PC, PS, SC, SUN, TAU, TX, TY, bay, blitAt, fb, fput, hash2, prj, setView } from './01-core.js';
-import { GA0, GB0, GH, GSC, GW, T_BEACH, T_ROCK, T_SEA, baseAt, landDAt, seaDAt } from './02-ground.js';
+import { GA0, GB0, GH, GSC, GW, T_BEACH, T_ROCK, T_SEA, baseAt, landDAt, seaDAt } from './02-ground.ts';
 import { LAMP_SPR, Lc, part } from './03-buildings-base.js';
 import { TYPES, seedOf } from './04-types.js';
 import { DIR_V } from './06-types-more.js';
 import { LAMP_POS, VEST, drawTower, drawWallPiece, peaksIn } from './07-world.js';
-import { sideAt } from './08-territory.js';
+import { sideAt } from './08-territory.ts';
 import { RW, rectRoadDist } from './09-roads.js';
 /* ================= la ville : batiments poses librement, chats qui arrivent avec eux ================= */
 // un batiment : type, camp, emprise au sol (a0..a1, b0..b1), niveau, chantier en cours, direction de la mer pour la cote

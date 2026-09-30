@@ -1,4 +1,4 @@
-import { SH } from './00-shared.js';
+import { SH } from './00-shared.ts';
 import { COLOR, M, ROOF_OF, UP, bay, boxS, bz, clamp, drawFace, faceVisible, fput, gableRoof, gableWalls, hash2, lineS, makeSprite, moonDot, plateW, prj, wallFace, win, winColor } from './01-core.js';
 /* ================= decor : aides ================= */
 export const SIDE_N = [[0,1,0],[1,0,0],[0,-1,0],[-1,0,0]];
