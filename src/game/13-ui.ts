@@ -24,6 +24,79 @@ export function $of<T extends HTMLElement>(id: string, kind: new () => T): T {
   if (!(el instanceof kind)) throw new Error('#' + id + " n'est pas du type attendu");
   return el;
 }
+/* ================= petites illustrations (pixel art) : ressources, saisons, niveau ================= */
+export type Pal = Record<string, string>;
+/** un dessin en caracteres (une chaine par ligne) et sa palette */
+export type PixelArt = [string[], Pal];
+export function pixelSVG(art: string[], pal: Pal, cls?: string){
+  const h = art.length, w = Math.max(...art.map(r => r.length));
+  let s = '<svg' + (cls ? ' class="' + cls + '"' : '') + ' viewBox="0 0 ' + w + ' ' + h + '" shape-rendering="crispEdges" aria-hidden="true">';
+  for (let y = 0; y < h; y++){
+    // une ligne = des rectangles qui fusionnent les pixels voisins de meme couleur
+    let x = 0;
+    while (x < art[y].length){
+      const c = art[y][x], col = pal[c]; let n = 1;
+      while (x + n < art[y].length && art[y][x + n] === c) n++;
+      if (col) s += '<rect x="' + x + '" y="' + y + '" width="' + n + '" height="1.02" fill="' + col + '"/>';
+      x += n;
+    }
+  }
+  return s + '</svg>';
+}
+export const ICONS: Record<string, PixelArt> = {
+  // patte de chat : quatre doigts et le coussinet
+  paw: [['.....kk..kk.....', '....kPPkkPPk....', '....kPpkkPpk....', '.kk..kk..kk..kk.', 'kPPk........kPPk', 'kPpk..kkkk..kPpk', '.kk..kPPPPk..kk.', '....kPpPPPPk....', '...kPPPPPPPPk...', '...kPPPPPPPPk...', '....kPPkkPPk....', '.....kk..kk.....'],
+    { k: '#8a3452', P: '#f28cab', p: '#ffd3df' }],
+  // habitants : un grand chat noir et un petit chat gris a cote
+  pop: [['.k...k..........', '.kk.kk..........', '.kkkkk.....g...g', '.kykyk.....gg.gg', '.kkkkk.....ggggg', '..kpk......gygyg', '.kkkkk.....ggggg', 'kkkkkkk.....ggg.', 'kkkkkkk....ggggg', 'kkkkkkk...ggggggg', 'kkkkkkkk..ggggggg', '.kkkkk.kk..ggggg.'],
+    { k: '#2a2622', y: '#ffe45c', p: '#f28cab', g: '#8e8a93' }]
+};
+// les memes dessins, et quelques autres, en petit dans le texte : ico('laine') + 30 plutot que '30 laine'
+Object.assign(ICONS, {
+  // croquette : un poisson dore
+  croq: [['................', '................', '.......kkk......', '.....kkoook..k..', '...kkoooooookkk.', '..kooOooooookok.', '.koooooooooookk.', '.kooooooooooook.', '..koooOoooookok.', '...kkooooookkk..', '.....kkoook..k..', '.......kkk......'],
+    { k: '#3a220f', o: '#c9782f', O: '#f2c27a' }],
+  // pelote de laine
+  laine: [['.....kkkkk......', '...kkwwwwwkk....', '..kwwpwwwwwwk...', '.kwwwwpwwwwwwk..', '.kwpwwwpwwwwwk..', 'kwwwpwwwpwwwwwk.', 'kwwwwpwwwpwwwwk.', 'kwpwwwpwwwpwwwk.', '.kwwpwwwpwwwpk..', '.kwwwpwwwpwwwk.p', '..kwwwpwwwwwk.p.', '...kkwwwwwkkpp..', '.....kkkkk......'],
+    { k: '#5b3f82', w: '#e8e1f0', p: '#8f6fb5' }],
+  // emplois : une mallette
+  jobs: [['.....kkkkkk.....', '.....k....k.....', '.kkkkkkkkkkkkkk.', 'kBBBBBBBBBBBBBBk', 'kBbbbbbbbbbbbbBk', 'kBbbbbbyybbbbbBk', 'kkkkkkkyykkkkkkk', 'kBbbbbbbbbbbbbBk', 'kBbbbbbbbbbbbbBk', 'kBBBBBBBBBBBBBBk', '.kkkkkkkkkkkkkk.'],
+    { k: '#2a2622', B: '#7b5231', b: '#b08254', y: '#ffd23f' }],
+  // loisirs : une etoile
+  fun: [['.....k.....', '....kyk....', '....kyk....', 'kkkkyyykkkk', 'kyyyyyyyyyk', '.kyyyYyyyk.', '..kyyyyyk..', '.kyyykyyyk.', '.kyk...kyk.', 'kk.......kk'],
+    { k: '#8a6a10', y: '#ffd23f', Y: '#fff0b3' }],
+  // saisons
+  hiver: [['.....b.....', '...b.b.b...', '....bbb....', '.b...b...b.', '..b..b..b..', 'bbbbbwbbbbb', '..b..b..b..', '.b...b...b.', '....bbb....', '...b.b.b...', '.....b.....'],
+    { b: '#2677b5', w: '#9fd6ff' }],
+  printemps: [['...pp.pp...', '..pPPpPPp..', '..pPPyPPp..', '...pyyyp...', '..pPPyPPp..', '..pPPpPPp..', '...pp.pp...', '.....g.....', '..gg.g.....', '...ggg.gg..', '.....ggg...'],
+    { p: '#c2456e', P: '#f6a8c0', y: '#ffd23f', g: '#3f8f3a' }],
+  été: [['.....y.....', '.y...y...y.', '..y.yyy.y..', '...yYYYy...', '..yYYYYYy..', 'yyyYYYYYyyy', '..yYYYYYy..', '...yYYYy...', '..y.yyy.y..', '.y...y...y.', '.....y.....'],
+    { y: '#d9a21e', Y: '#ffd23f' }],
+  automne: [['........oo.', '......ooOo.', '....ooOOOo.', '...oOOrOOo.', '..oOOrOOo..', '.oOOrOOo...', '.oOrOOo....', '.orOoo.....', '.ro........', 'r..........'],
+    { o: '#b8531e', O: '#e08a2e', r: '#6e3a1a' }],
+});
+ICONS.ron = ICONS.paw;
+/** une petite illustration dans le texte (title : ce qu'elle veut dire, lu par les lecteurs d'ecran) */
+export function ico(name: string, title?: string): string {
+  const ic = ICONS[name]; if (!ic) return '';
+  const svg = pixelSVG(ic[0], ic[1], 'i');
+  return title ? '<span class="iw" role="img" aria-label="' + title + '" title="' + title + '">' + svg + '</span>' : svg;
+}
+/** une liste en francais : « a, b et c » (les vides sont ignores) */
+export function andList(xs: string[]): string { const a = xs.filter(Boolean); return a.length <= 1 ? (a[0] || '') : a.slice(0, -1).join(', ') + ' et ' + a[a.length - 1]; }
+/** un prix en illustrations : laine, croquettes, ronrons */
+export function costHTML(p: Price): string {
+  const it = (n: number, k: string, nm: string) => n ? '<span class="ci">' + ico(k, nm) + '<b>' + n + '</b></span>' : '';
+  return '<span class="cost">' + it(p.l, 'laine', 'laine') + it(p.c, 'croq', 'croquettes') + it(p.r, 'ron', 'ronrons') + '</span>';
+}
+/** niveau en pastilles (lv sur max) */
+export function pips(lv: number, max = 3): string {
+  let s = '<span class="pips" role="img" aria-label="niveau ' + lv + ' sur ' + max + '" title="niveau ' + lv + ' sur ' + max + '">';
+  for (let k = 1; k <= max; k++) s += '<i' + (k <= lv ? ' class="on"' : '') + '></i>';
+  return s + '</span>';
+}
+/** avancement en barre, et en pourcentage */
+export function progress(f: number): string { const p = Math.floor(clamp(f, 0, 1) * 100); return '<span class="pbar"><i style="width:' + p + '%"></i></span>' + p + ' %'; }
 
 // state.tool : walk, build, road, curve, wall, demolish, barge (choix d'une cote), landing (choix de la plage)
 state.tool = 'walk'; state.buildType = 'maison'; state.sel = null;
@@ -366,7 +439,8 @@ scene.addEventListener('pointermove', e => {
     scene.classList.toggle('pick', !!SH.hoverCat || !!hoverB || (!OV_ON && state.tool === 'walk' && !!vestPick(lx, ly)));
     if (state.tool === 'build' && GAME.mode === 'play' && !OV_ON){
       const s = buildSpot(hoverW[0], hoverW[1]), e2: EcoDef = SH.ECO[s.type];
-      $('modeHint').textContent = s.why || (typeName(s.type, GAME.side) + ' : ' + SH.costLabel(SH.priceOf(s.type, GAME.side)) + ' · ' + (e2.desc || ''));
+      if (s.why) $('modeHint').textContent = s.why;
+      else $('modeHint').innerHTML = '<b>' + typeName(s.type, GAME.side) + '</b>' + costHTML(SH.priceOf(s.type, GAME.side)) + '<span>' + (e2.desc || '') + '</span>';
     }
     if (typeof SH.showTip === 'function') SH.showTip(e, hoverB);
   }

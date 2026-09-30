@@ -53,8 +53,9 @@ export function radioShow(item: RadioItem){
   radioEl.classList.toggle('go', !!radioGo);
   radioEl.title = radioGo ? 'Clique pour y aller' : '';
   radioStation.textContent = '';
-  const s1 = document.createElement('span'); s1.textContent = side === 'ccp' ? 'CCR' : side === 'usc' ? 'USC' : 'RADIO';
-  const s2 = document.createElement('span'); s2.className = 'rs-name'; s2.textContent = ' · ' + station.toUpperCase();
+  // le drapeau du camp (rien pour une radio neutre), puis le nom de la station
+  const s1 = document.createElement('span'); s1.className = 'rs-flag'; if (side === 'usc' || side === 'ccp') s1.innerHTML = flagSVG(side);
+  const s2 = document.createElement('span'); s2.className = 'rs-name'; s2.textContent = station.toUpperCase();
   radioStation.append(s1, s2);
   radioText.textContent = '';
   const b = document.createElement('b'); b.textContent = side === 'ccp' ? '★' : side === 'usc' ? '♪' : '~';
@@ -113,7 +114,7 @@ export const chatLog = $('chatLog'), chatInput = $of('chatInput', HTMLInputEleme
 export const portraitCv = $of('portrait', HTMLCanvasElement);
 export let chatTurns: ChatTurn[] = [], chatBusy = false, factIdx = 0;
 export const QUICK = ['Bonjour !', 'Tu fais quoi ici ?', 'Et l’autre camp ?', 'Raconte-moi un secret', 'Au revoir'];
-export const SIDE_LABEL: Record<RadioSide, string> = { usc: 'UNITED SANDS OF CATS · USC', ccp: 'CATS COMMUNIST REPUBLIC · CCR', neutre: 'NEUTRE' };
+export const SIDE_LABEL: Record<RadioSide, string> = { usc: 'UNITED SANDS OF CATS', ccp: 'CATS COMMUNIST REPUBLIC', neutre: 'NEUTRE' };
 export function addMsg(text: string, who: string, extra?: string){
   const el = document.createElement('div');
   el.className = 'msg ' + who + (extra ? ' ' + extra : '');

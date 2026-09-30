@@ -149,7 +149,14 @@ Au lancement d’une partie, on choisit la taille de la carte et la forme du mon
 - [x] Police de texte : Bricolage Grotesque (au lieu d’Archivo). Les titres gardent la police pixel.
 - [x] Accueil épuré : plus de ligne « Île de Kutty · La guerre froide », plus de « Bienvenue sur l’île, camarade chat » (le mot d’accueil n’apparaît que quand on a un nom de profil).
 
+## Étape 0.20. Texte noir ou blanc, illustrations à la place des points, HUD (en cours)
+
+- [x] Plus de texte gris nulle part : il est noir ou blanc. Un bouton indisponible garde son texte noir (bordure en pointillés, fond hachuré) ; un texte qui clignote passe du rouge à l’invisible, sans gris.
+- [x] Plus de point du milieu (« · ») : on illustre. Coûts et habitants en icônes de ressources, la date avec l’icône de la saison, la radio avec le drapeau du camp, le niveau d’un bâtiment en pastilles, un chantier en barre d’avancement ; dans un message en texte seul, « et ».
+- [ ] Propositions pour un HUD plus ergonomique (à valider avant de le refaire).
+
 ## Étape 0.19. TypeScript, PixiJS, Vite et Electron (en cours)
+
 
 Le jeu passe à une base prête pour la haute définition et pour Steam, sans rien réécrire de la logique : TypeScript (du JavaScript typé), PixiJS pour dessiner avec la carte graphique, Vite pour le build, Electron et steamworks.js pour la version Steam. La version web reste sur Vercel pour faire tester. Dans cet ordre :
 

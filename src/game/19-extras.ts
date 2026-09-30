@@ -4,7 +4,7 @@ import { CAMP_SHORT, COLOR, GAME, H, HOOKS, N, TAU, W, cam, clamp, state } from 
 import { GA0, GB0, T_SEA, typeAt } from './02-ground.ts';
 import { sideAt } from './08-territory.ts';
 import { CLOCK, MAPV, MS, OV_ON, WEATHER, clampCam, devH, devW, mapUpdate, render, scene, screenToWorld } from './11-render.ts';
-import { $, $of, toast } from './13-ui.ts';
+import { $, $of, ico, toast } from './13-ui.ts';
 import { MONTHS, closePaper } from './17-calendar.ts';
 /* ================= ambiance sonore, entierement fabriquee par le navigateur ================= */
 /** une boucle de bruit filtre (vagues, ville, pluie, vent) : son filtre et son volume */
@@ -197,7 +197,7 @@ export function showTip(e: Pick<PointerEvent, 'pointerType' | 'clientX' | 'clien
     if (!l.done) row('En chantier…');
     else if (!l.active) row('À l’arrêt : pas de route jusqu’au QG', 'tip-want');
     const E2 = SH.ECO[l.type];
-    if (E2){ const bits: string[] = []; const mult = SH.LVL_MULT[(l.lvl || 1) - 1]; for (const [k, nm2] of [['c', 'croquettes'], ['l', 'laine'], ['r', 'ronrons']]) if (E2[k]) bits.push((E2[k] > 0 ? '+' + Math.round(E2[k] * mult) : '−' + Math.abs(E2[k])) + ' ' + nm2); if (bits.length) row(bits.join(' · ') + ' par minute'); if (SH.popOf(l)) row(SH.popOf(l) + ' habitants'); }
+    if (E2){ const bits: string[] = []; const mult = SH.LVL_MULT[(l.lvl || 1) - 1]; for (const [k, nm2, ic] of [['c', 'croquettes', 'croq'], ['l', 'laine', 'laine'], ['r', 'ronrons', 'ron']]) if (E2[k]) bits.push('<span class="ci">' + ico(ic, nm2) + '<b>' + (E2[k] > 0 ? '+' + Math.round(E2[k] * mult) : '−' + Math.abs(E2[k])) + '</b></span>'); if (bits.length){ const p = document.createElement('div'); p.className = 'tip-flow'; p.innerHTML = bits.join('') + '<span>par minute</span>'; tipEl.append(p); } if (SH.popOf(l)) row(SH.popOf(l) + ' habitants'); }
     row('Clique pour les détails', 'tip-mute');
   }
   tipEl.hidden = false;
@@ -254,7 +254,9 @@ export async function photoCanvas(){
   g.fillStyle = '#2a2622'; g.textBaseline = 'middle';
   g.font = Math.round(band * .5) + 'px Yellowtail, cursive'; g.fillText(COLOR ? 'Cold Kutty Town' : 'Old Kutty Town', pad, vh + pad + band / 2);
   g.font = '600 ' + Math.round(band * .2) + 'px "IBM Plex Mono", monospace'; g.textAlign = 'right';
-  g.fillText(MONTHS[SH.CAL.m].toUpperCase() + ' · ' + String(Math.floor(CLOCK.h)).padStart(2, '0') + ' H ' + String(Math.floor((CLOCK.h % 1) * 60)).padStart(2, '0'), pic.width - pad, vh + pad + band / 2);
+  // le mois au-dessus de l'heure, a droite du bandeau
+  g.fillText(MONTHS[SH.CAL.m].toUpperCase(), pic.width - pad, vh + pad + band * .34);
+  g.fillText(String(Math.floor(CLOCK.h)).padStart(2, '0') + ' H ' + String(Math.floor((CLOCK.h % 1) * 60)).padStart(2, '0'), pic.width - pad, vh + pad + band * .66);
   return pic;
 }
 export async function photoShoot(){

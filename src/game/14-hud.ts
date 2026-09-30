@@ -7,39 +7,13 @@ import { VEST_DEF, drawVestige, type VestDef, type VestKind, type Vestige } from
 import { TER, influenceOf, sideAt, terPct } from './08-territory.ts';
 import { footOf } from './10-town.ts';
 import { FAR, PALL } from './11-render.ts';
-import { $, $of, setTool, toast } from './13-ui.ts';
+import { $, $of, ICONS, andList, costHTML, ico, pips, pixelSVG, progress, setTool, toast, type Pal } from './13-ui.ts';
 import type { EcoDef, Flow, Price, Resources } from './15-economy.ts';
 /* ================= interface : barre du haut, menu de construction, batiment selectionne ================= */
 // icones et drapeaux en pixels : un dessin en caracteres, une couleur par lettre, rendu en SVG net
 /** palette d'un dessin en caracteres : une couleur (#rrggbb) par lettre */
-export type Pal = Record<string, string>;
-/** un dessin en caracteres (une chaine par ligne) et sa palette */
-export type PixelArt = [string[], Pal];
 const isSide = (s: string | undefined): s is Side => s === 'usc' || s === 'ccp';
 const isFlow = (k: string | undefined): k is Flow => k === 'c' || k === 'l' || k === 'r';
-export function pixelSVG(art: string[], pal: Pal, cls?: string){
-  const h = art.length, w = Math.max(...art.map(r => r.length));
-  let s = '<svg' + (cls ? ' class="' + cls + '"' : '') + ' viewBox="0 0 ' + w + ' ' + h + '" shape-rendering="crispEdges" aria-hidden="true">';
-  for (let y = 0; y < h; y++){
-    // une ligne = des rectangles qui fusionnent les pixels voisins de meme couleur
-    let x = 0;
-    while (x < art[y].length){
-      const c = art[y][x], col = pal[c]; let n = 1;
-      while (x + n < art[y].length && art[y][x + n] === c) n++;
-      if (col) s += '<rect x="' + x + '" y="' + y + '" width="' + n + '" height="1.02" fill="' + col + '"/>';
-      x += n;
-    }
-  }
-  return s + '</svg>';
-}
-export const ICONS: Record<string, PixelArt> = {
-  // patte de chat : quatre doigts et le coussinet
-  paw: [['.....kk..kk.....', '....kPPkkPPk....', '....kPpkkPpk....', '.kk..kk..kk..kk.', 'kPPk........kPPk', 'kPpk..kkkk..kPpk', '.kk..kPPPPk..kk.', '....kPpPPPPk....', '...kPPPPPPPPk...', '...kPPPPPPPPk...', '....kPPkkPPk....', '.....kk..kk.....'],
-    { k: '#8a3452', P: '#f28cab', p: '#ffd3df' }],
-  // habitants : un grand chat noir et un petit chat gris a cote
-  pop: [['.k...k..........', '.kk.kk..........', '.kkkkk.....g...g', '.kykyk.....gg.gg', '.kkkkk.....ggggg', '..kpk......gygyg', '.kkkkk.....ggggg', 'kkkkkkk.....ggg.', 'kkkkkkk....ggggg', 'kkkkkkk...ggggggg', 'kkkkkkkk..ggggggg', '.kkkkk.kk..ggggg.'],
-    { k: '#2a2622', y: '#ffe45c', p: '#f28cab', g: '#8e8a93' }]
-};
 for (const el of document.querySelectorAll('[data-ico]')){ const ic = el instanceof HTMLElement ? ICONS[el.dataset.ico || ''] : undefined; if (!ic) continue; const [art, pal] = ic; el.outerHTML = pixelSVG(art, pal, 'ico'); }
 // drapeaux en grand pour l'interface (48 x 26), dessines comme ceux du jeu mais plus fins
 // USC : 13 bandes rouges et blanches, la meme tete de chat que la CCR, en blanc, au centre du coin bleu. CCR : tete de chat, marteau et faucille, centres.
@@ -84,7 +58,7 @@ export function renderHUD(){
   const R: Resources = SH.RES[GAME.side];
   $('vC').textContent = fmt(R.croq); $('vL').textContent = fmt(R.laine); $('vR').textContent = fmt(R.ron); $('vP').textContent = String(R.pop);
   $('dC').textContent = fmtRate(R.rc); $('dL').textContent = fmtRate(R.rl); $('dR').textContent = fmtRate(R.rr);
-  $('dP').textContent = R.jobs ? 'hab. · ' + R.jobs + ' emplois' : 'habitants';
+  $('dP').innerHTML = R.jobs ? 'hab. <span class="jobs">' + ico('jobs', 'emplois') + R.jobs + '</span>' : 'habitants';
   for (const [k, v, rt] of [['c', R.croq, R.rc], ['l', R.laine, R.rl], ['r', R.ron, R.rr]] as const){
     const b = document.querySelector('.res[data-k="' + k + '"]'); if (!b) continue;
     b.classList.toggle('warn', !!(k === 'c' && R.short) || (rt < 0 && v < -rt * 2));
@@ -194,27 +168,27 @@ export function fillPalette(){
     b.setAttribute('aria-checked', String(type === state.buildType));
     const cv = thumb(type, GAME.side, 72, 56); const img = document.createElement('canvas'); img.width = 72; img.height = 56; img.getContext('2d')?.drawImage(cv, 0, 0);
     const nm = document.createElement('span'); nm.className = 'bb-name'; nm.textContent = typeName(type, GAME.side);
-    const ct = document.createElement('span'); ct.className = 'bb-cost'; ct.textContent = SH.costLabel(SH.priceOf(type, GAME.side));
-    const eff = document.createElement('span'); eff.className = 'bb-eff'; eff.textContent = effLine(e);
+    const ct = document.createElement('span'); ct.className = 'bb-cost'; ct.innerHTML = costHTML(SH.priceOf(type, GAME.side));
+    const eff = document.createElement('span'); eff.className = 'bb-eff'; eff.innerHTML = effLine(e);
     b.append(img, nm, ct, eff);
     b.title = typeName(type, GAME.side) + '. ' + (e.desc || '');
-    b.addEventListener('click', () => { state.buildType = type; for (const o of pal.children) o.setAttribute('aria-checked', String(o instanceof HTMLElement && o.dataset.t === type)); SH.ghost = null; if (state.tool !== 'build') setTool('build'); $('modeHint').textContent = typeName(type, GAME.side) + ' · ' + (e.desc || ''); SH.sfx('click'); });
+    b.addEventListener('click', () => { state.buildType = type; for (const o of pal.children) o.setAttribute('aria-checked', String(o instanceof HTMLElement && o.dataset.t === type)); SH.ghost = null; if (state.tool !== 'build') setTool('build'); $('modeHint').innerHTML = '<b>' + typeName(type, GAME.side) + '</b><span>' + (e.desc || '') + '</span>'; SH.sfx('click'); });
     pal.appendChild(b);
   }
   refreshPalette();
 }
-// ce qu'un batiment rapporte, en une ligne courte
+// ce qu'un batiment rapporte, en une ligne courte illustree (html)
 export function effLine(e: EcoDef){
-  const bits: string[] = [];
-  if (e.pop) bits.push('+' + e.pop + ' hab.');
-  if (e.c > 0) bits.push('+' + e.c + ' croq.'); if (e.l > 0) bits.push('+' + e.l + ' laine'); if (e.r > 0) bits.push('+' + e.r + ' ron.');
-  if (e.fun) bits.push(e.fun + ' loisirs');
-  if (e.cat === 'frontiere' || e.cat === 'mer') bits.push('rayon ' + e.rad);
-  return bits.slice(0, 2).join(' · ');
+  const bits: string[] = [], it = (k: string, nm: string, v: string) => '<span class="ci">' + ico(k, nm) + '<b>' + v + '</b></span>';
+  if (e.pop) bits.push(it('pop', 'habitants', '+' + e.pop));
+  if (e.c > 0) bits.push(it('croq', 'croquettes par minute', '+' + e.c)); if (e.l > 0) bits.push(it('laine', 'laine par minute', '+' + e.l)); if (e.r > 0) bits.push(it('ron', 'ronrons par minute', '+' + e.r));
+  if (e.fun) bits.push(it('fun', 'loisirs', String(e.fun)));
+  if (e.cat === 'frontiere' || e.cat === 'mer') bits.push('<span class="ci">rayon <b>' + e.rad + '</b></span>');
+  return '<span class="cost">' + bits.slice(0, 2).join('') + '</span>';
 }
 export function refreshPalette(){
   const R = SH.RES[GAME.side];
-  for (const b of $('palette').children){ if (!(b instanceof HTMLElement)) continue; const p: Price = SH.priceOf(b.dataset.t, GAME.side); b.classList.toggle('poor', !SH.canAfford(GAME.side, p)); const c = b.querySelector('.bb-cost'); if (c) c.textContent = SH.costLabel(p); }
+  for (const b of $('palette').children){ if (!(b instanceof HTMLElement)) continue; const p: Price = SH.priceOf(b.dataset.t, GAME.side); b.classList.toggle('poor', !SH.canAfford(GAME.side, p)); const c = b.querySelector('.bb-cost'); if (c) c.innerHTML = costHTML(p); }
 }
 
 /* ---- batiment selectionne ---- */
@@ -229,7 +203,9 @@ export function selectBuilding(l: Building | null){
 }
 $('selClose').addEventListener('click', () => selectBuilding(null));
 /* ---- vestiges catzi : le meme panneau, avec un bouton pour fouiller ---- */
-export const vestLoot = (L: VestDef['loot']) => [L.c ? L.c + ' croquettes' : '', L.l ? L.l + ' laine' : '', L.r ? L.r + ' ronrons' : ''].filter(Boolean).join(' · ');
+export const vestLoot = (L: VestDef['loot']) => andList([L.c ? L.c + ' croquettes' : '', L.l ? L.l + ' laine' : '', L.r ? L.r + ' ronrons' : '']);
+// le meme butin en illustrations
+export const vestLootHTML = (L: VestDef['loot']) => costHTML({ c: L.c || 0, l: L.l || 0, r: L.r || 0 });
 export function lootVestige(v: Vestige | null, side: Side){
   if (!v || v.looted) return 'Ces ruines ont déjà été fouillées.';
   if (sideAt(v.a, v.b) !== side) return 'Ces ruines sont hors de ton territoire : étends-toi jusqu’à elles.';
@@ -253,10 +229,10 @@ export function renderVest(){
   $('selName').textContent = D.name; $('selLvl').textContent = 'Vestige';
   $('selState').innerHTML = mine ? '<span class="pill ok">Dans ton territoire : à fouiller</span>' : '<span class="pill bad">Hors de ton territoire</span>';
   const stats = $('selStats'); stats.textContent = '';
-  const d = document.createElement('div'), x = document.createElement('span'), y = document.createElement('b'); x.textContent = 'Butin'; y.textContent = vestLoot(D.loot); d.append(x, y); stats.append(d);
+  const d = document.createElement('div'), x = document.createElement('span'), y = document.createElement('b'); x.textContent = 'Butin'; y.innerHTML = vestLootHTML(D.loot); d.append(x, y); stats.append(d);
   const p = document.createElement('p'); p.textContent = D.desc; stats.append(p);
   const act = $('selActions'); act.textContent = '';
-  const b = document.createElement('button'); b.className = 'btn'; b.type = 'button'; b.innerHTML = '<span>Fouiller</span><i>' + vestLoot(D.loot) + '</i>'; b.disabled = !mine;
+  const b = document.createElement('button'); b.className = 'btn'; b.type = 'button'; b.innerHTML = '<span>Fouiller</span><i>' + vestLootHTML(D.loot) + '</i>'; b.disabled = !mine;
   b.addEventListener('click', () => {
     const why = lootVestige(v, GAME.side); if (why){ toast(why); return; }
     toast(D.name + ' fouillé' + (v.kind === 'statue' ? 'e' : '') + ' : ' + vestLoot(D.loot) + '.');
@@ -275,10 +251,10 @@ export function renderSel(){
   $('sel').dataset.key = key;
   $('selSide').innerHTML = flagSVG(l.side) + '<span>' + CAMP_FULL[l.side] + '</span>';
   $('selName').textContent = typeName(l.type, l.side);
-  $('selLvl').textContent = (e && e.up) || SH.LVL_POP[l.type] ? SH.lvlName(l) + ' · niveau ' + lv + ' sur 3' : '';
+  $('selLvl').innerHTML = (e && e.up) || SH.LVL_POP[l.type] ? '<span>' + SH.lvlName(l) + '</span>' + pips(lv) : '';
   const st = $('selState');
-  if (!l.done) st.innerHTML = '<span class="pill work">En chantier · ' + Math.floor(clamp((GAME.t - l.buildT) / l.bdur, 0, 1) * 100) + ' %</span>';
-  else if (l.upT) st.innerHTML = '<span class="pill work">Amélioration · ' + Math.floor(clamp((GAME.t - l.upT) / (l.udur || 0), 0, 1) * 100) + ' %</span>';
+  if (!l.done) st.innerHTML = '<span class="pill work">En chantier ' + progress((GAME.t - l.buildT) / l.bdur) + '</span>';
+  else if (l.upT) st.innerHTML = '<span class="pill work">Amélioration ' + progress((GAME.t - l.upT) / (l.udur || 0)) + '</span>';
   else if (!l.active) st.innerHTML = '<span class="pill bad">À l’arrêt : pas de route jusqu’au QG</span>';
   else st.innerHTML = '<span class="pill ok">En service</span>';
   const rows: [string, string][] = [];
@@ -300,13 +276,13 @@ export function renderSel(){
   if (!mine) return;
   const btn = (label: string, sub: string, fn: () => void, dis?: boolean) => { const b = document.createElement('button'); b.className = 'btn'; b.type = 'button'; b.innerHTML = '<span>' + label + '</span>' + (sub ? '<i>' + sub + '</i>' : ''); b.disabled = !!dis; b.addEventListener('click', fn); act.append(b); return b; };
   const uc: { l: number; r: number } | null = SH.upCost(l);
-  if (uc && l.done) btn('Améliorer', uc.l + ' laine · ' + uc.r + ' ron.', () => { const why = SH.upgradeBuilding(l); if (why) toast(why); else { toast('Amélioration lancée.'); SH.sfx('click'); } renderHUD(); $('sel').dataset.key = ''; renderSel(); }, !!l.upT || !SH.canPay(l.side, uc.l, uc.r));
+  if (uc && l.done) btn('Améliorer', costHTML({ l: uc.l, c: 0, r: uc.r }), () => { const why = SH.upgradeBuilding(l); if (why) toast(why); else { toast('Amélioration lancée.'); SH.sfx('click'); } renderHUD(); $('sel').dataset.key = ''; renderSel(); }, !!l.upT || !SH.canPay(l.side, uc.l, uc.r));
   if (l.type === 'port' && l.done){
     const bc = BARGE_COST;
-    btn('Barge de débarquement', SH.costLabel(bc), () => { if (!SH.canAfford(GAME.side, bc)){ toast('Il faut ' + SH.costLabel(bc) + '.'); return; } state.bargeFrom = l; setTool('barge'); toast('Clique sur la côte où la barge doit accoster.'); }, !SH.canAfford(GAME.side, bc));
+    btn('Barge de débarquement', costHTML(bc), () => { if (!SH.canAfford(GAME.side, bc)){ toast('Il faut ' + SH.costLabel(bc) + '.'); return; } state.bargeFrom = l; setTool('barge'); toast('Clique sur la côte où la barge doit accoster.'); }, !SH.canAfford(GAME.side, bc));
   }
   if (l.type === 'port' || l.type === 'pecherie'){ const n = SH.BOATS.filter(b => b.home === l.id).length; const d = document.createElement('p'); d.className = 'sel-note'; d.textContent = n ? n + ' bateau' + (n > 1 ? 'x' : '') + ' en mer ou à quai.' : (l.type === 'port' ? 'Au niveau 2, le port arme des chalutiers, au niveau 3 un cargo.' : 'Un chalutier par niveau.'); act.append(d); }
-  if (l.type !== 'qg') btn('Démolir', 'rend ' + Math.round(SH.costOf(l.type) / 2) + ' laine', () => { const refund = SH.demolishBuilding(l); toast(typeName(l.type, l.side) + ' démoli' + (TYPES[l.type].fem ? 'e' : '') + ', ' + refund + ' laine récupérée.'); SH.sfx('demolish', l.ca, l.cb); selectBuilding(null); SH.saveSoon(); renderHUD(); }).classList.add('danger');
+  if (l.type !== 'qg') btn('Démolir', 'rend ' + costHTML({ l: Math.round(SH.costOf(l.type) / 2), c: 0, r: 0 }), () => { const refund = SH.demolishBuilding(l); toast(typeName(l.type, l.side) + ' démoli' + (TYPES[l.type].fem ? 'e' : '') + ', ' + refund + ' laine récupérée.'); SH.sfx('demolish', l.ca, l.cb); selectBuilding(null); SH.saveSoon(); renderHUD(); }).classList.add('danger');
 }
 export const BARGE_COST: Price = { l: 40, c: 60, r: 30 };
 export function bargeTarget(a: number, b: number){

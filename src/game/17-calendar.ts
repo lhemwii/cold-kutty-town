@@ -5,7 +5,7 @@ import { TYPES } from './04-types.ts';
 import { terPct } from './08-territory.ts';
 import { catPos, type Cat } from './10-town.ts';
 import { CLOCK, OV_ON, WEATHER, render, scene } from './11-render.ts';
-import { $, $of, toast } from './13-ui.ts';
+import { $, $of, ico, toast } from './13-ui.ts';
 /** Une saison de l'ile. */
 export type Season = 'hiver' | 'printemps' | 'été' | 'automne';
 /** A qui s'adresse une fete ou une ligne du carnet : un camp, ou les deux. */
@@ -40,7 +40,7 @@ export function applySeason(){
 }
 export function updateCalUI(){
   const el = $('calLabel');
-  if (el) el.textContent = MONTHS[CAL.m] + ' · ' + seasonOf(CAL.m);
+  if (el) el.innerHTML = '<span>' + MONTHS[CAL.m] + '</span>' + ico(seasonOf(CAL.m), seasonOf(CAL.m));
 }
 export function newMonth(){
   CAL.m++; if (CAL.m > 11){ CAL.m = 0; SH.fwSalvo('both', 16); SH.radioQueue.unshift(['neutre', 'Radio du port', 'Bonne année ! Les deux camps tirent leur feu d’artifice en même temps. Pour une fois.']); }
@@ -187,7 +187,9 @@ export function renderPaper(){
   np.dataset.side = side;
   for (const b of document.querySelectorAll('[data-np]')) if (b instanceof HTMLElement) b.setAttribute('aria-pressed', b.dataset.np === side ? 'true' : 'false');
   $('npName').textContent = PAPER_NAME[side];
-  $('npLine').textContent = 'N° ' + iss.n + ' · ' + MONTHS[iss.m] + ' · ' + (side === 'usc' ? 'Édition du matin · 5 cents' : 'Organe officiel de la CCR · 3 kopecks');
+  // bandeau du journal : numero, mois, edition, prix, repartis sur la largeur comme dans un vrai journal
+  const line = $('npLine'); line.textContent = '';
+  for (const t of ['N° ' + iss.n, MONTHS[iss.m], side === 'usc' ? 'Édition du matin' : 'Organe officiel de la CCR', side === 'usc' ? '5 cents' : '3 kopecks']){ const sp = document.createElement('span'); sp.textContent = t; line.append(sp); }
   const ed = iss.ed && iss.ed[side];
   np.classList.toggle('loading', !ed);
   $('npHead').textContent = ed ? ed.titre : 'Les rotatives tournent…';

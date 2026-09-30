@@ -1,11 +1,11 @@
 import { SH, type Side } from './00-shared.ts';
-import { CAMP_SHORT, GAME, GLOBE_ON, HOOKS, RP, TAU, cam, other, reduceMotion, setProj, state } from './01-core.ts';
+import { GAME, GLOBE_ON, HOOKS, RP, TAU, cam, other, reduceMotion, setProj, state } from './01-core.ts';
 import { IS, MAP_CONFS, MAP_SIZES, isMapConf, isMapSize, mapScale, type MapConf, type MapSizeKey } from './02-ground.ts';
 import { terPct } from './08-territory.ts';
 import { CLOCK, MAPV, centerOn, clampCam, setZoom } from './11-render.ts';
-import { $, $of, drag, setPaused, setSpeed, toast } from './13-ui.ts';
+import { $, $of, drag, ico, setPaused, setSpeed, toast } from './13-ui.ts';
 import { FLAG_HEX, FLAG_HI, flagSVG } from './14-hud.ts';
-import { MONTHS } from './17-calendar.ts';
+import { MONTHS, seasonOf } from './17-calendar.ts';
 import { asSave, loadGame, newWorld, saveTimer, snapshot, startLanding, type SaveData } from './21-main.ts';
 import { store as KV } from '../platform/store.ts';
 /* ================= accueil : menu du jeu, parties sauvegardees, profil, options ================= */
@@ -106,7 +106,8 @@ export function openIntro(page?: string){
   $('hmBack').hidden = !inGame(); $('hmQuit').hidden = !inGame();
   $('hmContinue').hidden = inGame() || !last;
   if (last && !inGame()) document.body.dataset.side = last.side;
-  if (last) $('hmContinueSub').textContent = last.name + ' · ' + CAMP_SHORT[last.side] + ' · ' + whenLabel(last.at);
+  // la derniere partie : son drapeau, son nom, quand on y a joue
+  if (last){ const sub = $('hmContinueSub'); sub.innerHTML = '<span class="flag">' + flagSVG(last.side) + '</span>'; const a = document.createElement('span'); a.textContent = last.name; const b = document.createElement('span'); b.textContent = whenLabel(last.at); sub.append(a, b); }
   $('hmLoadSub').textContent = ix.length ? ix.length + (ix.length > 1 ? ' parties' : ' partie') : '';
   // un mot d'accueil seulement quand on connait le nom du joueur
   $('homeHello').textContent = PROFILE.name ? 'Bon retour sur l’île, ' + PROFILE.name + '.' : ''; $('homeHello').hidden = !PROFILE.name;
@@ -193,9 +194,15 @@ export function fillLoad(){
     const info = document.createElement('div'); info.className = 'save-info';
     const t = document.createElement('div'); t.className = 'save-t'; t.innerHTML = '<span class="flag">' + flagSVG(e.side) + '</span>'; const nm = document.createElement('b'); nm.textContent = e.name || 'Partie'; t.append(nm); info.append(t);
     const meta = document.createElement('div'); meta.className = 'save-meta';
-    const pct = Array.isArray(e.pct) ? 'USC ' + Math.round(e.pct[0] * 100) + ' % · CCR ' + Math.round(e.pct[1] * 100) + ' %' : '';
-    meta.textContent = [CAMP_SHORT[e.side], MONTHS[e.m | 0], pct, 'île ' + (e.seed || '?'), isMapSize(e.size) ? MAP_SIZES[e.size].name.toLowerCase() : '', isMapConf(e.conf) && e.conf !== 'une' ? MAP_CONFS[e.conf].toLowerCase() : '', e.won ? (e.won === e.side ? 'gagnée' : 'perdue') : ''].filter(Boolean).join(' · ');
-    const when = document.createElement('div'); when.className = 'save-when'; when.textContent = 'Jouée ' + whenLabel(e.at) + (e.id === GAME.slot ? ' · partie en cours' : '');
+    // chaque renseignement a sa case : le mois avec sa saison, le territoire en barre, l'ile, l'issue
+    const chip = (html: string, cls?: string) => { const c = document.createElement('span'); c.className = 'chip' + (cls ? ' ' + cls : ''); c.innerHTML = html; meta.append(c); };
+    const mo = MONTHS[e.m | 0] || ''; if (mo) chip('<span>' + mo + '</span>' + ico(seasonOf(e.m | 0), seasonOf(e.m | 0)));
+    if (Array.isArray(e.pct)){ const u = Math.round(e.pct[0] * 100), c = Math.round(e.pct[1] * 100); chip('<span class="mini-ter"><i class="u" style="width:' + u + '%"></i><i class="c" style="width:' + c + '%"></i></span><b class="u">' + u + ' %</b><b class="c">' + c + ' %</b>', 'ter'); }
+    const isl = ['île ' + (e.seed || '?'), isMapSize(e.size) ? MAP_SIZES[e.size].name.toLowerCase() : '', isMapConf(e.conf) && e.conf !== 'une' ? MAP_CONFS[e.conf].toLowerCase() : ''].filter(Boolean);
+    const ic = document.createElement('span'); ic.className = 'chip'; ic.textContent = isl.join(', '); meta.append(ic);
+    if (e.won) chip(e.won === e.side ? 'Gagnée' : 'Perdue', e.won === e.side ? 'won' : 'lost');
+    const when = document.createElement('div'); when.className = 'save-when'; when.textContent = 'Jouée ' + whenLabel(e.at);
+    if (e.id === GAME.slot){ const cur = document.createElement('span'); cur.className = 'chip now'; cur.textContent = 'Partie en cours'; when.append(cur); }
     info.append(meta, when);
     const act = document.createElement('div'); act.className = 'save-act';
     const go = document.createElement('button'); go.className = 'btn primary'; go.type = 'button'; go.textContent = e.id === GAME.slot ? 'Reprendre' : 'Charger';

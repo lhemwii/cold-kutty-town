@@ -9,7 +9,7 @@ import { cutTrees } from './07-world.ts';
 import { SID, TER, lockCells, rebuildLocks, terPct } from './08-territory.ts';
 import { reseatCars, roadAccess } from './09-roads.ts';
 import { rebuildTown } from './10-town.ts';
-import { $, achieve, toast } from './13-ui.ts';
+import { $, achieve, andList, toast } from './13-ui.ts';
 /* ================= economie : croquettes, laine et ronrons ================= */
 // Par batiment, au niveau 1 et par minute : c croquettes, l laine, r ronrons (negatif = fonctionnement),
 // pop habitants, jobs emplois, fun loisirs, rad rayon d'influence, cost laine a la construction, costR ronrons,
@@ -84,7 +84,7 @@ export function priceOf(type: string, side: Side): Price {
   const n = type === 'drapeau' ? SH.BLD.filter(l => l.side === side && l.type === 'drapeau').length : 0;
   return { l: e.cost, c: e.costC + n * 5, r: e.costR + n * 3 };
 }
-export const costLabel = (p: Price): string => [p.l ? p.l + ' laine' : '', p.c ? p.c + ' croq.' : '', p.r ? p.r + ' ron.' : ''].filter(Boolean).join(' · ') || 'gratuit';
+export const costLabel = (p: Price): string => andList([p.l ? p.l + ' laine' : '', p.c ? p.c + ' croquettes' : '', p.r ? p.r + ' ronrons' : '']) || 'gratuit';
 export const canAfford = (side: Side, p: Price): boolean => canPay(side, p.l, p.r, p.c);
 export const upCost = (l: Building): { l: number; r: number } | null => { const e = ECO[l.type], lv = l.lvl || 1; return lv >= 3 || !e || !e.up ? null : { l: Math.round(Math.max(30, e.cost) * (lv === 1 ? 1.5 : 2.6)), r: lv === 1 ? 15 : 40 }; };
 export const buildTime = (type: string): number => { const e = ECO[type]; return e && e.time ? e.time : Math.round(7 + (e ? e.cost : 20) / 7); };
