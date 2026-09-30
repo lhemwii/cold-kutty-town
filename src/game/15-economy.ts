@@ -9,7 +9,7 @@ import { cutTrees } from './07-world.ts';
 import { SID, TER, lockCells, rebuildLocks, terPct } from './08-territory.ts';
 import { reseatCars, roadAccess } from './09-roads.ts';
 import { rebuildTown } from './10-town.ts';
-import { $, toast } from './13-ui.js';
+import { $, toast } from './13-ui.ts';
 /* ================= economie : croquettes, laine et ronrons ================= */
 // Par batiment, au niveau 1 et par minute : c croquettes, l laine, r ronrons (negatif = fonctionnement),
 // pop habitants, jobs emplois, fun loisirs, rad rayon d'influence, cost laine a la construction, costR ronrons,

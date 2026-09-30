@@ -153,8 +153,8 @@ Au lancement d’une partie, on choisit la taille de la carte et la forme du mon
 
 Le jeu passe à une base prête pour la haute définition et pour Steam, sans rien réécrire de la logique : TypeScript (du JavaScript typé), PixiJS pour dessiner avec la carte graphique, Vite pour le build, Electron et steamworks.js pour la version Steam. La version web reste sur Vercel pour faire tester. Dans cet ordre :
 
-- [x] 1. Vite et modules ES à la place de la concaténation. Chaque module importe ce qu’il utilise des modules plus petits en numéro ; ce qui est appelé vers l’avant, et les variables que plusieurs modules modifient, passent par un objet partagé (`SH`, dans `00-shared.js`). Conversion faite par un script, puis vérifiée partie en main.
-- [ ] 2. TypeScript module par module, en commençant par le monde et l’économie. `tsc` en mode strict vérifie les modules convertis ; `npm run build` refuse de construire si un type ne va pas.
+- [x] 1. Vite et modules ES à la place de la concaténation. Chaque module importe ce qu’il utilise des modules plus petits en numéro ; ce qui est appelé vers l’avant, et les variables que plusieurs modules modifient, passent par un objet partagé (`SH`, dans `00-shared.ts`). Conversion faite par un script, puis vérifiée partie en main.
+- [x] 2. TypeScript module par module, en commençant par le monde et l’économie. `tsc` en mode strict vérifie les modules convertis ; `npm run build` refuse de construire si un type ne va pas.
   - [x] Outillage : TypeScript 7, `tsconfig.json`, `npm run typecheck`, vérification dans `npm run build`.
   - [x] `00-shared` : types communs (`Side`, `Building`) et objet partagé `SH`.
   - [x] Le monde : `02-ground` (tailles de carte, formes, îles, trame du sol).
@@ -162,9 +162,19 @@ Le jeu passe à une base prête pour la haute définition et pour Steam, sans ri
   - [x] L’économie : `15-economy` (fiches des bâtiments, ressources, chantiers, événements, course à l’espace).
   - [x] La suite du monde : `07-world` (forêts, montagnes, vestiges, murs), `09-roads` (routes, graphe, voitures), `10-town` (chats, pose des bâtiments, décor statique), `16-boats` (barges, chalutiers, navigation). Au passage : les graffitis des murs s’affichent enfin (le mur gardait un numéro, le dessin attendait un texte).
   - [x] Le cœur et le rendu : `01-core` (état, caméra, vue, primitives de dessin : `PixFn`, `Shade`, `SideFn`, `Sprite`, `View`), `03` à `06` (fiches des bâtiments, `BuildingType`), `11-render` (palette, zoom, carte à plat, lumières, vue de loin). Converti avant PixiJS pour que le passage au nouveau rendu soit vérifié par les types.
-  - [ ] L’interface et le reste : `12` à `14`, `17` à `23`.
-- [ ] 3. PixiJS à la place du rendu actuel : le sol et les objets en textures, le style pixel gardé avec un filtre.
-- [ ] 4. Electron et steamworks.js (succès, sauvegardes Steam) dès qu’il y a une démo jouable. Plus tard, Gemma sur la machine du joueur avec node-llama-cpp.
+  - [x] L’interface et le reste : `12` à `14`, `17` à `23`, le point d’entrée (`main.ts`) et l’adaptateur de plateforme. Plus aucun `any` dans le jeu ; `$of(id, HTMLInputElement)` rend un élément de la page avec son vrai type.
+- [ ] 3. PixiJS à la place du rendu actuel : le sol et les objets en textures, le style pixel gardé avec un filtre. Par paliers, le jeu reste jouable à chacun :
+  - [x] 3.1. PixiJS affiche l’image
+ (`src/gpu/present.ts`). Les tampons du moteur (forme, matière, éclairage, camp) partent en une texture ; un shader fait la mise en couleur par la palette sur la carte graphique. L’image garde la taille du jeu et le navigateur l’agrandit au pixel près : le style ne change pas. Sans WebGL2, le jeu garde son canvas 2D.
+  - [ ] 3.2. Le sol sur la carte graphique : la grille du sol (type, teinte, distance à la côte, territoire) part une fois en textures, mise à jour par morceaux ; un shader calcule au pixel le sol, la mer, l’écume, la teinte des camps et les frontières. Le processeur ne dessine plus que ce qui est posé dessus.
+  - [ ] 3.3. Les objets en textures : chaque bâtiment, montagne et arbre est dessiné une fois par angle de vue dans une texture (comme la vue de loin le fait déjà), puis posé par PixiJS en sprites triés par profondeur. Ce qui bouge (chats, voitures, bateaux, drapeaux) reste dessiné à chaque image.
+  - [ ] 3.4. Lumières de nuit, ombres portées et météo en shaders.
+- [ ] 4. Electron et steamworks.js dès qu’il y a une démo jouable :
+  - [ ] 4.1. Une fenêtre Electron qui charge le jeu construit (`dist/`), lancée par `npm run app` ; paquets Windows, macOS et Linux par electron-builder.
+  - [ ] 4.2. Adaptateur de plateforme pour la version de bureau (`src/platform/`) : sauvegardes dans le dossier de l’utilisateur plutôt que dans le navigateur.
+  - [ ] 4.3. steamworks.js : succès et sauvegardes Steam (Steam Cloud), essayés avec l’identifiant d’essai de Steam en attendant celui du jeu.
+  - [ ] 4.4. Plus tard, Gemma sur la machine du joueur avec node-llama-cpp.
+
 
 ## Étape 1. Fiabiliser ce qui existe
 
@@ -249,7 +259,7 @@ L’ébauche actuelle débarque loin du joueur, construit par ordre de besoins, 
 
 ## Étape 10.1. Mode espace (extension, plus tard)
 
-Le globe existe déjà dans le code (23-planet.js), éteint. L’idée : prendre de la hauteur jusqu’à l’espace, puis jouer à l’échelle de la carte du monde.
+Le globe existe déjà dans le code (23-planet.ts), éteint. L’idée : prendre de la hauteur jusqu’à l’espace, puis jouer à l’échelle de la carte du monde.
 
 - [ ] Rallumer le globe (`GLOBE_ON`) : dézoom continu de l’île jusqu’à la planète, tour du globe en glissant.
 - [ ] Lumières des villes sur la face de nuit (bâtiments et lampadaires de l’île, villes des autres continents).

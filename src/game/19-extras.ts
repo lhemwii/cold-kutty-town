@@ -1,45 +1,57 @@
-import { SH } from './00-shared.ts';
+import { SH, type Building } from './00-shared.ts';
 import { CAMP_SHORT, COLOR, GAME, H, HOOKS, N, TAU, W, cam, clamp, state } from './01-core.ts';
 import { GA0, GB0, T_SEA, typeAt } from './02-ground.ts';
 import { sideAt } from './08-territory.ts';
 import { CLOCK, MAPV, MS, OV_ON, WEATHER, clampCam, devH, devW, mapUpdate, render, scene, screenToWorld } from './11-render.ts';
-import { $, toast } from './13-ui.js';
-import { MONTHS, closePaper } from './17-calendar.js';
+import { $, $of, toast } from './13-ui.ts';
+import { MONTHS, closePaper } from './17-calendar.ts';
 /* ================= ambiance sonore, entierement fabriquee par le navigateur ================= */
-export const SND = { on: false, ctx: null, want: false, amb: 0 };
+/** une boucle de bruit filtre (vagues, ville, pluie, vent) : son filtre et son volume */
+export interface NoiseLoop { fl: BiquadFilterNode; g: GainNode }
+/** le graphe audio, construit au premier son (sndStart) */
+export interface SoundGraph { ctx: AudioContext; master: GainNode; white: AudioBuffer; brown: AudioBuffer; waves: NoiseLoop; city: NoiseLoop; rain: NoiseLoop; wind: NoiseLoop; mus: GainNode; musU: GainNode; musC: GainNode; fx: GainNode }
+/** l'etat du son : allume, voulu, minuterie de la musique (next, step), fondu entre les camps (us), et le graphe, null tant qu'il n'est pas construit */
+export type Sound = { on: boolean; want: boolean; amb: number; next: number; step: number; bell: number; us: number | null } & { [K in keyof SoundGraph]: SoundGraph[K] | null };
+export const SND: Sound = { on: false, ctx: null, want: false, amb: 0, next: 0, step: 0, bell: 0, us: null, master: null, white: null, brown: null, waves: null, city: null, rain: null, wind: null, mus: null, musU: null, musC: null, fx: null };
+// le graphe est-il construit ? (sndStart pose tout d'un coup)
+export function sndReady(s: Sound): s is Sound & SoundGraph { return !!(s.ctx && s.master && s.white && s.brown && s.waves && s.city && s.rain && s.wind && s.mus && s.musU && s.musC && s.fx); }
 try { SND.want = localStorage.getItem('cold-kutty-son') === '1'; } catch (_) {}
 export function sndStart(){
   if (SND.ctx){ if (SND.ctx.state === 'suspended') SND.ctx.resume(); return true; }
-  const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return false;
+  const win: Window & { webkitAudioContext?: typeof AudioContext } = window;
+  const AC = window.AudioContext || win.webkitAudioContext; if (!AC) return false;
   const ctx = new AC(), sr = ctx.sampleRate; SND.ctx = ctx;
   const master = ctx.createGain(); master.gain.value = 0; master.connect(ctx.destination); SND.master = master;
-  const mkBuf = (fn) => { const b = ctx.createBuffer(1, sr * 2, sr); fn(b.getChannelData(0)); return b; };
-  SND.white = mkBuf(d => { for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; });
-  SND.brown = mkBuf(d => { let l = 0; for (let i = 0; i < d.length; i++){ l = (l + .02 * (Math.random() * 2 - 1)) / 1.02; d[i] = l * 3.5; } });
-  const loop = (buf, type, f, q) => { const s = ctx.createBufferSource(); s.buffer = buf; s.loop = true; const fl = ctx.createBiquadFilter(); fl.type = type; fl.frequency.value = f; fl.Q.value = q || .7; const g = ctx.createGain(); g.gain.value = 0; s.connect(fl); fl.connect(g); g.connect(master); s.start(); return { fl, g }; };
-  SND.waves = loop(SND.brown, 'lowpass', 520); SND.city = loop(SND.brown, 'bandpass', 170, .9);
-  SND.rain = loop(SND.white, 'highpass', 2400); SND.wind = loop(SND.white, 'bandpass', 420, 1.6);
-  SND.mus = ctx.createGain(); SND.mus.gain.value = 0; SND.mus.connect(master);
-  SND.musU = ctx.createGain(); SND.musC = ctx.createGain(); SND.musU.gain.value = 0; SND.musC.gain.value = 0; SND.musU.connect(SND.mus); SND.musC.connect(SND.mus);
-  SND.fx = ctx.createGain(); SND.fx.gain.value = .9; SND.fx.connect(master);
+  const mkBuf = (fn: (d: Float32Array) => void) => { const b = ctx.createBuffer(1, sr * 2, sr); fn(b.getChannelData(0)); return b; };
+  const white = mkBuf((d) => { for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }); SND.white = white;
+  const brown = mkBuf((d) => { let l = 0; for (let i = 0; i < d.length; i++){ l = (l + .02 * (Math.random() * 2 - 1)) / 1.02; d[i] = l * 3.5; } }); SND.brown = brown;
+  const loop = (buf: AudioBuffer, type: BiquadFilterType, f: number, q?: number): NoiseLoop => { const s = ctx.createBufferSource(); s.buffer = buf; s.loop = true; const fl = ctx.createBiquadFilter(); fl.type = type; fl.frequency.value = f; fl.Q.value = q || .7; const g = ctx.createGain(); g.gain.value = 0; s.connect(fl); fl.connect(g); g.connect(master); s.start(); return { fl, g }; };
+  SND.waves = loop(brown, 'lowpass', 520); SND.city = loop(brown, 'bandpass', 170, .9);
+  SND.rain = loop(white, 'highpass', 2400); SND.wind = loop(white, 'bandpass', 420, 1.6);
+  const mus = ctx.createGain(); SND.mus = mus; mus.gain.value = 0; mus.connect(master);
+  const musU = ctx.createGain(), musC = ctx.createGain(); SND.musU = musU; SND.musC = musC; musU.gain.value = 0; musC.gain.value = 0; musU.connect(mus); musC.connect(mus);
+  const fx = ctx.createGain(); SND.fx = fx; fx.gain.value = .9; fx.connect(master);
   SND.next = ctx.currentTime + .15; SND.step = 0; SND.bell = 0;
   return true;
 }
-export const midi = (n) => 440 * Math.pow(2, (n - 69) / 12);
-export function tone(dest, f, t0, dur, type, vol, att, f2){
-  const c = SND.ctx, o = c.createOscillator(), g = c.createGain();
+export const midi = (n: number) => 440 * Math.pow(2, (n - 69) / 12);
+export function tone(dest: AudioNode, f: number, t0: number, dur: number, type: OscillatorType, vol: number, att?: number, f2?: number){
+  const c = SND.ctx; if (!c) return;
+  const o = c.createOscillator(), g = c.createGain();
   o.type = type || 'sine'; o.frequency.setValueAtTime(f, t0); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t0 + dur);
   g.gain.setValueAtTime(0.0001, t0); g.gain.linearRampToValueAtTime(vol, t0 + (att || .008)); g.gain.exponentialRampToValueAtTime(.0001, t0 + dur);
   o.connect(g); g.connect(dest); o.start(t0); o.stop(t0 + dur + .05);
 }
-export function pad(dest, f, t0, dur, vol){
-  const c = SND.ctx, o = c.createOscillator(), fl = c.createBiquadFilter(), g = c.createGain();
+export function pad(dest: AudioNode, f: number, t0: number, dur: number, vol: number){
+  const c = SND.ctx; if (!c) return;
+  const o = c.createOscillator(), fl = c.createBiquadFilter(), g = c.createGain();
   o.type = 'sawtooth'; o.frequency.value = f; o.detune.value = (Math.random() - .5) * 14; fl.type = 'lowpass'; fl.frequency.value = 1100;
   g.gain.setValueAtTime(0.0001, t0); g.gain.linearRampToValueAtTime(vol, t0 + .35); g.gain.setValueAtTime(vol, t0 + dur - .3); g.gain.linearRampToValueAtTime(.0001, t0 + dur);
   o.connect(fl); fl.connect(g); g.connect(dest); o.start(t0); o.stop(t0 + dur + .05);
 }
-export function hit(dest, t0, dur, type, f, vol, f2){
-  const c = SND.ctx, s = c.createBufferSource(), fl = c.createBiquadFilter(), g = c.createGain();
+export function hit(dest: AudioNode, t0: number, dur: number, type: BiquadFilterType, f: number, vol: number, f2?: number){
+  const c = SND.ctx; if (!c) return;
+  const s = c.createBufferSource(), fl = c.createBiquadFilter(), g = c.createGain();
   s.buffer = SND.white; fl.type = type; fl.frequency.setValueAtTime(f, t0); if (f2) fl.frequency.exponentialRampToValueAtTime(f2, t0 + dur);
   g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(.0001, t0 + dur);
   s.connect(fl); fl.connect(g); g.connect(dest); s.start(t0, Math.random()); s.stop(t0 + dur + .05);
@@ -48,18 +60,18 @@ export function hit(dest, t0, dur, type, f, vol, f2){
 export const BLUES = [0, 0, 0, 0, 5, 5, 0, 0, 7, 5, 0, 7], BOOGIE = [0, 4, 7, 9, 10, 9, 7, 4];
 export const MARCH = [0, 5, 7, 0], SNARE = [1, 0, 1, 1, 1, 0, 1, 1];
 export function schedMusic(){
-  const c = SND.ctx, ahead = c.currentTime + .35;
+  if (!sndReady(SND)) return;
+  const c = SND.ctx, ahead = c.currentTime + .35, U = SND.musU, C = SND.musC;
   while (SND.next < ahead){
     const k = SND.step, t0 = SND.next;
     // ouest : 144 bpm, croches swinguees
     const e8 = k % 8, bar = Math.floor(k / 8) % 12, root = 41 + BLUES[bar], sw = (e8 & 1) ? .07 : 0;
-    const U = SND.musU;
     tone(U, midi(root + BOOGIE[e8] - 12 + 12), t0 + sw, .19, 'triangle', .16);
     hit(U, t0 + sw, .035, 'highpass', 7000, (e8 & 1) ? .05 : .03);
     if (e8 === 2 || e8 === 6){ hit(U, t0, .11, 'bandpass', 1800, .09); for (const n of [0, 4, 7, 10]) tone(U, midi(root + 24 + n), t0 + .01, .16, 'triangle', .035); }
     if (e8 === 0 || e8 === 4) tone(U, 110, t0, .16, 'sine', .22, .004, 45);
     // est : meme pulsation, marche en re mineur, choeurs tenus
-    const C = SND.musC, mb2 = Math.floor(k / 8) % 4, mr = 50 + MARCH[mb2], minor = MARCH[mb2] !== 7;
+    const mb2 = Math.floor(k / 8) % 4, mr = 50 + MARCH[mb2], minor = MARCH[mb2] !== 7;
     if (e8 === 0) for (const n of [0, minor ? 3 : 4, 7, 12]) pad(C, midi(mr + n), t0, 8 * .208, .03);
     if (e8 === 0 || e8 === 4){ tone(C, midi(mr - 12), t0, .3, 'sawtooth', .07); tone(C, 90, t0, .2, 'sine', .2, .004, 40); }
     if (e8 === 2 || e8 === 6) for (const n of [0, minor ? 3 : 4, 7]) tone(C, midi(mr + 12 + n), t0, .12, 'square', .012);
@@ -67,8 +79,9 @@ export function schedMusic(){
     SND.step++; SND.next += .208;
   }
 }
-export function sndAmbience(t){
-  const c = SND.ctx, now = c.currentTime, set = (p, v) => p.setTargetAtTime(v, now, .6);
+export function sndAmbience(t: number){
+  if (!sndReady(SND)) return;
+  const c = SND.ctx, now = c.currentTime, set = (p: AudioParam, v: number) => p.setTargetAtTime(v, now, .6);
   let sea = 0; for (let k = 0; k < 16; k++){ const ang = k / 16 * TAU, r = 60 + (k & 1) * 70; if (typeAt(cam.a + Math.cos(ang) * r, cam.b + Math.sin(ang) * r) === T_SEA) sea++; }
   sea /= 16;
   let built = 0; for (const l of SH.BLD) if (Math.abs(l.ca - cam.a) < 160 && Math.abs(l.cb - cam.b) < 160) built++;
@@ -85,17 +98,17 @@ export function sndAmbience(t){
   set(SND.mus.gain, (state.chatCat ? .22 : .42) * (1 - night * .35) * (OV_ON ? .6 : 1) * SH.OPT.mus / 100);
   set(SND.master.gain, SND.on ? SH.OPT.vol / 100 : 0);
 }
-export function stepSound(dt, t){
+export function stepSound(dt: number, t: number){
   if (!SND.on || !SND.ctx) return;
   schedMusic();
   SND.amb += dt; if (SND.amb > .25){ SND.amb = 0; sndAmbience(t); }
 }
 HOOKS.step.push(stepSound);
 // bruitages ponctuels
-export function sfx(kind, a, b){
-  if (!SND.on || !SND.ctx) return;
+export function sfx(kind: string, a?: number | null, b?: number){
+  if (!SND.on || !sndReady(SND)) return;
   const c = SND.ctx, t0 = c.currentTime + .01, F = SND.fx;
-  const dist = a == null ? 0 : Math.hypot(a - cam.a, b - cam.b), att = clamp(1 - dist / 420, .12, 1);
+  const dist = a == null || b == null ? 0 : Math.hypot(a - cam.a, b - cam.b), att = clamp(1 - dist / 420, .12, 1);
   if (kind === 'fw'){
     tone(F, 700, t0, 1.2, 'sine', .018 * att, .05, 1700);
     const tb = t0 + 1.3; hit(F, tb, .6, 'lowpass', 900, .3 * att, 200); tone(F, 70, tb, .35, 'sine', .25 * att, .004, 35);
@@ -114,12 +127,12 @@ export function sfx(kind, a, b){
   else if (kind === 'wall'){ for (let i = 0; i < 12; i++) hit(F, t0 + i * .08, .09, 'bandpass', 700, .12 + i * .01); tone(F, 49, t0 + 1, 1.2, 'sine', .3, .01, 40); }
   else if (kind === 'click'){ tone(F, 660, t0, .05, 'square', .02); }
 }
-export function setSound(on){
+export function setSound(on: boolean){
   if (on && !sndStart()){ toast('Le son n’est pas disponible dans ce navigateur.'); on = false; }
   SND.on = on; SND.want = on;
   try { localStorage.setItem('cold-kutty-son', on ? '1' : '0'); } catch (_) {}
   const b = $('btnSound'); b.setAttribute('aria-pressed', String(on)); b.setAttribute('aria-label', on ? 'Couper le son' : 'Activer le son');
-  if (SND.ctx){ const now = SND.ctx.currentTime; SND.master.gain.setTargetAtTime(on ? SH.OPT.vol / 100 : 0, now, .15); if (on){ SND.next = Math.max(SND.next, now + .1); sndAmbience(SH.NOW_T); } }
+  if (sndReady(SND)){ const now = SND.ctx.currentTime; SND.master.gain.setTargetAtTime(on ? SH.OPT.vol / 100 : 0, now, .15); if (on){ SND.next = Math.max(SND.next, now + .1); sndAmbience(SH.NOW_T); } }
 }
 $('btnSound').addEventListener('click', () => setSound(!SND.on));
 // le navigateur exige un geste : si le son etait allume la derniere fois, on le rallume au premier clic
@@ -127,21 +140,22 @@ if (SND.want){ $('btnSound').setAttribute('aria-pressed', 'true'); window.addEve
 document.addEventListener('visibilitychange', () => { if (!SND.ctx) return; if (document.hidden) SND.ctx.suspend(); else if (SND.on) SND.ctx.resume(); });
 
 /* ================= mini-carte : la carte strategique vue de haut, avec le cadre de la vue ================= */
-export const mapCv = $('mapCv'), mapCtx = mapCv.getContext('2d');
+export const mapCv = $of('mapCv', HTMLCanvasElement), mapCtx = mapCv.getContext('2d');
 export const MINI = { t: 0, drag: false };
 // l'ile tient dans la mini-carte, en gardant les proportions
 export const miniScale = () => Math.min(mapCv.width / MAPV.W, mapCv.height / MAPV.H);
-export const miniXY = (a, b) => { const s = miniScale(), ox = (mapCv.width - MAPV.W * s) / 2, oy = (mapCv.height - MAPV.H * s) / 2; return [ox + (a - GA0) / MS * s, oy + (b - GB0) / MS * s]; };
-export const miniAB = (x, y) => { const s = miniScale(), ox = (mapCv.width - MAPV.W * s) / 2, oy = (mapCv.height - MAPV.H * s) / 2; return [GA0 + (x - ox) / s * MS, GB0 + (y - oy) / s * MS]; };
+export const miniXY = (a: number, b: number): [number, number] => { const s = miniScale(), ox = (mapCv.width - MAPV.W * s) / 2, oy = (mapCv.height - MAPV.H * s) / 2; return [ox + (a - GA0) / MS * s, oy + (b - GB0) / MS * s]; };
+export const miniAB = (x: number, y: number): [number, number] => { const s = miniScale(), ox = (mapCv.width - MAPV.W * s) / 2, oy = (mapCv.height - MAPV.H * s) / 2; return [GA0 + (x - ox) / s * MS, GB0 + (y - oy) / s * MS]; };
 export function viewCorners(){
   const vw = window.innerWidth, vh = window.innerHeight;
   return [[0, 0], [vw, 0], [vw, vh], [0, vh]].map(([x, y]) => screenToWorld(x, y));
 }
-export function drawMap(t){
+export function drawMap(t: number){
   if (!document.body.classList.contains('has-map') || !MAPV.cv || GAME.mode === 'menu') return;
   if (t - MINI.t < .12) return; MINI.t = t;
   mapUpdate();
-  const g = mapCtx, s = miniScale();
+  const g = mapCtx; if (!g) return;
+  const s = miniScale();
   g.fillStyle = '#1d5c96'; g.fillRect(0, 0, mapCv.width, mapCv.height);
   const [x0, y0] = miniXY(GA0, GB0);
   g.imageSmoothingEnabled = true; g.drawImage(MAPV.cv, x0, y0, MAPV.W * s, MAPV.H * s);
@@ -152,7 +166,7 @@ export function drawMap(t){
   }
   for (const b of SH.BOATS){ if (b.state === 'gone') continue; const [x, y] = miniXY(b.a, b.b); g.fillStyle = b.side === 'usc' ? '#8fb0ff' : '#ff9a90'; g.fillRect(Math.round(x) - 1, Math.round(y) - 1, 3, 3); }
 }
-export function mapPick(e){
+export function mapPick(e: PointerEvent){
   const r = mapCv.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * mapCv.width, y = (e.clientY - r.top) / r.height * mapCv.height;
   const [a, b] = miniAB(x, y);
   if (state.chatCat) SH.closeChat();
@@ -168,8 +182,8 @@ HOOKS.after.push(drawMap);
 
 /* ================= fiche d'un batiment au survol ================= */
 export const tipEl = $('tip');
-export let tipLot = null;
-export function showTip(e, l){
+export let tipLot: Building | null = null;
+export function showTip(e: Pick<PointerEvent, 'pointerType' | 'clientX' | 'clientY'>, l: Building | null){
   if (state.tool !== 'walk' || OV_ON || SH.hoverCat || e.pointerType !== 'mouse' || document.body.classList.contains('photo') || !l || l === state.sel){ tipEl.hidden = true; tipLot = null; return; }
   if (l !== tipLot){
     tipLot = l; tipEl.textContent = '';
@@ -177,11 +191,11 @@ export function showTip(e, l){
     const nm = document.createElement('b'); nm.textContent = SH.lvlName(l);
     const sd = document.createElement('span'); sd.className = 'tip-side ' + l.side; sd.textContent = CAMP_SHORT[l.side];
     head.append(nm, sd); tipEl.append(head);
-    const row = (txt, cls) => { const p = document.createElement('div'); if (cls) p.className = cls; p.textContent = txt; tipEl.append(p); };
+    const row = (txt: string, cls?: string) => { const p = document.createElement('div'); if (cls) p.className = cls; p.textContent = txt; tipEl.append(p); };
     if (!l.done) row('En chantier…');
     else if (!l.active) row('À l’arrêt : pas de route jusqu’au QG', 'tip-want');
     const E2 = SH.ECO[l.type];
-    if (E2){ const bits = []; const mult = SH.LVL_MULT[(l.lvl || 1) - 1]; for (const [k, nm2] of [['c', 'croquettes'], ['l', 'laine'], ['r', 'ronrons']]) if (E2[k]) bits.push((E2[k] > 0 ? '+' + Math.round(E2[k] * mult) : '−' + Math.abs(E2[k])) + ' ' + nm2); if (bits.length) row(bits.join(' · ') + ' par minute'); if (SH.popOf(l)) row(SH.popOf(l) + ' habitants'); }
+    if (E2){ const bits: string[] = []; const mult = SH.LVL_MULT[(l.lvl || 1) - 1]; for (const [k, nm2] of [['c', 'croquettes'], ['l', 'laine'], ['r', 'ronrons']]) if (E2[k]) bits.push((E2[k] > 0 ? '+' + Math.round(E2[k] * mult) : '−' + Math.abs(E2[k])) + ' ' + nm2); if (bits.length) row(bits.join(' · ') + ' par minute'); if (SH.popOf(l)) row(SH.popOf(l) + ' habitants'); }
     row('Clique pour les détails', 'tip-mute');
   }
   tipEl.hidden = false;
@@ -192,9 +206,15 @@ scene.addEventListener('pointerleave', () => { tipEl.hidden = true; tipLot = nul
 scene.addEventListener('pointerdown', () => { tipEl.hidden = true; tipLot = null; });
 
 /* ================= mode photo ================= */
-export const PHOTO = { on: false, filter: 'couleur', dl: undefined };
-export const PHOTO_CSS = { couleur: '', sepia: 'sepia(.85) contrast(1.05)', journal: 'grayscale(1) contrast(1.35) brightness(1.05)', vintage: 'sepia(.35) saturate(1.35) contrast(1.08) brightness(1.04)' };
-export function setPhoto(on){
+/** l'enregistrement de fichiers offert par la page hote (window.claude.use('downloads')) */
+export interface Downloads { save(file: { filename: string; data: Blob }): Promise<unknown> }
+/** ce que la page hote pose sur window (claude.ai, ou src/platform/standalone.js hors de claude.ai) */
+export interface ClaudeHost { use?: (name: string) => Promise<Downloads | null> }
+/** mode photo : allume, filtre choisi, enregistrement (undefined : pas encore demande ; null : absent) */
+export interface Photo { on: boolean; filter: string; dl: Downloads | null | undefined }
+export const PHOTO: Photo = { on: false, filter: 'couleur', dl: undefined };
+export const PHOTO_CSS: Record<string, string> = { couleur: '', sepia: 'sepia(.85) contrast(1.05)', journal: 'grayscale(1) contrast(1.35) brightness(1.05)', vintage: 'sepia(.35) saturate(1.35) contrast(1.08) brightness(1.04)' };
+export function setPhoto(on: boolean){
   PHOTO.on = on; document.body.classList.toggle('photo', on);
   $('photoBar').hidden = !on; $('btnPhoto').setAttribute('aria-pressed', String(on));
   if (on){ if (state.chatCat) SH.closeChat(); $('paper').hidden = true; }
@@ -203,13 +223,14 @@ export function setPhoto(on){
 }
 $('btnPhoto').addEventListener('click', () => setPhoto(!PHOTO.on));
 $('photoQuit').addEventListener('click', () => setPhoto(false));
-for (const b of document.querySelectorAll('[data-pf]')) b.addEventListener('click', () => {
-  PHOTO.filter = b.dataset.pf; scene.style.filter = PHOTO_CSS[PHOTO.filter];
+for (const b of document.querySelectorAll('[data-pf]')) if (b instanceof HTMLElement) b.addEventListener('click', () => {
+  const pf = b.dataset.pf; if (pf === undefined) return;
+  PHOTO.filter = pf; scene.style.filter = PHOTO_CSS[PHOTO.filter];
   for (const o of document.querySelectorAll('[data-pf]')) o.setAttribute('aria-checked', String(o === b));
 });
 window.addEventListener('keydown', (e) => { if (e.key === 'Escape'){ if (PHOTO.on) setPhoto(false); else if (!$('paper').hidden) closePaper(); } });
 // le filtre est applique a la main pour que la photo enregistree ressemble a l'apercu dans tous les navigateurs
-export function filterPixels(d, f){
+export function filterPixels(d: Uint8ClampedArray, f: string){
   for (let i = 0; i < d.length; i += 4){
     let r = d[i], g = d[i + 1], b = d[i + 2];
     if (f === 'sepia'){ const sr = r * .393 + g * .769 + b * .189, sg = r * .349 + g * .686 + b * .168, sb = r * .272 + g * .534 + b * .131; r = r + (sr - r) * .85; g = g + (sg - g) * .85; b = b + (sb - b) * .85; r = (r - 128) * 1.05 + 128; g = (g - 128) * 1.05 + 128; b = (b - 128) * 1.05 + 128; }
@@ -222,7 +243,8 @@ export async function photoCanvas(){
   const vw = devW, vh = devH, pic = document.createElement('canvas');
   const pad = Math.round(Math.min(vw, vh) * .035), band = Math.round(Math.min(vw, vh) * .09);
   pic.width = vw + pad * 2; pic.height = vh + pad + band;
-  const g = pic.getContext('2d'); g.imageSmoothingEnabled = false;
+  const g = pic.getContext('2d'); if (!g) throw new Error('contexte 2d indisponible pour la photo');
+  g.imageSmoothingEnabled = false;
   g.fillStyle = '#f6f0e1'; g.fillRect(0, 0, pic.width, pic.height);
   { const zs = OV_ON ? SH.K : SH.Z, cw = vw / zs, ch = vh / zs; g.drawImage(scene, (W - cw) / 2, (H - ch) / 2, cw, ch, pad, pad, vw, vh); }
   if (PHOTO.filter !== 'couleur'){ const id = g.getImageData(pad, pad, vw, vh); filterPixels(id.data, PHOTO.filter); g.putImageData(id, pad, pad); }
@@ -234,23 +256,24 @@ export async function photoCanvas(){
   return pic;
 }
 export async function photoShoot(){
-  const btn = $('photoShoot'); btn.disabled = true;
+  const btn = $of('photoShoot', HTMLButtonElement); btn.disabled = true;
   try {
     render(SH.NOW_T);
     const pic = await photoCanvas();
-    const blob = await new Promise(r => pic.toBlob(r, 'image/png'));
+    const blob = await new Promise<Blob | null>(r => pic.toBlob(r, 'image/png'));
     if (!blob){ toast('La photo n’a pas pu être préparée.'); return; }
     sfx('click');
     const name = 'cold-kutty-town-' + MONTHS[SH.CAL.m].normalize('NFD').replace(/[^a-z]/g, '') + '-' + String(Math.floor(CLOCK.h)).padStart(2, '0') + 'h.png';
-    if (PHOTO.dl === undefined){ try { PHOTO.dl = window.claude && typeof window.claude.use === 'function' ? await window.claude.use('downloads') : null; } catch (_) { PHOTO.dl = null; } }
+    const host: Window & { claude?: ClaudeHost } = window;
+    if (PHOTO.dl === undefined){ try { PHOTO.dl = host.claude && typeof host.claude.use === 'function' ? await host.claude.use('downloads') : null; } catch (_) { PHOTO.dl = null; } }
     if (PHOTO.dl){
       try { await PHOTO.dl.save({ filename: name, data: blob }); toast('Photo enregistrée.'); }
-      catch (err){ const c = err && err.code; toast(c === 'declined' ? 'Photo non enregistrée.' : c === 'rate_limited' ? 'Une demande d’enregistrement est déjà ouverte.' : 'L’enregistrement n’a pas marché ici : la photo s’affiche, fais clic droit pour l’enregistrer.'); if (c !== 'declined' && c !== 'rate_limited') photoPreview(blob); }
+      catch (err){ const c = typeof err === 'object' && err !== null && 'code' in err ? err.code : undefined; toast(c === 'declined' ? 'Photo non enregistrée.' : c === 'rate_limited' ? 'Une demande d’enregistrement est déjà ouverte.' : 'L’enregistrement n’a pas marché ici : la photo s’affiche, fais clic droit pour l’enregistrer.'); if (c !== 'declined' && c !== 'rate_limited') photoPreview(blob); }
     } else photoPreview(blob);
   } finally { btn.disabled = false; }
 }
-export function photoPreview(blob){
-  const url = URL.createObjectURL(blob), box = $('photoPreview'), im = $('photoImg');
+export function photoPreview(blob: Blob){
+  const url = URL.createObjectURL(blob), box = $('photoPreview'), im = $of('photoImg', HTMLImageElement);
   if (im.dataset.url) URL.revokeObjectURL(im.dataset.url);
   im.src = url; im.dataset.url = url; box.hidden = false;
 }

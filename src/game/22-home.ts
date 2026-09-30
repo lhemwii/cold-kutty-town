@@ -1,39 +1,47 @@
-import { SH } from './00-shared.ts';
+import { SH, type Side } from './00-shared.ts';
 import { CAMP_SHORT, GAME, GLOBE_ON, HOOKS, RP, TAU, cam, other, reduceMotion, setProj, state } from './01-core.ts';
-import { IS, MAP_CONFS, MAP_SIZES, mapScale } from './02-ground.ts';
+import { IS, MAP_CONFS, MAP_SIZES, isMapConf, isMapSize, mapScale, type MapConf, type MapSizeKey } from './02-ground.ts';
 import { terPct } from './08-territory.ts';
 import { CLOCK, MAPV, centerOn, clampCam, setZoom } from './11-render.ts';
-import { $, drag, setPaused, setSpeed, toast } from './13-ui.js';
-import { FLAG_HEX, FLAG_HI, flagSVG } from './14-hud.js';
-import { MONTHS } from './17-calendar.js';
-import { loadGame, newWorld, saveTimer, snapshot, startLanding } from './21-main.js';
+import { $, $of, drag, setPaused, setSpeed, toast } from './13-ui.ts';
+import { FLAG_HEX, FLAG_HI, flagSVG } from './14-hud.ts';
+import { MONTHS } from './17-calendar.ts';
+import { asSave, loadGame, newWorld, saveTimer, snapshot, startLanding, type SaveData } from './21-main.ts';
 /* ================= accueil : menu du jeu, parties sauvegardees, profil, options ================= */
 // Tout est garde dans le navigateur (localStorage) : un index des parties, chaque partie a part, sa vignette,
 // le profil et les options. Rien ne part sur un serveur.
 export const SAVES_KEY = 'ckt-saves', PROFILE_KEY = 'ckt-profil', OPT_KEY = 'ckt-options', OLD_SAVE_KEY = 'cold-kutty-town-8';
-export const slotKey = (id) => 'ckt-partie-' + id, thumbKey = (id) => 'ckt-vignette-' + id;
+export const slotKey = (id: string) => 'ckt-partie-' + id, thumbKey = (id: string) => 'ckt-vignette-' + id;
+// ce qui est range : les options, le profil, et une ligne par partie dans l'index
+export interface Options { vol: number; mus: number; speed: number; wx: number }
+export interface Profile { name: string; side: string; games: number; wins: number; losses: number; secs: number }
+export interface SaveEntry { id: string; name: string; side: Side; at: number; m: number; h: number; pct: [number, number] | null; seed: number; size?: string; conf?: string; won: Side | '' }
+export const isSide = (s: unknown): s is Side => s === 'usc' || s === 'ccp';
+// une valeur JSON relue du stockage : a verifier avant de s'en servir
 export const store = {
-  get(k, def){ try { const s = localStorage.getItem(k); return s == null ? def : JSON.parse(s); } catch (_) { return def; } },
-  set(k, v){ try { localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v)); return true; } catch (_) { return false; } },
-  raw(k){ try { return localStorage.getItem(k); } catch (_) { return null; } },
-  del(k){ try { localStorage.removeItem(k); } catch (_) {} }
+  get(k: string, def: unknown): unknown { try { const s = localStorage.getItem(k); return s == null ? def : JSON.parse(s); } catch (_) { return def; } },
+  set(k: string, v: string | object){ try { localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v)); return true; } catch (_) { return false; } },
+  raw(k: string){ try { return localStorage.getItem(k); } catch (_) { return null; } },
+  del(k: string){ try { localStorage.removeItem(k); } catch (_) {} }
 };
-export const OPT = Object.assign({ vol: 70, mus: 100, speed: 1, wx: 1 }, store.get(OPT_KEY, {}));
-export const PROFILE = Object.assign({ name: '', side: 'usc', games: 0, wins: 0, losses: 0, secs: 0 }, store.get(PROFILE_KEY, {}));
+export const OPT: Options = Object.assign({ vol: 70, mus: 100, speed: 1, wx: 1 }, store.get(OPT_KEY, {}));
+export const PROFILE: Profile = Object.assign({ name: '', side: 'usc', games: 0, wins: 0, losses: 0, secs: 0 }, store.get(PROFILE_KEY, {}));
 export const saveOpt = () => store.set(OPT_KEY, OPT);
 export const saveProfile = () => store.set(PROFILE_KEY, PROFILE);
-GAME.slot = null; GAME.name = '';
+GAME.slot = undefined; GAME.name = '';
 
 /* ---- les parties ---- */
-export const savesIndex = () => { const ix = store.get(SAVES_KEY, []); return Array.isArray(ix) ? ix : []; };
+// l'index est suppose bien forme des qu'il est une liste (c'est ce jeu qui l'ecrit)
+export const savesIndex = (): SaveEntry[] => { const ix = store.get(SAVES_KEY, []); return Array.isArray(ix) ? ix : []; };
 export const newSlotId = () => Date.now().toString(36) + Math.floor(Math.random() * 1296).toString(36);
 // l'ancienne sauvegarde unique devient la premiere partie de la liste
 (function migrate(){
   const old = store.raw(OLD_SAVE_KEY); if (!old) return;
   if (!savesIndex().length){
     try {
-      const d = JSON.parse(old), id = newSlotId();
-      if (store.set(slotKey(id), old)) store.set(SAVES_KEY, [{ id, name: 'Ma partie', side: d.side === 'ccp' ? 'ccp' : 'usc', at: Date.now(), m: d.cal | 0, h: +d.h || 10, pct: null, seed: d.seed | 0, won: d.won || '' }]);
+      // l'ancienne sauvegarde unique : une photo de partie, relue telle quelle (un champ absent donne la valeur par defaut)
+      const d: Partial<SaveData> = JSON.parse(old), id = newSlotId();
+      if (store.set(slotKey(id), old)){ const e: SaveEntry = { id, name: 'Ma partie', side: d.side === 'ccp' ? 'ccp' : 'usc', at: Date.now(), m: Number(d.cal) | 0, h: Number(d.h) || 10, pct: null, seed: Number(d.seed) | 0, won: d.won || '' }; store.set(SAVES_KEY, [e]); }
     } catch (_) {}
   }
   store.del(OLD_SAVE_KEY);
@@ -41,7 +49,7 @@ export const newSlotId = () => Date.now().toString(36) + Math.floor(Math.random(
 export function mapThumb(){
   if (!MAPV.cv) return null;
   const c = document.createElement('canvas'); c.width = 120; c.height = 81;
-  const g = c.getContext('2d'); g.imageSmoothingEnabled = true; g.drawImage(MAPV.cv, 0, 0, 120, 81);
+  const g = c.getContext('2d'); if (!g) return null; g.imageSmoothingEnabled = true; g.drawImage(MAPV.cv, 0, 0, 120, 81);
   try { return c.toDataURL('image/png'); } catch (_) { return null; }
 }
 export let saveWarned = false, thumbAt = 0;
@@ -54,25 +62,25 @@ export function saveNow(){
     return;
   }
   const ix = savesIndex().filter(e => e.id !== GAME.slot);
-  ix.unshift({ id: GAME.slot, name: GAME.name, side: GAME.side, at: Date.now(), m: SH.CAL.m, h: CLOCK.h, pct: [terPct('usc'), terPct('ccp')], seed: GAME.seed, size: GAME.size, conf: GAME.conf, won: GAME.winner || '' });
+  ix.unshift({ id: GAME.slot, name: GAME.name || '', side: GAME.side, at: Date.now(), m: SH.CAL.m, h: CLOCK.h, pct: [terPct('usc'), terPct('ccp')], seed: GAME.seed, size: GAME.size, conf: GAME.conf, won: GAME.winner || '' });
   store.set(SAVES_KEY, ix);
   const now2 = performance.now();
   if (now2 - thumbAt > 30000 || !store.raw(thumbKey(GAME.slot))){ thumbAt = now2; const u = mapThumb(); if (u) store.set(thumbKey(GAME.slot), u); }
 }
-export function loadSlot(id){
-  const d = store.get(slotKey(id), null), e = savesIndex().find(o => o.id === id);
+export function loadSlot(id: string){
+  const d = asSave(store.get(slotKey(id), null)), e = savesIndex().find(o => o.id === id);
   if (!d || !loadGame(d)){ toast('Cette sauvegarde est illisible.'); return false; }
   GAME.slot = id; GAME.name = d.name || (e && e.name) || 'Partie';
   closeHome(true);
   return true;
 }
-export function deleteSlot(id){
+export function deleteSlot(id: string){
   store.del(slotKey(id)); store.del(thumbKey(id));
   store.set(SAVES_KEY, savesIndex().filter(e => e.id !== id));
-  if (GAME.slot === id) GAME.slot = null;
+  if (GAME.slot === id) GAME.slot = undefined;
 }
 // quand la partie a-t-elle ete jouee : sans annee, comme tout le reste du jeu
-export function whenLabel(at){
+export function whenLabel(at: number){
   const d = Date.now() - at, m = Math.round(d / 60000);
   if (m < 1) return 'à l’instant';
   if (m < 60) return 'il y a ' + m + ' min';
@@ -85,10 +93,10 @@ export function whenLabel(at){
 }
 
 /* ---- l'ecran d'accueil ---- */
-export let homePage = null, homeWasPaused = false;
-export const PAGES = { new: 'pageNew', load: 'pageLoad', profile: 'pageProfile', options: 'pageOptions', rules: 'pageRules' };
+export let homePage: string | null = null, homeWasPaused = false;
+export const PAGES: Record<string, string> = { new: 'pageNew', load: 'pageLoad', profile: 'pageProfile', options: 'pageOptions', rules: 'pageRules' };
 export const inGame = () => GAME.mode === 'play' || GAME.mode === 'over';
-export function openIntro(page){
+export function openIntro(page?: string){
   const el = $('intro'), wasOpen = !el.hidden;
   el.hidden = false; document.body.classList.add('home-open');
   if (inGame() && !wasOpen){ homeWasPaused = GAME.paused; setPaused(true); }
@@ -102,17 +110,17 @@ export function openIntro(page){
   $('homeHello').textContent = PROFILE.name ? 'Bon retour sur l’île, ' + PROFILE.name + '.' : ''; $('homeHello').hidden = !PROFILE.name;
   showPage(page || null);
 }
-export function closeHome(resume){
+export function closeHome(resume: boolean){
   $('intro').hidden = true; showPage(null); document.body.classList.remove('home-open');
   if (resume && inGame()) setPaused(homeWasPaused);
 }
-export function showPage(p){
+export function showPage(p: string|null){
   homePage = p;
   for (const k in PAGES) $(PAGES[k]).hidden = k !== p;
-  for (const b of document.querySelectorAll('.hm[data-page]')) b.setAttribute('aria-current', String(b.dataset.page === p));
+  for (const b of document.querySelectorAll('.hm[data-page]')) if (b instanceof HTMLElement) b.setAttribute('aria-current', String(b.dataset.page === p));
   if (p === 'new') fillNew(); else if (p === 'load') fillLoad(); else if (p === 'profile') fillProfile(); else if (p === 'options') fillOptions();
 }
-for (const b of document.querySelectorAll('.hm[data-page]')) b.addEventListener('click', () => { SH.sfx('click'); showPage(homePage === b.dataset.page ? null : b.dataset.page); });
+for (const b of document.querySelectorAll('.hm[data-page]')) if (b instanceof HTMLElement) b.addEventListener('click', () => { SH.sfx('click'); const pg = b.dataset.page ?? null; showPage(homePage === pg ? null : pg); });
 $('hmBack').addEventListener('click', () => { SH.sfx('click'); closeHome(true); });
 $('hmContinue').addEventListener('click', () => { const last = savesIndex()[0]; if (last) loadSlot(last.id); });
 $('hmQuit').addEventListener('click', () => { saveNow(); leaveToHome(); });
@@ -125,7 +133,7 @@ window.addEventListener('keydown', (e) => {
 // quitter la partie : on revient a l'accueil, une ile tiree au sort en fond
 export function leaveToHome(){
   clearTimeout(saveTimer);
-  GAME.mode = 'menu'; GAME.slot = null; GAME.paused = false; homeWasPaused = false;
+  GAME.mode = 'menu'; GAME.slot = undefined; GAME.paused = false; homeWasPaused = false;
   for (const id of ['topbar', 'bottom', 'radio', 'landing', 'endBox', 'chat', 'paper', 'sel']) $(id).hidden = true;
   document.body.classList.remove('playing', 'sel-open');
   state.sel = null; state.selV = null; if (state.chatCat) SH.closeChat();
@@ -135,35 +143,35 @@ export function leaveToHome(){
 }
 
 /* ---- nouvelle partie ---- */
-export let pickSide = PROFILE.side === 'ccp' ? 'ccp' : 'usc';
-export function markSide(){ for (const o of document.querySelectorAll('#pageNew .side-card')) o.setAttribute('aria-checked', String(o.dataset.side === pickSide)); }
-for (const b of document.querySelectorAll('#pageNew .side-card')) b.addEventListener('click', () => { pickSide = b.dataset.side; markSide(); SH.sfx(pickSide); });
-export function fillNew(){ markSide(); markMap(); $('newName').value = 'Partie ' + (savesIndex().length + 1); $('newSeed').value = ''; }
+export let pickSide: Side = PROFILE.side === 'ccp' ? 'ccp' : 'usc';
+export function markSide(){ for (const o of document.querySelectorAll('#pageNew .side-card')) if (o instanceof HTMLElement) o.setAttribute('aria-checked', String(o.dataset.side === pickSide)); }
+for (const b of document.querySelectorAll('#pageNew .side-card')) if (b instanceof HTMLElement) b.addEventListener('click', () => { const s = b.dataset.side; if (isSide(s)) pickSide = s; markSide(); SH.sfx(pickSide); });
+export function fillNew(){ markSide(); markMap(); $of('newName', HTMLInputElement).value = 'Partie ' + (savesIndex().length + 1); $of('newSeed', HTMLInputElement).value = ''; }
 // taille de la carte et forme du monde (retenues pour la prochaine partie)
 export const MAP_KEY = 'ckt-carte';
-export let pickSize = 'moyenne', pickConf = 'une';
-{ const m = store.get(MAP_KEY, {}) || {}; if (MAP_SIZES[m.size]) pickSize = m.size; if (MAP_CONFS[m.conf]) pickConf = m.conf; }
-export const MAP_NOTES = { une: 'Une grande île, les deux camps débarquent chacun d’un côté.', deux: 'Deux îles face à face, séparées par un détroit : chaque camp débarque sur la sienne. Les barges passent de l’une à l’autre.', quatre: 'Quatre îles séparées par des chenaux. Les barges vont de l’une à l’autre.', archipel: 'Une poignée d’îles de toutes les tailles. Il faudra des barges pour s’étendre.', atoll: 'Un anneau de terre autour d’un lagon, deux passes vers le large et un îlot au milieu.' };
+export let pickSize: MapSizeKey = 'moyenne', pickConf: MapConf = 'une';
+{ const m = store.get(MAP_KEY, {}); if (typeof m === 'object' && m !== null){ if ('size' in m && isMapSize(m.size)) pickSize = m.size; if ('conf' in m && isMapConf(m.conf)) pickConf = m.conf; } }
+export const MAP_NOTES: Record<MapConf, string> = { une: 'Une grande île, les deux camps débarquent chacun d’un côté.', deux: 'Deux îles face à face, séparées par un détroit : chaque camp débarque sur la sienne. Les barges passent de l’une à l’autre.', quatre: 'Quatre îles séparées par des chenaux. Les barges vont de l’une à l’autre.', archipel: 'Une poignée d’îles de toutes les tailles. Il faudra des barges pour s’étendre.', atoll: 'Un anneau de terre autour d’un lagon, deux passes vers le large et un îlot au milieu.' };
 export function markMap(){
-  for (const b of $('newSize').children) b.setAttribute('aria-checked', String(b.dataset.v === pickSize));
-  for (const b of $('newConf').children) b.setAttribute('aria-checked', String(b.dataset.v === pickConf));
+  for (const b of $('newSize').children) if (b instanceof HTMLElement) b.setAttribute('aria-checked', String(b.dataset.v === pickSize));
+  for (const b of $('newConf').children) if (b instanceof HTMLElement) b.setAttribute('aria-checked', String(b.dataset.v === pickConf));
   const m = MAP_SIZES[pickSize];
   $('newMapNote').textContent = MAP_NOTES[pickConf] + (pickSize === 'moyenne' ? '' : ' Carte ' + m.name.toLowerCase() + ' : ' + Math.round(m.w * m.h / (1600 * 1080) * 100) + ' % de la moyenne.');
 }
-export function pickMap(size, conf){
-  if (size) pickSize = size; if (conf) pickConf = conf;
+export function pickMap(size: string | null | undefined, conf: string | null | undefined){
+  if (isMapSize(size)) pickSize = size; if (isMapConf(conf)) pickConf = conf;
   store.set(MAP_KEY, { size: pickSize, conf: pickConf });
   markMap(); SH.sfx('click');
 }
-for (const b of $('newSize').children) b.addEventListener('click', () => pickMap(b.dataset.v, null));
-for (const b of $('newConf').children) b.addEventListener('click', () => pickMap(null, b.dataset.v));
-$('newDice').addEventListener('click', () => { $('newSeed').value = String(1 + Math.floor(Math.random() * 99999)); SH.sfx('click'); });
+for (const b of $('newSize').children) if (b instanceof HTMLElement) b.addEventListener('click', () => pickMap(b.dataset.v, null));
+for (const b of $('newConf').children) if (b instanceof HTMLElement) b.addEventListener('click', () => pickMap(null, b.dataset.v));
+$('newDice').addEventListener('click', () => { $of('newSeed', HTMLInputElement).value = String(1 + Math.floor(Math.random() * 99999)); SH.sfx('click'); });
 $('introGo').addEventListener('click', () => {
   if (inGame()) saveNow();
   GAME.side = pickSide; GAME.rival = other(pickSide);
-  GAME.name = ($('newName').value || '').trim().slice(0, 28) || 'Partie ' + (savesIndex().length + 1);
+  GAME.name = ($of('newName', HTMLInputElement).value || '').trim().slice(0, 28) || 'Partie ' + (savesIndex().length + 1);
   GAME.slot = newSlotId();
-  const typed = parseInt(($('newSeed').value || '').replace(/\D/g, ''), 10);
+  const typed = parseInt(($of('newSeed', HTMLInputElement).value || '').replace(/\D/g, ''), 10);
   const seed = typed > 0 ? Math.min(99999, typed) : 1 + Math.floor(Math.random() * 99999);
   PROFILE.games++; saveProfile();
   closeHome(false); setPaused(false); GAME.winner = null;
@@ -184,7 +192,7 @@ export function fillLoad(){
     const t = document.createElement('div'); t.className = 'save-t'; t.innerHTML = '<span class="flag">' + flagSVG(e.side) + '</span>'; const nm = document.createElement('b'); nm.textContent = e.name || 'Partie'; t.append(nm); info.append(t);
     const meta = document.createElement('div'); meta.className = 'save-meta';
     const pct = Array.isArray(e.pct) ? 'USC ' + Math.round(e.pct[0] * 100) + ' % · CCR ' + Math.round(e.pct[1] * 100) + ' %' : '';
-    meta.textContent = [CAMP_SHORT[e.side], MONTHS[e.m | 0], pct, 'île ' + (e.seed || '?'), MAP_SIZES[e.size] ? MAP_SIZES[e.size].name.toLowerCase() : '', MAP_CONFS[e.conf] && e.conf !== 'une' ? MAP_CONFS[e.conf].toLowerCase() : '', e.won ? (e.won === e.side ? 'gagnée' : 'perdue') : ''].filter(Boolean).join(' · ');
+    meta.textContent = [CAMP_SHORT[e.side], MONTHS[e.m | 0], pct, 'île ' + (e.seed || '?'), isMapSize(e.size) ? MAP_SIZES[e.size].name.toLowerCase() : '', isMapConf(e.conf) && e.conf !== 'une' ? MAP_CONFS[e.conf].toLowerCase() : '', e.won ? (e.won === e.side ? 'gagnée' : 'perdue') : ''].filter(Boolean).join(' · ');
     const when = document.createElement('div'); when.className = 'save-when'; when.textContent = 'Jouée ' + whenLabel(e.at) + (e.id === GAME.slot ? ' · partie en cours' : '');
     info.append(meta, when);
     const act = document.createElement('div'); act.className = 'save-act';
@@ -200,36 +208,38 @@ export function fillLoad(){
 }
 
 /* ---- profil ---- */
-export function fmtDuration(s){ const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60); return h ? h + ' h ' + String(m).padStart(2, '0') : m + ' min'; }
+export function fmtDuration(s: number){ const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60); return h ? h + ' h ' + String(m).padStart(2, '0') : m + ' min'; }
 export function fillProfile(){
-  $('profName').value = PROFILE.name || '';
-  for (const b of $('profSide').children) b.setAttribute('aria-checked', String(b.dataset.side === PROFILE.side));
+  $of('profName', HTMLInputElement).value = PROFILE.name || '';
+  for (const b of $('profSide').children) if (b instanceof HTMLElement) b.setAttribute('aria-checked', String(b.dataset.side === PROFILE.side));
   const box = $('profStats'); box.textContent = '';
-  for (const [v, l] of [[PROFILE.games, 'parties lancées'], [PROFILE.wins, 'victoires'], [PROFILE.losses, 'défaites'], [fmtDuration(PROFILE.secs), 'de jeu']]){
+  const stats: [number | string, string][] = [[PROFILE.games, 'parties lancées'], [PROFILE.wins, 'victoires'], [PROFILE.losses, 'défaites'], [fmtDuration(PROFILE.secs), 'de jeu']];
+  for (const [v, l] of stats){
     const d = document.createElement('div'); d.className = 'stat'; const b = document.createElement('b'); b.textContent = String(v); const s = document.createElement('span'); s.textContent = l; d.append(b, s); box.append(d);
   }
 }
-$('profName').addEventListener('input', () => { PROFILE.name = $('profName').value.trim().slice(0, 20); saveProfile(); });
-for (const b of $('profSide').children) b.addEventListener('click', () => { PROFILE.side = b.dataset.side; pickSide = PROFILE.side; saveProfile(); fillProfile(); SH.sfx(PROFILE.side); });
+$('profName').addEventListener('input', () => { PROFILE.name = $of('profName', HTMLInputElement).value.trim().slice(0, 20); saveProfile(); });
+for (const b of $('profSide').children) if (b instanceof HTMLElement) b.addEventListener('click', () => { const s = b.dataset.side; if (!isSide(s)) return; PROFILE.side = s; pickSide = s; saveProfile(); fillProfile(); SH.sfx(PROFILE.side); });
 // fin de partie : une victoire ou une defaite, une seule fois par partie
-export function profileResult(winner){
-  if (!GAME.slot || GAME.counted === GAME.slot) return;
-  GAME.counted = GAME.slot;
+export let countedSlot: string | undefined;
+export function profileResult(winner: Side){
+  if (!GAME.slot || countedSlot === GAME.slot) return;
+  countedSlot = GAME.slot;
   if (winner === GAME.side) PROFILE.wins++; else PROFILE.losses++;
   saveProfile();
 }
 
 /* ---- options ---- */
 export function fillOptions(){
-  $('optVol').value = OPT.vol; $('optVolV').textContent = OPT.vol + ' %';
-  $('optMus').value = OPT.mus; $('optMusV').textContent = OPT.mus + ' %';
-  for (const b of $('optSpeed').children) b.setAttribute('aria-checked', String(+b.dataset.v === OPT.speed));
-  for (const b of $('optWx').children) b.setAttribute('aria-checked', String(+b.dataset.v === OPT.wx));
+  $of('optVol', HTMLInputElement).value = String(OPT.vol); $('optVolV').textContent = OPT.vol + ' %';
+  $of('optMus', HTMLInputElement).value = String(OPT.mus); $('optMusV').textContent = OPT.mus + ' %';
+  for (const b of $('optSpeed').children) if (b instanceof HTMLElement) b.setAttribute('aria-checked', String(Number(b.dataset.v) === OPT.speed));
+  for (const b of $('optWx').children) if (b instanceof HTMLElement) b.setAttribute('aria-checked', String(Number(b.dataset.v) === OPT.wx));
 }
-$('optVol').addEventListener('input', () => { OPT.vol = +$('optVol').value; saveOpt(); fillOptions(); });
-$('optMus').addEventListener('input', () => { OPT.mus = +$('optMus').value; saveOpt(); fillOptions(); });
-for (const b of $('optSpeed').children) b.addEventListener('click', () => { OPT.speed = +b.dataset.v; saveOpt(); fillOptions(); SH.sfx('click'); });
-for (const b of $('optWx').children) b.addEventListener('click', () => { OPT.wx = +b.dataset.v; saveOpt(); fillOptions(); SH.sfx('click'); });
+$('optVol').addEventListener('input', () => { OPT.vol = +$of('optVol', HTMLInputElement).value; saveOpt(); fillOptions(); });
+$('optMus').addEventListener('input', () => { OPT.mus = +$of('optMus', HTMLInputElement).value; saveOpt(); fillOptions(); });
+for (const b of $('optSpeed').children) if (b instanceof HTMLElement) b.addEventListener('click', () => { OPT.speed = Number(b.dataset.v); saveOpt(); fillOptions(); SH.sfx('click'); });
+for (const b of $('optWx').children) if (b instanceof HTMLElement) b.addEventListener('click', () => { OPT.wx = Number(b.dataset.v); saveOpt(); fillOptions(); SH.sfx('click'); });
 $('optWipe').addEventListener('click', () => {
   const b = $('optWipe');
   if (b.dataset.sure !== '1'){ b.dataset.sure = '1'; b.textContent = 'Sûr ? Tout sera perdu'; setTimeout(() => { b.dataset.sure = ''; b.textContent = 'Effacer parties, profil et options'; }, 3000); return; }
@@ -243,7 +253,7 @@ $('optWipe').addEventListener('click', () => {
 
 /* ---- le fond de l'accueil : l'ile de loin (ou la planete, avec GLOBE_ON), qui tourne doucement sur elle-meme ---- */
 export const HOME = { last: 0, acc: 0 };
-export function homeIsland(seed){
+export function homeIsland(seed: number){
   // en fond de l'accueil : une carte moyenne, d'une forme tiree au sort
   const confs = Object.keys(MAP_CONFS);
   newWorld(seed, 'moyenne', confs[seed % confs.length]);
@@ -263,24 +273,29 @@ HOOKS.after.push(() => {
 
 /* ---- les drapeaux de l'accueil : ils flottent vraiment au vent ---- */
 // chaque colonne de pixels ondule (plus fort loin du mat), avec des plis plus clairs et plus sombres
-export const FLAGW = { els: [], s: 3, last: 0, still: reduceMotion };
+// un drapeau qui flotte : son dessin (lettres de couleur), son canvas et ses pixels, sa palette, sa phase et sa vitesse
+export interface FlagWave { art: string[]; fw: number; fh: number; g: CanvasRenderingContext2D; img: ImageData; px: Uint32Array; pal: Record<string, [number, number, number]>; ph: number; sp: number }
+export const FLAGW: { els: FlagWave[]; s: number; last: number; still: boolean } = { els: [], s: 3, last: 0, still: reduceMotion };
 export function flagWaveInit(){
   for (const el of document.querySelectorAll('.home-flags [data-flag]')){
-    const art = FLAG_HI[el.dataset.flag], fw = art[0].length, fh = art.length, s = FLAGW.s;
+    if (!(el instanceof HTMLElement)) continue;
+    const side = el.dataset.flag; if (!isSide(side)) continue;
+    const art = FLAG_HI[side], fw = art[0].length, fh = art.length, s = FLAGW.s;
     const cv = document.createElement('canvas'); cv.width = (fw + 3) * s; cv.height = (fh + 16) * s;
     el.innerHTML = ''; el.appendChild(cv);
-    const g = cv.getContext('2d'), img = g.createImageData(cv.width, cv.height);
-    const pal = {}; for (const k in FLAG_HEX){ const v = parseInt(FLAG_HEX[k].slice(1), 16); pal[k] = [v >> 16, (v >> 8) & 255, v & 255]; }
+    const g = cv.getContext('2d'); if (!g) continue;
+    const img = g.createImageData(cv.width, cv.height);
+    const pal: Record<string, [number, number, number]> = {}; for (const [k, hex] of Object.entries(FLAG_HEX)){ const v = parseInt(hex.slice(1), 16); pal[k] = [v >> 16, (v >> 8) & 255, v & 255]; }
     FLAGW.els.push({ art, fw, fh, g, img, px: new Uint32Array(img.data.buffer), pal, ph: el.classList.contains('slow') ? 2.1 : 0, sp: el.classList.contains('slow') ? 2.6 : 3.1 });
   }
   flagWaveDraw(0);
 }
-export function flagWaveDraw(t){
+export function flagWaveDraw(t: number){
   const s = FLAGW.s;
   for (const F of FLAGW.els){
     const { art, fw, fh, px, pal } = F, W2 = (fw + 3) * s, H2 = (fh + 16) * s, top = 4;
     px.fill(0);
-    const put = (x, y, r, g, b) => { if (x >= 0 && y >= 0 && x < W2 && y < H2) px[y * W2 + x] = (255 << 24) | (b << 16) | (g << 8) | r; };
+    const put = (x: number, y: number, r: number, g: number, b: number) => { if (x >= 0 && y >= 0 && x < W2 && y < H2) px[y * W2 + x] = (255 << 24) | (b << 16) | (g << 8) | r; };
     // le mat, et sa boule
     for (let y = 1 * s; y < H2; y++) for (let x = 0; x < 2 * s; x++) put(x, y, x < s ? 70 : 31, x < s ? 66 : 29, x < s ? 76 : 36);
     for (let y = 0; y < s * 2; y++) for (let x = -1; x < 2 * s + 1; x++) put(x, y, 217, 162, 30);

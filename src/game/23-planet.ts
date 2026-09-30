@@ -1,5 +1,5 @@
 import { SH } from './00-shared.ts';
-import { GAME, GEO, H, N, PC, PS, RAYHIT, RP, SC, SQ3, TAU, TX, TY, W, cam, clamp, hash2, img, prj, px32, vnoise } from './01-core.ts';
+import { GAME, GEO, H, N, PC, PS, RAYHIT, RP, SC, SQ3, TAU, TX, TY, W, cam, clamp, hash2, prj, px32, vnoise } from './01-core.ts';
 import { GA0, GB0, GH, GSC, GW } from './02-ground.ts';
 import { CLOCK, MAPV, mapUpdate } from './11-render.ts';
 /* ================= la planete : on dezoome en continu de l'ile jusqu'au globe entier, l'espace derriere ================= */
@@ -7,12 +7,16 @@ import { CLOCK, MAPV, mapUpdate } from './11-render.ts';
 // Le jeu se dessine toujours a plat ; de loin, planetWarp pose cette image sur une sphere dont le rayon GR descend en continu
 // jusqu'a RP (voir curvOf et geoSet). Sur l'ile, on reprend l'image du jeu (ou la carte MAPV hors du tampon) ; ailleurs, une texture
 // tiree au sort avec la graine de l'ile : ocean, autres continents, banquise, nuages. Puis le jour et la nuit, le halo, les etoiles.
-export const PLANET = { W: 1024, H: 512, seed: -1, tex: null, cloud: null, stars: null };
-export function planetBuild(seed){
+/** une etoile : direction (x, y, z) fixe dans l'espace, eclat (0 a 1), taille en pixels (1 ou 2) */
+export type Star = [number, number, number, number, number];
+/** la texture de la planete (W x H, en longitude et latitude), ses nuages, ses etoiles ; tableaux vides tant que planetBuild n'a pas tourne */
+export interface Planet { W: number; H: number; seed: number; tex: Uint32Array; cloud: Uint8Array; stars: Star[] }
+export const PLANET: Planet = { W: 1024, H: 512, seed: -1, tex: new Uint32Array(0), cloud: new Uint8Array(0), stars: [] };
+export function planetBuild(seed: number){
   PLANET.seed = seed;
   const w = PLANET.W, h = PLANET.H, tex = new Uint32Array(w * h), cloud = new Uint8Array(w * h);
   const ox = (seed % 997) * .37, oy = (seed % 613) * .53;
-  const rgb = (r, g, b) => (255 << 24) | (b << 16) | (g << 8) | r;
+  const rgb = (r: number, g: number, b: number) => (255 << 24) | (b << 16) | (g << 8) | r;
   for (let j = 0; j < h; j++){
     const lat = (.5 - (j + .5) / h) * Math.PI, cl = Math.cos(lat);
     for (let i = 0; i < w; i++){
@@ -22,7 +26,7 @@ export function planetBuild(seed){
       // pas d'autre continent pres de notre ile : elle reste seule dans son ocean
       const d = Math.acos(clamp(cl * Math.cos(lon), -1, 1)), calm = Math.max(0, 1 - d / .95);
       const land = n - calm * .45;
-      let c;
+      let c: number;
       const al = Math.abs(lat);
       if (al > 1.22 + (vnoise(lon * 3, 7) - .5) * .12) c = rgb(232, 238, 244);
       else if (land > .6){
@@ -57,7 +61,7 @@ export function planetFlatNeeded(){
 }
 // un point de la sphere vise depuis l'ecran : sol (a, b), eclairage du soleil (sun) et angle de vue (mu : 1 de face, 0 au bord)
 export const GS = { a: 0, b: 0, sun: 0, mu: 0 }, SUNV = [1, 0, 0];
-export function geoSample(u, v){
+export function geoSample(u: number, v: number){
   const g = GEO, gr = g.gr; v += g.oy;
   const al = g.p * u * .5 + g.q * v, be = g.q * u * .5 - g.p * v;
   const cd = (-gr - al * g.q + be * g.p) / SQ3, ab = al * al + be * be, disc = cd * cd - ab;
@@ -70,16 +74,18 @@ export function geoSample(u, v){
   const mu = -(Px * g.dx + Py * g.dy + Pz * g.dz); GS.mu = mu < 0 ? 0 : mu;
   return true;
 }
-export const WARP = { src: null, n: 0, nb: 0, c: null, ms: null };
+/** tampons de planetWarp : copie de l'image plate (src, N pixels), valeurs aux coins des blocs (c, nb coins, une par nom de WC), temps de la derniere image (ms) */
+export interface Warp { src: Uint32Array; n: number; nb: number; c: Record<string, Float64Array>; ms: number[] | null }
+export const WARP: Warp = { src: new Uint32Array(0), n: 0, nb: 0, c: {}, ms: null };
 export const WC = ['a', 'b', 's', 'm', 'miss', 'fx', 'fy', 'f', 'hz', 'bb', 'cl', 'ti', 'tj', 'z'];
 // reglages de l'image en cours, lus par les petites fonctions ci-dessous (hors de la boucle chaude)
 export const WF = { flat: true, wrap: false, curv: 0, shade: false, nn: 0, cc2: 0, tx: 0, ty: 0, sc: 1, pp: 1, qq: 1, w: 1, h: 1, tia: 0, tjb: 0, cdrift: 0, R: 0, G: 0, B: 0, f: 1, hz: 0, bb: 0, cl: 0 };
 export const NEAR_R2 = 1000 * 1000, SPACE0 = 0xFF140905;
 // l'image plate du jeu couvre-t-elle ce point ? (sur l'ile, ou dans la mer toute proche : au-dela, la texture de la planete a le meme bleu)
-export function warpFlatAt(a, b){ return WF.flat && ((a >= GA0 && a < GA0 + GW / GSC && b >= GB0 && b < GB0 + GH / GSC) || a * a + b * b < NEAR_R2); }
-export function warpNorm(a){ return WF.wrap ? a - Math.round(a / (TAU * RP)) * TAU * RP : a; }
+export function warpFlatAt(a: number, b: number){ return WF.flat && ((a >= GA0 && a < GA0 + GW / GSC && b >= GB0 && b < GB0 + GH / GSC) || a * a + b * b < NEAR_R2); }
+export function warpNorm(a: number){ return WF.wrap ? a - Math.round(a / (TAU * RP)) * TAU * RP : a; }
 // eclairage d'un point : facteur jour et nuit, voile bleu du bord, bleu de la nuit, nuages
-export function warpLight(a, b, sun, mu){
+export function warpLight(a: number, b: number, sun: number, mu: number){
   if (!WF.shade){ WF.f = 1; WF.hz = 0; WF.bb = 0; WF.cl = 0; return; }
   const curv = WF.curv, day = clamp(sun * 1.6 + .35, .16, 1), TW = PLANET.W, TH = PLANET.H;
   WF.f = 1 + (day * (.55 + .45 * mu) - 1) * curv; WF.hz = (1 - mu) * .45 * curv; WF.bb = (1 - day) * 18 * curv;
@@ -88,7 +94,7 @@ export function warpLight(a, b, sun, mu){
   WF.cl = PLANET.cloud[cj * TW + ci] * WF.cc2 / 255;
 }
 // couleur de fond d'un point (image du jeu, carte de l'ile ou texture de la planete), avant l'eclairage
-export function warpBase(a, b){
+export function warpBase(a: number, b: number){
   let c = -1;
   if (warpFlatAt(a, b)){ const fx = WF.tx + WF.sc * (a * WF.pp - b * WF.qq), fy = WF.ty + WF.sc * .5 * (a * WF.qq + b * WF.pp); if (fx >= 0 && fy >= 0 && fx < WF.w && fy < WF.h) c = WARP.src[(fy | 0) * WF.w + (fx | 0)]; }
   let night = false;
@@ -107,7 +113,7 @@ export function warpBase(a, b){
   const nn = WF.nn; if (night && nn > 0){ r += (r * .24 + 2 - r) * nn; g += (g * .28 + 4 - g) * nn; bl += (bl * .4 + 12 - bl) * nn; }
   WF.R = r; WF.G = g; WF.B = bl;
 }
-export function warpPut(i){
+export function warpPut(i: number){
   let r = WF.R, g = WF.G, bl = WF.B;
   if (WF.shade){
     const ca = WF.cl, f = WF.f, hz = WF.hz;
@@ -117,14 +123,14 @@ export function warpPut(i){
   }
   px32[i] = (255 << 24) | ((bl > 255 ? 255 : bl < 0 ? 0 : bl | 0) << 16) | ((g > 255 ? 255 : g < 0 ? 0 : g | 0) << 8) | (r > 255 ? 255 : r < 0 ? 0 : r | 0);
 }
-export function warpSky(i, ms, rim){
+export function warpSky(i: number, ms: number, rim: number){
   const e = ms / rim;
   if (e < 1){ const k = (1 - e) * (1 - e) * .85; px32[i] = (255 << 24) | (Math.round(20 + 235 * k) << 16) | (Math.round(9 + 191 * k) << 8) | Math.round(5 + 115 * k); }
   else px32[i] = SPACE0;
 }
-export function planetWarp(t, flat){
+export function planetWarp(t: number, flat: boolean){
   const T0 = performance.now();
-  if (PLANET.seed !== GAME.seed || !PLANET.tex) planetBuild(GAME.seed);
+  if (PLANET.seed !== GAME.seed || !PLANET.tex.length) planetBuild(GAME.seed);
   mapUpdate();
   const w = W, h = H, PX = px32, BS = 4, bw = Math.ceil(w / BS) + 1, bh = Math.ceil(h / BS) + 1, nb = bw * bh;
   if (WARP.n !== N){ WARP.n = N; WARP.src = new Uint32Array(N); }
@@ -186,7 +192,7 @@ export function planetWarp(t, flat){
           const u0 = U00 * gy + U01 * fy, du = (U10 * gy + U11 * fy - u0) * inv, v0 = V00 * gy + V01 * fy, dv = (V10 * gy + V11 * fy - v0) * inv;
           let f = f0, hz = h0, bb = q0, ca = l0, u = u0, v = v0;
           for (let x = x0, i = y * w + x0; x < x1; x++, i++, f += df, hz += dh, bb += dq, ca += dl, u += du, v += dv){
-            let c;
+            let c: number;
             if (z === 0){ c = SRC[(v | 0) * w + (u | 0)]; if (!shade){ PX[i] = c; continue; } }
             else {
               let ti = u | 0; if (ti >= TW) ti -= TW; else if (ti < 0) ti += TW;
@@ -240,7 +246,7 @@ export function planetWarp(t, flat){
     PX[i] = col; if (size > 1){ if (PX[i + 1] === SPACE0) PX[i + 1] = col; if (PX[i + w] === SPACE0) PX[i + w] = col; }
   }
   const T3 = performance.now();
-  SH.ctx.putImageData(img, 0, 0);
+  SH.presentImage();
   WARP.ms = [T1 - T0, T2 - T1, T3 - T2, performance.now() - T3, nFast, nGen, nMix];
 }
 

@@ -1,10 +1,10 @@
 # Architecture du moteur
 
-Cold Kutty Town tourne entièrement dans le navigateur, sans framework ni image. Tout est dessiné par du code, pixel par pixel.
+Cold Kutty Town tourne entièrement dans le navigateur, sans image. Tout est dessiné par du code, pixel par pixel ; PixiJS affiche le résultat par la carte graphique.
 
 ## Le build
 
-Le jeu est construit par **Vite** (`vite.config.js`). La page est `src/index.html`, le point d’entrée `src/main.js` : il charge l’adaptateur de plateforme, puis les modules de `src/game/` dans l’ordre de leur numéro.
+Le jeu est construit par **Vite** (`vite.config.js`). La page est `src/index.html`, le point d’entrée `src/main.ts` : il charge l’adaptateur de plateforme, puis les modules de `src/game/` dans l’ordre de leur numéro.
 
 Les modules sont de **vrais modules ES**, avec trois règles :
 
@@ -15,7 +15,7 @@ Les modules sont de **vrais modules ES**, avec trois règles :
 
 La conversion depuis l’ancienne portée unique a été faite par un script (analyse des portées avec eslint-scope), sans toucher à la logique.
 
-**TypeScript.** Les modules passent un par un de `.js` à `.ts` (liste dans le plan, étape 0.19). `tsc` en mode strict vérifie les modules `.ts` (`npm run typecheck`, lancé aussi par `npm run build`) ; Vite ne fait que retirer les types. Les types communs sont dans `00-shared.ts` (`Side`, `Building`, et les champs de `SH` déjà typés). Les modules encore en JavaScript ne sont pas vérifiés, mais TypeScript lit leurs annotations JSDoc (`@type`) : c’est ainsi que `GAME`, `cam`, `SIDES`, `TYPES` ou `$` sont typés pour les modules convertis. Un import pointe vers le vrai fichier (`'./02-ground.ts'`).
+**TypeScript.** Tout le jeu est en TypeScript, vérifié par `tsc` en mode strict (`npm run typecheck`, lancé aussi par `npm run build`) ; Vite ne fait que retirer les types. Aucun `any` : seule la signature d’index de `SH` en garde un, pour les champs pas encore déclarés dans `Shared`. Les types communs sont dans `00-shared.ts` (`Side`, `Building`, `Light`, `Part`, `ShadowHull`), ceux du dessin dans `01-core.ts` (`PixFn`, `Shade`, `SideFn`, `Sprite`, `View`, `GameState`). Un élément de la page se prend par `$(id)`, ou `$of(id, HTMLInputElement)` quand il faut son type exact. Un import pointe vers le vrai fichier (`'./02-ground.ts'`).
 
 `npm run dev` sert le jeu avec rechargement à chaud (et `/api/claude` en local), `npm run build` écrit un site statique dans `dist/` (une page, un CSS et un script avec une empreinte dans le nom, pour un cache long), `npm run preview` le sert tel qu’il sera en ligne.
 
@@ -32,23 +32,25 @@ La conversion depuis l’ancienne portée unique a été faite par un script (an
 | `09-roads.ts` | Routes droites et courbes : peinture au sol, graphe, raccords, accès au QG, voitures. |
 | `10-town.ts` | Bâtiments posés (`BLD`), règles de pose, chats nommés qui arrivent avec leur bâtiment, reconstruction de la scène. Bâtiments tournés d’un quart de tour (`buildParts`, `turnDraw`). |
 | `11-render.ts` | Palette jour et nuit, météo, zoom, vue de loin en direct, rendu du sol avec territoires, objets, ombres. |
-| `12-portrait.js` | Portrait détaillé du chat dans la fenêtre de discussion. |
-| `13-ui.js` | Outils : observer, construire, routes, Rideau, démolir, annuler ; souris, tactile, clavier ; pause et vitesse. |
-| `14-hud.js` | Barre du haut, détail des ressources, menu de construction par catégories, panneau du bâtiment sélectionné. |
+| `12-portrait.ts` | Portrait détaillé du chat dans la fenêtre de discussion. |
+| `13-ui.ts` | Outils : observer, construire, routes, Rideau, démolir, annuler ; souris, tactile, clavier ; pause et vitesse. |
+| `14-hud.ts` | Barre du haut, détail des ressources, menu de construction par catégories, panneau du bâtiment sélectionné. |
 | `15-economy.ts` | Croquettes, laine, ronrons : table `ECO`, bilans, chantiers, améliorations, événements, course à l’espace. |
 | `16-boats.ts` | Navigation en mer (A*), barges, chalutiers, cargos, équipages. |
-| `17-calendar.js` | Calendrier et saisons, journal du matin, mémoire des chats, bulles, pensées. |
-| `18-life.js` | Feux d’artifice, passants, matchs, reflets de nuit. |
-| `19-extras.js` | Son, mini-carte, fiche au survol, mode photo. |
-| `20-rival.js` | IA adverse (ébauche, à finir en dernier). |
-| `21-main.js` | Radio, conversation, sauvegarde, déroulé de la partie (accueil, plage, victoire), boucle de jeu. |
-| `22-home.js` | Accueil du jeu : menu, parties sauvegardées par emplacements (`ckt-saves`, `ckt-partie-*`, vignettes), profil, options, île qui tourne en fond. |
-| `23-planet.js` | Éteint pour l’instant (`GLOBE_ON = false`), gardé pour le mode espace. Le globe, sans transition : de loin, `planetWarp` pose l’image plate du jeu sur une sphère dont le rayon descend en continu jusqu’à celui de la planète (`CURV`, `GR`, `geoSet`, `geoCast`, `geoProj` dans 01-core, `curvOf` dans 11-render). Hors de l’image plate : la carte de l’île, puis une texture tirée au sort (océans, continents, banquise, nuages). Jour et nuit, halo, étoiles fixes dans l’espace. Sert aussi de fond à l’accueil. |
+| `17-calendar.ts` | Calendrier et saisons, journal du matin, mémoire des chats, bulles, pensées. |
+| `18-life.ts` | Feux d’artifice, passants, matchs, reflets de nuit. |
+| `19-extras.ts` | Son, mini-carte, fiche au survol, mode photo. |
+| `20-rival.ts` | IA adverse (ébauche, à finir en dernier). |
+| `21-main.ts` | Radio, conversation, sauvegarde, déroulé de la partie (accueil, plage, victoire), boucle de jeu. |
+| `22-home.ts` | Accueil du jeu : menu, parties sauvegardées par emplacements (`ckt-saves`, `ckt-partie-*`, vignettes), profil, options, île qui tourne en fond. |
+| `23-planet.ts` | Éteint pour l’instant (`GLOBE_ON = false`), gardé pour le mode espace. Le globe, sans transition : de loin, `planetWarp` pose l’image plate du jeu sur une sphère dont le rayon descend en continu jusqu’à celui de la planète (`CURV`, `GR`, `geoSet`, `geoCast`, `geoProj` dans 01-core, `curvOf` dans 11-render). Hors de l’image plate : la carte de l’île, puis une texture tirée au sort (océans, continents, banquise, nuages). Jour et nuit, halo, étoiles fixes dans l’espace. Sert aussi de fond à l’accueil. |
 
 ## Le rendu
 
 - **Projection isométrique.** Le monde a deux axes au sol, `a` (ouest vers est) et `b` (nord vers sud), plus la hauteur `z`. `prj(a, b, z)` donne le pixel à l’écran, `unprj(x, y)` fait l’inverse au sol. La caméra tourne librement (`cam.phi`).
 - **Trois buffers par pixel.** `fb` (allumé ou éteint), `mb` (la matière : herbe, route, toit, fenêtre...) et `lb` (le niveau d’éclairage, de 0 plein soleil à 4 ombre portée). À la fin de l’image, la palette transforme chaque triplet en couleur. Cette version utilise la palette couleur (`COLOR = true` dans `01-core.ts`).
+- **Affichage par PixiJS (`src/gpu/present.ts`).** Les quatre tampons (`mb`, `fb`, `lb`, `ob`) partent en une seule texture RGBA, la palette (`PALX`) en une autre, renvoyée seulement quand elle change (`SH.palKey`). Un shader WebGL2 fait la mise en couleur, pixel par pixel, comme le faisait la boucle de la fin de `render`. Le canvas garde la taille du jeu (`W` × `H`) et le navigateur l’agrandit au pixel près (`image-rendering: pixelated`) : l’image est la même qu’avant. Le tampon WebGL est gardé (`preserveDrawingBuffer`), si bien que le journal et le mode photo peuvent toujours recopier le canvas. Sans WebGL2, ou avec `?gl=0` dans l’adresse, `render` met en couleur sur le processeur (`toRGBA`) et affiche par un canvas 2D (`presentImage`). Le globe, qui retouche l’image déjà en couleur, passe par `presentImage` (`drawRGBA` côté PixiJS).
+
 - **Palette.** Chaque matière a deux teintes (sombre, claire), déclinées en cinq niveaux de lumière et mélangées selon l’heure, la météo, la neige et la saison. Les matières lumineuses (fenêtres, néons, lampadaires, feux d’artifice) gardent leur éclat la nuit.
 - **Sol.** La grille du sol (`gType`, `gTone`, 2 cellules par unité) est parcourue une fois par image : herbe, plages, écume animée, routes, rails, quais.
 - **Objets.** Bâtiments, murs, lampadaires sont des « pièces » statiques reconstruites quand la ville change (`rebuildTown`). Les arbres sont rangés par cases et seuls ceux à l’écran sont dessinés. Voitures, chats, bateaux sont dynamiques. Tout est trié par profondeur (`dep(a, b)`) puis dessiné de l’arrière vers l’avant.

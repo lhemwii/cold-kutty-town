@@ -92,7 +92,10 @@ export interface Cat extends CatDef {
   id: number; homeId: number; paused: boolean; t0: number;
   fixed: Vec2 | null; path?: [Vec2, Vec2];
   frozen?: CatPos; screen?: Vec2 | null; face?: number;
+  /** deja compte dans la memoire des rencontres pour cette conversation ; phrase d'accueil du moment */
+  memCounted?: boolean; helloNow?: string;
 }
+
 export const CAT_DEFS: CatDef[] = [
   { home: 'qg', name:'Minou Lavigne', job:'Maire du secteur USC', side:'usc', col:'white', look:'fedora', outfit:'veste', sp: 5,
     traits:'solennel mais gourmand, fait des discours pour tout, très fier de la démocratie des croquettes et de sa nouvelle télévision',

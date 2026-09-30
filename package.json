@@ -3,7 +3,7 @@
   "version": "0.7.0",
   "private": true,
   "type": "module",
-  "description": "Cold Kutty Town : city builder cozy de chats pendant la guerre froide (1961), moteur pixel écrit à la main.",
+  "description": "Cold Kutty Town : city builder cozy de chats pendant la guerre froide, moteur pixel écrit à la main, affiché par PixiJS.",
   "scripts": {
     "dev": "vite",
     "typecheck": "tsc -p .",
@@ -17,5 +17,8 @@
   "devDependencies": {
     "typescript": "^7.0.2",
     "vite": "^8.3.1"
+  },
+  "dependencies": {
+    "pixi.js": "^8.21.0"
   }
 }

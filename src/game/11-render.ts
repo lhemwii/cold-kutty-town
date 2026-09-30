@@ -2,6 +2,7 @@ import { SH, type Light, type ShadowHull } from './00-shared.ts';
 import type { Sprite } from './01-core.ts';
 import type { Drawable } from './07-world.ts';
 import type { Cat } from './10-town.ts';
+import { createPresenter, type Presenter } from '../gpu/present.ts';
 import { BAYER, COLOR, GAME, GEO, GLOBE_ON, H, HOOKS, M, N, PC, PROJ_FIX, PS, RAYHIT, RP, SC, SHADOW_V, TAU, TX, TY, W, cam, clamp, dep, fb, fput, geoCast, geoProj, geoSet, getView, groundDelta, hash2, img, lb, litAt, mb, prj, px32, setProj, setView, state, unprj } from './01-core.ts';
 import { GA0, GB0, GH, GQW, GSC, GW, TYPE_MAT, T_BEACH, T_DIRT, T_FOREST, T_GRASS, T_PIER, T_QUAY, T_ROAD, T_ROCK, T_SEA, T_WALK, cellOf, gPh, gSea, gTone, gType, gVar, mapScale } from './02-ground.ts';
 import { drawCarAng } from './03-buildings-base.ts';
@@ -155,7 +156,10 @@ export function drawWeather(t: number){
 
 /* ================= ecran, zoom ================= */
 export const scene = document.getElementById('scene') as HTMLCanvasElement;
-SH.ctx = scene.getContext('2d', { alpha: false });
+// affichage : PixiJS (WebGL2, mise en couleur sur la carte graphique) ; sinon, ou avec ?gl=0 dans l'adresse, le canvas 2D d'avant
+export const GPU: Presenter | null = new URLSearchParams(location.search).get('gl') === '0' ? null : await createPresenter(scene, 1, 1);
+
+SH.ctx = GPU ? null : scene.getContext('2d', { alpha: false });
 // ob : tampon des objets (ce qui n'est pas le sol), pour la vue de loin
 export let devW = 0, devH = 0, ob = new Uint8Array(0);
 // Z : zoom affiche (pixels de l'ecran par pixel du jeu), continu et anime.
@@ -168,7 +172,7 @@ export const PIX_BUDGET = 430000;
 export const FAR_T = .7;
 export const renderK = (z: number) => z >= SH.KMIN - 1e-6 ? Math.max(SH.KMIN, Math.floor(z + 1e-6)) : z >= SH.KMIN * FAR_T - 1e-6 ? Math.max(SH.KMIN * FAR_T * .98, Math.floor(z * 16) / 16) : SH.KMIN;
 export function applyK(){
-  const w = Math.ceil(devW / SH.K), h = Math.ceil(devH / SH.K), n = w * h, im = SH.ctx.createImageData(w, h);
+  const w = Math.ceil(devW / SH.K), h = Math.ceil(devH / SH.K), n = w * h, im = new ImageData(w, h);
   setView({ W: w, H: h, N: n, img: im, px32: new Uint32Array(im.data.buffer), fb: new Uint8Array(n), mb: new Uint8Array(n), lb: new Uint8Array(n) });
   ob = new Uint8Array(n);
   setProj();
@@ -179,7 +183,8 @@ export function applyView(force?: boolean){
   const ov = SH.Z < SH.KMIN * FAR_T - 1e-6;
   if (ov !== OV_ON || force){
     OV_ON = ov;
-    if (scene.width !== W || scene.height !== H){ scene.width = W; scene.height = H; }
+    if (GPU) GPU.resize(W, H);
+    else if (scene.width !== W || scene.height !== H){ scene.width = W; scene.height = H; }
     document.body.classList.toggle('map-view', ov);
   }
   // de loin, le tampon couvre tout l'ecran a l'echelle KMIN et le monde y est dessine en petit (SC < 1)
@@ -636,10 +641,20 @@ export function render(t: number){
   else if (glow){ for (const bk of BEACONS){ drawLantern(bk[0], bk[1]); drawGlow(bk[0], bk[1], t); } drawLampHeads(); }
   else for (const bk of BEACONS) drawLantern(bk[0], bk[1]);
   drawSatellite(t); drawWeather(t); if (COLOR) for (const f of HOOKS.post) f(t);
-  const P = PALX, pl = PL;
-  { const MB = mb, FB = fb, LB = lb, PX = px32, n = N; for (let i = 0; i < n; i++){ const m = MB[i]; PX[i] = P[ob[i] * pl + (((m << 1) | FB[i]) * 5 + LB[i])]; } }
+  if (GPU && SH.CURV <= 0){ GPU.palette(PALX, PL, SH.palKey); GPU.draw({ fb, mb, lb, ob, n: N }); return; }
+  toRGBA();
   if (SH.CURV > 0){ SH.planetWarp(t, true); return; }
-  SH.ctx.putImageData(img, 0, 0);
+  presentImage();
+}
+// mise en couleur sur le processeur (sans WebGL, ou pour le globe qui retouche l'image ensuite)
+export function toRGBA(){
+  const P = PALX, pl = PL, MB = mb, FB = fb, LB = lb, OB = ob, PX = px32, n = N;
+  for (let i = 0; i < n; i++){ const m = MB[i]; PX[i] = P[OB[i] * pl + (((m << 1) | FB[i]) * 5 + LB[i])]; }
+}
+// affiche l'image deja en couleur (px32)
+export function presentImage(){
+  if (GPU){ GPU.drawRGBA(px32); return; }
+  if (img && SH.ctx) SH.ctx.putImageData(img, 0, 0);
 }
 
 /* ================= ombres portees (version couleur, de jour) ================= */
@@ -802,4 +817,5 @@ export function farDraw(it: Omit<Drawable, 'd'>, t: number){
 }
 
 // appeles depuis des modules plus petits en numero
-Object.assign(SH, { centerOf, mapDirtyRect, mapDirtyCell, shadowHull, circ });
+Object.assign(SH, { centerOf, mapDirtyRect, mapDirtyCell, shadowHull, circ, presentImage });
+

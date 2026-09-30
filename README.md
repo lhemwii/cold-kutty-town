@@ -40,10 +40,11 @@ Du JavaScript en modules ES, qui passe module par module en TypeScript, construi
 src/
   index.html            la page (panneaux, fenêtres, dock)
   styles/main.css       le style de l’interface
-  main.js               point d’entrée : charge les modules dans l’ordre
-  game/00-shared.js     état partagé entre modules (SH)
+  main.ts               point d’entrée : charge les modules dans l’ordre
+  game/00-shared.ts     état partagé entre modules (SH) et types communs
   game/01-core.ts ...   le jeu, en modules ES chargés dans l’ordre de leur numéro
-  platform/standalone.js  branche Claude et les téléchargements hors de claude.ai
+  platform/standalone.ts  branche Claude et les téléchargements hors de claude.ai
+  gpu/present.ts        affichage par PixiJS : mise en couleur de l’image sur la carte graphique
 api/claude.js           fonction Vercel qui relaie vers l’API Claude
 vite.config.js          build, serveur local et /api/claude en local
 docs/                   architecture, règles du jeu, développement, feuille de route

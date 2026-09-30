@@ -1,14 +1,16 @@
 import { SH } from './00-shared.ts';
 import { COLOR, GAME, H, HOOKS, M, N, PC, PS, TAU, W, clamp, dep, fb, fput, hash2, lb, mb, prj, unprj } from './01-core.ts';
 import { PED_FUR } from './03-buildings-base.ts';
+import type { Side } from './00-shared.ts';
+import type { Drawable } from './07-world.ts';
 import { sideAt } from './08-territory.ts';
-import { RW, nearRoad, polyAt } from './09-roads.ts';
+import { RW, nearRoad, polyAt, type Road } from './09-roads.ts';
 import { CLOCK, OV_ON, PAL_HEX, WEATHER } from './11-render.ts';
-import { feteOf } from './17-calendar.js';
+import { feteOf, type FeteSide } from './17-calendar.ts';
 /* ================= fetes : sapins illumines et feux d'artifice ================= */
 SH.XMAS_ON = false;
 export const TWINKLE = [M.ICON_R, M.ICON_Y, M.FW_BLUE, M.FW_GREEN];
-export function drawTreeLights(a, b, r, t){
+export function drawTreeLights(a: number, b: number, r: number, t: number){
   const p = prj(a, b, 0), cx = Math.round(p[0]), cy = Math.round(p[1]) - r - 3;
   const n = 4 + r;
   for (let k = 0; k < n; k++){
@@ -18,9 +20,11 @@ export function drawTreeLights(a, b, r, t){
     SH.CUR = TWINKLE[(k + ((t * 1.5) | 0)) & 3]; fput(x, y, 1);
   }
 }
-export const FW = { list: [], next: 0 };
+/** Un feu d'artifice : tir depuis (a, b) a t0, montee de duree dur jusqu'a la hauteur h, puis n etincelles sur un rayon r. */
+export interface Firework { a: number; b: number; t0: number; h: number; dur: number; mat: number; mat2: number; n: number; r: number; seed: number }
+export const FW: { list: Firework[]; next: number } = { list: [], next: 0 };
 // un point de tir visible a l'ecran : l'explosion tombe dans le haut de la vue
-export function fwPick(side){
+export function fwPick(side: FeteSide | null){
   for (let k = 0; k < 8; k++){
     const x = W * (.12 + Math.random() * .76), yb = H * (.1 + Math.random() * .36);
     const gy = Math.min(H * 1.05, yb + 45 + Math.random() * 55), g = unprj(x, gy);
@@ -29,17 +33,17 @@ export function fwPick(side){
   }
   return null;
 }
-export function fwSpawn(a, b, t, big, h){
+export function fwSpawn(a: number, b: number, t: number, big: boolean, h: number){
   const mats = [M.ICON_R, M.ICON_Y, M.FW_BLUE, M.FW_GREEN, M.SIGN];
   FW.list.push({ a, b, t0: t, h: h || 70 + Math.random() * 55, dur: 1.2 + Math.random() * .7, mat: mats[(Math.random() * mats.length) | 0], mat2: mats[(Math.random() * mats.length) | 0], n: big ? 90 : 50 + ((Math.random() * 24) | 0), r: big ? 50 : 28 + Math.random() * 14, seed: (Math.random() * 1000) | 0 });
   if (typeof SH.sfx === 'function') SH.sfx('fw', a, b);
 }
 // salve de celebration : lancement reussi, mur, nouvel an
-export function fwSalvo(side, n){
+export function fwSalvo(side: FeteSide, n: number){
   if (!COLOR) return;
   for (let k = 0; k < n; k++) setTimeout(() => { if (OV_ON) return; const p = fwPick(side); if (p) fwSpawn(p.a, p.b, SH.NOW_T, k % 3 === 0, p.h); }, k * 380);
 }
-export function stepFw(dt, t){
+export function stepFw(dt: number, t: number){
   FW.list = FW.list.filter(f => t < f.t0 + f.dur + 2.4);
   SH.XMAS_ON = COLOR && SH.CAL.m === 11;
   if (!COLOR || OV_ON) return;
@@ -48,7 +52,7 @@ export function stepFw(dt, t){
   FW.next = t + .6 + Math.random() * 1.4;
   const p = fwPick(f.side); if (p) fwSpawn(p.a, p.b, t, Math.random() < .15, p.h);
 }
-export function drawFw(t){
+export function drawFw(t: number){
   for (const f of FW.list){
     const e = t - f.t0; if (e < 0) continue;
     if (e < f.dur){
@@ -72,7 +76,12 @@ HOOKS.step.push(stepFw);
 HOOKS.top.unshift(drawFw);
 
 /* ================= la foule : passants sur les trottoirs, match au stade ================= */
-export const PEDS = [];
+/** Un passant : il va et vient sur le trottoir de la route r, entre les abscisses s0 et s1, decale de off. */
+export interface Ped { r: Road; s0: number; s1: number; off: number; side: Side; sp: number; ph: number; fur: number; hat: boolean }
+/** Position d'un passant : ou il est, et ou il regarde. */
+export interface PedPos { a: number; b: number; ang: number }
+// key : l'etat de la ville pour lequel la liste a ete faite
+export const PEDS: Ped[] & { key?: string } = [];
 // les passants font les cent pas sur le trottoir devant les batiments desservis
 export function buildPeds(){
   PEDS.length = 0;
@@ -89,12 +98,12 @@ export function buildPeds(){
     }
   }
 }
-export function pedPos(p, t){
+export function pedPos(p: Ped, t: number): PedPos {
   const L = Math.max(1, p.s1 - p.s0), per = 2 * L / p.sp, ph = ((t + p.ph) / per) % 1, f = ph < .5 ? ph * 2 : 2 - ph * 2;
   const q = polyAt(p.r.pts, p.r.cum, p.s0 + L * f);
   return { a: q[0] - Math.sin(q[2]) * p.off, b: q[1] + Math.cos(q[2]) * p.off, ang: q[2] + (ph < .5 ? 0 : Math.PI) };
 }
-export function drawPed(p, q, t){
+export function drawPed(p: Ped, q: PedPos, t: number){
   const s = prj(q.a, q.b, 0), bx = Math.round(s[0]), by = Math.round(s[1]);
   const da = Math.cos(q.ang), db = Math.sin(q.ang);
   const f = ((da * PC - db * PS) - (da * PS + db * PC)) >= 0 ? 1 : -1, fr = Math.floor(t * 6 + p.ph) & 1;
@@ -105,7 +114,7 @@ export function drawPed(p, q, t){
   if (p.hat){ SH.CUR = p.side === 'ccp' ? M.MILITARY : M.HULL; fput(bx + f, by - 5, 1); fput(bx + 2 * f, by - 5, 1); }
 }
 // match : deux equipes et une balle sur la pelouse, l'apres-midi et le soir
-export function stadeDrawables(t, out){
+export function stadeDrawables(t: number, out: Drawable[]){
   const h = CLOCK.h; if (h < 13 || h > 22.5) return;
   for (const l of SH.BLD){
     if (l.type !== 'stade' || !l.done) continue;
@@ -139,7 +148,7 @@ export const GLOWS = new Uint8Array(PAL_HEX.length);
 [M.WIN, M.LAMP, M.SIGN, M.SIGN_CCP, M.REDLIGHT, M.FW_BLUE, M.FW_GREEN, M.ICON_R, M.ICON_Y].forEach(m => GLOWS[m] = 1);
 export const WATERS = new Uint8Array(PAL_HEX.length); [M.SEA, M.SEA_MID, M.SEA_SHALLOW, M.FOAM].forEach(m => WATERS[m] = 1);
 export const KEEP_TINT = new Uint8Array(PAL_HEX.length); [M.SIGN, M.SIGN_CCP, M.REDLIGHT, M.FW_BLUE, M.FW_GREEN, M.ICON_R, M.ICON_Y].forEach(m => KEEP_TINT[m] = 1);
-export function reflections(t){
+export function reflections(t: number){
   if (SH.NIGHT < .45 || N > 900000) return;
   const road = WET > .15, MR = M.ROAD, RF = M.REFLECT, tick = (t * 7) | 0, maxW = Math.round(20 + 10 * (SH.K <= 2 ? 1 : 0)), maxR = Math.round(9 * WET);
   const FB = fb, MB = mb, LB = lb;

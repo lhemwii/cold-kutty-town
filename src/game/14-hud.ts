@@ -1,16 +1,23 @@
-import { SH } from './00-shared.ts';
+import { SH, type Building, type Side } from './00-shared.ts';
 import { CAMP_FULL, GAME, H, M, PC, PS, SC, TX, TY, W, clamp, dep, fb, getView, img, lb, mb, setView, state } from './01-core.ts';
 import { nearestShore } from './02-ground.ts';
 import { TYPES } from './04-types.ts';
 import { typeName } from './05-types-extra.ts';
-import { VEST_DEF, drawVestige } from './07-world.ts';
+import { VEST_DEF, drawVestige, type VestDef, type VestKind, type Vestige } from './07-world.ts';
 import { TER, influenceOf, sideAt, terPct } from './08-territory.ts';
 import { footOf } from './10-town.ts';
 import { FAR, PALL } from './11-render.ts';
-import { $, setTool, toast } from './13-ui.js';
+import { $, $of, setTool, toast } from './13-ui.ts';
+import type { EcoDef, Flow, Price, Resources } from './15-economy.ts';
 /* ================= interface : barre du haut, menu de construction, batiment selectionne ================= */
 // icones et drapeaux en pixels : un dessin en caracteres, une couleur par lettre, rendu en SVG net
-export function pixelSVG(art, pal, cls){
+/** palette d'un dessin en caracteres : une couleur (#rrggbb) par lettre */
+export type Pal = Record<string, string>;
+/** un dessin en caracteres (une chaine par ligne) et sa palette */
+export type PixelArt = [string[], Pal];
+const isSide = (s: string | undefined): s is Side => s === 'usc' || s === 'ccp';
+const isFlow = (k: string | undefined): k is Flow => k === 'c' || k === 'l' || k === 'r';
+export function pixelSVG(art: string[], pal: Pal, cls?: string){
   const h = art.length, w = Math.max(...art.map(r => r.length));
   let s = '<svg' + (cls ? ' class="' + cls + '"' : '') + ' viewBox="0 0 ' + w + ' ' + h + '" shape-rendering="crispEdges" aria-hidden="true">';
   for (let y = 0; y < h; y++){
@@ -25,7 +32,7 @@ export function pixelSVG(art, pal, cls){
   }
   return s + '</svg>';
 }
-export const ICONS = {
+export const ICONS: Record<string, PixelArt> = {
   // patte de chat : quatre doigts et le coussinet
   paw: [['.....kk..kk.....', '....kPPkkPPk....', '....kPpkkPpk....', '.kk..kk..kk..kk.', 'kPPk........kPPk', 'kPpk..kkkk..kPpk', '.kk..kPPPPk..kk.', '....kPpPPPPk....', '...kPPPPPPPPk...', '...kPPPPPPPPk...', '....kPPkkPPk....', '.....kk..kk.....'],
     { k: '#8a3452', P: '#f28cab', p: '#ffd3df' }],
@@ -33,11 +40,11 @@ export const ICONS = {
   pop: [['.k...k..........', '.kk.kk..........', '.kkkkk.....g...g', '.kykyk.....gg.gg', '.kkkkk.....ggggg', '..kpk......gygyg', '.kkkkk.....ggggg', 'kkkkkkk.....ggg.', 'kkkkkkk....ggggg', 'kkkkkkk...ggggggg', 'kkkkkkkk..ggggggg', '.kkkkk.kk..ggggg.'],
     { k: '#2a2622', y: '#ffe45c', p: '#f28cab', g: '#8e8a93' }]
 };
-for (const el of document.querySelectorAll('[data-ico]')){ const [art, pal] = ICONS[el.dataset.ico]; el.outerHTML = pixelSVG(art, pal, 'ico'); }
+for (const el of document.querySelectorAll('[data-ico]')){ const ic = el instanceof HTMLElement ? ICONS[el.dataset.ico || ''] : undefined; if (!ic) continue; const [art, pal] = ic; el.outerHTML = pixelSVG(art, pal, 'ico'); }
 // drapeaux en grand pour l'interface (48 x 26), dessines comme ceux du jeu mais plus fins
 // USC : 13 bandes rouges et blanches, la meme tete de chat que la CCR, en blanc, au centre du coin bleu. CCR : tete de chat, marteau et faucille, centres.
-export const FLAG_HEX = { b: '#2a45a6', c: '#fbf7ef', w: '#fbf7ef', r: '#c8283a', y: '#ffd23f', R: '#d42a2a' };
-export const FLAG_HI = {
+export const FLAG_HEX: Pal = { b: '#2a45a6', c: '#fbf7ef', w: '#fbf7ef', r: '#c8283a', y: '#ffd23f', R: '#d42a2a' };
+export const FLAG_HI: Record<Side, string[]> = {
   usc: ['bbbbbbbbbbbbbbbbbbbbrrrrrrrrrrrrrrrrrrrrrrrrrrrr', 'bbbbbbbbbbbbbbbbbbbbrrrrrrrrrrrrrrrrrrrrrrrrrrrr',
     'bbbbcbbbbbbbbbcbbbbbwwwwwwwwwwwwwwwwwwwwwwwwwwww', 'bbbbccbbbbbbbccbbbbbwwwwwwwwwwwwwwwwwwwwwwwwwwww',
     'bbbbcccbbbbbcccbbbbbrrrrrrrrrrrrrrrrrrrrrrrrrrrr', 'bbbbcccccccccccbbbbbrrrrrrrrrrrrrrrrrrrrrrrrrrrr',
@@ -65,22 +72,22 @@ export const FLAG_HI = {
     'RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR', 'RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR',
     'RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR', 'RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR']
 };
-export function flagSVG(side){ return pixelSVG(FLAG_HI[side], FLAG_HEX); }
-for (const el of document.querySelectorAll('[data-flag]')) el.innerHTML = flagSVG(el.dataset.flag);
-export const fmt = (v) => { const r = Math.floor(v); return r >= 10000 ? (r / 1000).toFixed(1).replace('.', ',') + ' k' : String(r); };
-export const fmtRate = (v) => { const r = Math.round(v * 10) / 10; return (r >= 0 ? '+' : '') + String(Math.round(r)).replace('-', '−') + '/min'; };
+export function flagSVG(side: Side){ return pixelSVG(FLAG_HI[side], FLAG_HEX); }
+for (const el of document.querySelectorAll('[data-flag]')){ const f = el instanceof HTMLElement ? el.dataset.flag : undefined; if (isSide(f)) el.innerHTML = flagSVG(f); }
+export const fmt = (v: number) => { const r = Math.floor(v); return r >= 10000 ? (r / 1000).toFixed(1).replace('.', ',') + ' k' : String(r); };
+export const fmtRate = (v: number) => { const r = Math.round(v * 10) / 10; return (r >= 0 ? '+' : '') + String(Math.round(r)).replace('-', '−') + '/min'; };
 
 /* ---- barre du haut ---- */
 export let hudKey = '';
 export function renderHUD(){
   if (GAME.mode === 'menu') return;
-  const R = SH.RES[GAME.side];
-  $('vC').textContent = fmt(R.croq); $('vL').textContent = fmt(R.laine); $('vR').textContent = fmt(R.ron); $('vP').textContent = R.pop;
+  const R: Resources = SH.RES[GAME.side];
+  $('vC').textContent = fmt(R.croq); $('vL').textContent = fmt(R.laine); $('vR').textContent = fmt(R.ron); $('vP').textContent = String(R.pop);
   $('dC').textContent = fmtRate(R.rc); $('dL').textContent = fmtRate(R.rl); $('dR').textContent = fmtRate(R.rr);
   $('dP').textContent = R.jobs ? 'hab. · ' + R.jobs + ' emplois' : 'habitants';
-  for (const [k, v, rt] of [['c', R.croq, R.rc], ['l', R.laine, R.rl], ['r', R.ron, R.rr]]){
-    const b = document.querySelector('.res[data-k="' + k + '"]');
-    b.classList.toggle('warn', (k === 'c' && R.short) || (rt < 0 && v < -rt * 2));
+  for (const [k, v, rt] of [['c', R.croq, R.rc], ['l', R.laine, R.rl], ['r', R.ron, R.rr]] as const){
+    const b = document.querySelector('.res[data-k="' + k + '"]'); if (!b) continue;
+    b.classList.toggle('warn', !!(k === 'c' && R.short) || (rt < 0 && v < -rt * 2));
     b.classList.toggle('down', rt < 0);
   }
   const pu = terPct('usc'), pc = terPct('ccp');
@@ -93,12 +100,12 @@ export function renderHUD(){
   if (state.sel) renderSel(); else if (state.selV) renderVest();
 }
 // detail d'une ressource : qui produit, qui coute
-export let resPopK = null;
-export const RES_NAME = { c: 'Croquettes', l: 'Laine', r: 'Ronrons' };
-export const RES_HELP = { c: 'Les habitants en mangent. En pénurie, ils ne ronronnent plus.', l: 'Sert à construire, à améliorer et à tracer des routes.', r: 'Font avancer ta frontière, paient les avant-postes et les barges.' };
-export function showResPop(k){
+export let resPopK: Flow | null = null;
+export const RES_NAME: Record<Flow, string> = { c: 'Croquettes', l: 'Laine', r: 'Ronrons' };
+export const RES_HELP: Record<Flow, string> = { c: 'Les habitants en mangent. En pénurie, ils ne ronronnent plus.', l: 'Sert à construire, à améliorer et à tracer des routes.', r: 'Font avancer ta frontière, paient les avant-postes et les barges.' };
+export function showResPop(k: Flow){
   resPopK = k;
-  const R = SH.RES[GAME.side], el = $('resPop'), list = (R.split[k] || []).slice().sort((x, y) => y[1] - x[1]);
+  const R: Resources = SH.RES[GAME.side], el = $('resPop'), list = (R.split[k] || []).slice().sort((x, y) => y[1] - x[1]);
   el.textContent = '';
   const h = document.createElement('div'); h.className = 'rp-head'; h.textContent = RES_NAME[k]; el.append(h);
   const p = document.createElement('p'); p.textContent = RES_HELP[k]; el.append(p);
@@ -106,28 +113,31 @@ export function showResPop(k){
   if (!list.length){ const row = document.createElement('div'); row.className = 'rp-row'; row.textContent = 'Rien pour l’instant.'; el.append(row); }
   if (k === 'r'){ const row = document.createElement('div'); row.className = 'rp-foot'; row.textContent = 'Conquête : ' + TER.rate[GAME.side].toFixed(0) + ' cases par seconde.'; el.append(row); }
   el.hidden = false;
-  const btn = document.querySelector('.res[data-k="' + k + '"]').getBoundingClientRect();
+  const bEl = document.querySelector('.res[data-k="' + k + '"]'); if (!bEl) return;
+  const btn = bEl.getBoundingClientRect();
   el.style.left = Math.round(Math.min(btn.left, window.innerWidth - el.offsetWidth - 8)) + 'px'; el.style.top = Math.round(btn.bottom + 8) + 'px';
 }
 for (const b of document.querySelectorAll('.res[data-k]')){
-  b.addEventListener('mouseenter', () => showResPop(b.dataset.k));
-  b.addEventListener('focus', () => showResPop(b.dataset.k));
+  const k = b instanceof HTMLElement ? b.dataset.k : undefined; if (!isFlow(k)) continue;
+  b.addEventListener('mouseenter', () => showResPop(k));
+  b.addEventListener('focus', () => showResPop(k));
   b.addEventListener('mouseleave', () => { resPopK = null; $('resPop').hidden = true; });
   b.addEventListener('blur', () => { resPopK = null; $('resPop').hidden = true; });
-  b.addEventListener('click', () => { if (resPopK === b.dataset.k && !$('resPop').hidden){ resPopK = null; $('resPop').hidden = true; } else showResPop(b.dataset.k); });
+  b.addEventListener('click', () => { if (resPopK === k && !$('resPop').hidden){ resPopK = null; $('resPop').hidden = true; } else showResPop(k); });
 }
 
 /* ---- menu de construction : categories et vignettes dessinees par le moteur ---- */
 export let buildCat = 'logement';
-export const THUMBS = {};
+export const THUMBS: Record<string, HTMLCanvasElement> = {};
 // vignette d'un batiment pour un camp, avec le meme moteur que la scene
-export function thumb(type, side, w, h, lvl){
+export function thumb(type: string, side: Side, w: number, h: number, lvl?: number){
   const key = type + ':' + side + ':' + w + ':' + (lvl || 1);
   if (THUMBS[key]) return THUMBS[key];
   const saved = getView();
   const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
   const [fa, fb2] = footOf(type);
-  const lot = { a0: -fa / 2, a1: fa / 2, b0: -fb2 / 2, b1: fb2 / 2, ca: 0, cb: 0, side, lvl: lvl || 1, dir: 0 };
+  // un lot fictif : les dessins des types ne lisent que l'emprise, le camp, le niveau et la direction
+  const lot: Building = { id: 0, type, a0: -fa / 2, a1: fa / 2, b0: -fb2 / 2, b1: fb2 / 2, ca: 0, cb: 0, side, lvl: lvl || 1, dir: 0, done: true, buildT: 0, bdur: 0, upT: 0, active: true };
   setView({ W: w, H: h, fb: new Uint8Array(w * h), mb: new Uint8Array(w * h), lb: new Uint8Array(w * h), PC: 1, PS: 0, SC: 1 });
   SH.CUR_SIDE = side;
   try {
@@ -138,15 +148,16 @@ export function thumb(type, side, w, h, lvl){
     drawAll();
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (fb[y * W + x] || mb[y * W + x]){ probe.x0 = Math.min(probe.x0, x); probe.x1 = Math.max(probe.x1, x); probe.y0 = Math.min(probe.y0, y); probe.y1 = Math.max(probe.y1, y); }
     if (probe.x1 >= 0){ setView({ TX: TX + Math.round(w / 2 - (probe.x0 + probe.x1) / 2), TY: TY + Math.round(h / 2 - (probe.y0 + probe.y1) / 2) }); fb.fill(0); mb.fill(0); lb.fill(0); drawAll(); }
-    const cx = cv.getContext('2d'), im = cx.createImageData(w, h), d32 = new Uint32Array(im.data.buffer);
-    for (let i = 0; i < w * h; i++) d32[i] = (fb[i] || mb[i]) ? PALL[((mb[i] << 1) | fb[i]) * 5 + lb[i]] : 0;
-    cx.putImageData(im, 0, 0);
+    const cx = cv.getContext('2d');
+    if (cx){ const im = cx.createImageData(w, h), d32 = new Uint32Array(im.data.buffer);
+      for (let i = 0; i < w * h; i++) d32[i] = (fb[i] || mb[i]) ? PALL[((mb[i] << 1) | fb[i]) * 5 + lb[i]] : 0;
+      cx.putImageData(im, 0, 0); }
   } catch (_) {}
   setView(saved);
   return THUMBS[key] = cv;
 }
 // vignette d'un vestige, faite comme celles des batiments
-export function vestThumb(kind, w, h){
+export function vestThumb(kind: VestKind, w: number, h: number){
   const key = 'vest:' + kind + ':' + w; if (THUMBS[key]) return THUMBS[key];
   const saved = getView();
   const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
@@ -157,19 +168,20 @@ export function vestThumb(kind, w, h){
     let x0 = 1e9, x1 = -1, y0 = 1e9, y1 = -1;
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (fb[y * W + x] || mb[y * W + x]){ x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
     if (x1 >= 0){ setView({ TX: TX + Math.round(w / 2 - (x0 + x1) / 2), TY: TY + Math.round(h / 2 - (y0 + y1) / 2) }); fb.fill(0); mb.fill(0); lb.fill(0); drawVestige(v); }
-    const cx = cv.getContext('2d'), im = cx.createImageData(w, h), d32 = new Uint32Array(im.data.buffer);
-    for (let i = 0; i < w * h; i++) d32[i] = (fb[i] || mb[i]) ? PALL[((mb[i] << 1) | fb[i]) * 5 + lb[i]] : 0;
-    cx.putImageData(im, 0, 0);
+    const cx = cv.getContext('2d');
+    if (cx){ const im = cx.createImageData(w, h), d32 = new Uint32Array(im.data.buffer);
+      for (let i = 0; i < w * h; i++) d32[i] = (fb[i] || mb[i]) ? PALL[((mb[i] << 1) | fb[i]) * 5 + lb[i]] : 0;
+      cx.putImageData(im, 0, 0); }
   } catch (_) {}
   setView(saved);
   return THUMBS[key] = cv;
 }
 export function buildMenu(){
-  const cats = $('buildCats'); cats.textContent = '';
-  for (const [k, label] of SH.CATS_MENU){
+  const cats = $('buildCats'), menu: [string, string][] = SH.CATS_MENU; cats.textContent = '';
+  for (const [k, label] of menu){
     const b = document.createElement('button'); b.className = 'btn cat'; b.type = 'button'; b.setAttribute('role', 'tab'); b.dataset.cat = k; b.textContent = label;
     b.setAttribute('aria-selected', String(k === buildCat));
-    b.addEventListener('click', () => { buildCat = k; for (const o of cats.children) o.setAttribute('aria-selected', String(o.dataset.cat === k)); fillPalette(); SH.sfx('click'); });
+    b.addEventListener('click', () => { buildCat = k; for (const o of cats.children) o.setAttribute('aria-selected', String(o instanceof HTMLElement && o.dataset.cat === k)); fillPalette(); SH.sfx('click'); });
     cats.appendChild(b);
   }
   fillPalette();
@@ -177,23 +189,23 @@ export function buildMenu(){
 export function fillPalette(){
   const pal = $('palette'); pal.textContent = '';
   for (const type of Object.keys(SH.ECO)){
-    const e = SH.ECO[type]; if (e.cat !== buildCat) continue;
+    const e: EcoDef = SH.ECO[type]; if (e.cat !== buildCat) continue;
     const b = document.createElement('button'); b.className = 'btn bbtn'; b.type = 'button'; b.setAttribute('role', 'radio'); b.dataset.t = type;
     b.setAttribute('aria-checked', String(type === state.buildType));
-    const cv = thumb(type, GAME.side, 72, 56); const img = document.createElement('canvas'); img.width = 72; img.height = 56; img.getContext('2d').drawImage(cv, 0, 0);
+    const cv = thumb(type, GAME.side, 72, 56); const img = document.createElement('canvas'); img.width = 72; img.height = 56; img.getContext('2d')?.drawImage(cv, 0, 0);
     const nm = document.createElement('span'); nm.className = 'bb-name'; nm.textContent = typeName(type, GAME.side);
     const ct = document.createElement('span'); ct.className = 'bb-cost'; ct.textContent = SH.costLabel(SH.priceOf(type, GAME.side));
     const eff = document.createElement('span'); eff.className = 'bb-eff'; eff.textContent = effLine(e);
     b.append(img, nm, ct, eff);
     b.title = typeName(type, GAME.side) + '. ' + (e.desc || '');
-    b.addEventListener('click', () => { state.buildType = type; for (const o of pal.children) o.setAttribute('aria-checked', String(o.dataset.t === type)); SH.ghost = null; if (state.tool !== 'build') setTool('build'); $('modeHint').textContent = typeName(type, GAME.side) + ' · ' + (e.desc || ''); SH.sfx('click'); });
+    b.addEventListener('click', () => { state.buildType = type; for (const o of pal.children) o.setAttribute('aria-checked', String(o instanceof HTMLElement && o.dataset.t === type)); SH.ghost = null; if (state.tool !== 'build') setTool('build'); $('modeHint').textContent = typeName(type, GAME.side) + ' · ' + (e.desc || ''); SH.sfx('click'); });
     pal.appendChild(b);
   }
   refreshPalette();
 }
 // ce qu'un batiment rapporte, en une ligne courte
-export function effLine(e){
-  const bits = [];
+export function effLine(e: EcoDef){
+  const bits: string[] = [];
   if (e.pop) bits.push('+' + e.pop + ' hab.');
   if (e.c > 0) bits.push('+' + e.c + ' croq.'); if (e.l > 0) bits.push('+' + e.l + ' laine'); if (e.r > 0) bits.push('+' + e.r + ' ron.');
   if (e.fun) bits.push(e.fun + ' loisirs');
@@ -202,34 +214,34 @@ export function effLine(e){
 }
 export function refreshPalette(){
   const R = SH.RES[GAME.side];
-  for (const b of $('palette').children){ const p = SH.priceOf(b.dataset.t, GAME.side); b.classList.toggle('poor', !SH.canAfford(GAME.side, p)); const c = b.querySelector('.bb-cost'); if (c) c.textContent = SH.costLabel(p); }
+  for (const b of $('palette').children){ if (!(b instanceof HTMLElement)) continue; const p: Price = SH.priceOf(b.dataset.t, GAME.side); b.classList.toggle('poor', !SH.canAfford(GAME.side, p)); const c = b.querySelector('.bb-cost'); if (c) c.textContent = SH.costLabel(p); }
 }
 
 /* ---- batiment selectionne ---- */
-export function selectBuilding(l){
+export function selectBuilding(l: Building | null){
   state.sel = l || null; state.selV = null;
   $('sel').hidden = !l;
   document.body.classList.toggle('sel-open', !!l);
   if (!l) return;
-  const pic = $('selPic'), g = pic.getContext('2d'); g.clearRect(0, 0, 96, 72); g.drawImage(thumb(l.type, l.side, 96, 72, l.lvl), 0, 0);
+  const pic = $of('selPic', HTMLCanvasElement), g = pic.getContext('2d'); g?.clearRect(0, 0, 96, 72); g?.drawImage(thumb(l.type, l.side, 96, 72, l.lvl), 0, 0);
   SH.sfx('click');
   renderSel();
 }
 $('selClose').addEventListener('click', () => selectBuilding(null));
 /* ---- vestiges catzi : le meme panneau, avec un bouton pour fouiller ---- */
-export const vestLoot = (L) => [L.c ? L.c + ' croquettes' : '', L.l ? L.l + ' laine' : '', L.r ? L.r + ' ronrons' : ''].filter(Boolean).join(' · ');
-export function lootVestige(v, side){
+export const vestLoot = (L: VestDef['loot']) => [L.c ? L.c + ' croquettes' : '', L.l ? L.l + ' laine' : '', L.r ? L.r + ' ronrons' : ''].filter(Boolean).join(' · ');
+export function lootVestige(v: Vestige | null, side: Side){
   if (!v || v.looted) return 'Ces ruines ont déjà été fouillées.';
   if (sideAt(v.a, v.b) !== side) return 'Ces ruines sont hors de ton territoire : étends-toi jusqu’à elles.';
-  const L = VEST_DEF[v.kind].loot, R = SH.RES[side];
+  const L = VEST_DEF[v.kind].loot, R: Resources = SH.RES[side];
   R.croq += L.c; R.laine += L.l; R.ron += L.r;
   v.looted = true; FAR.cache.delete(v); SH.mapDirtyRect(v.a - 12, v.a + 12, v.b - 12, v.b + 12);
   return '';
 }
-export function selectVestige(v){
+export function selectVestige(v: Vestige){
   selectBuilding(null);
   state.selV = v; $('sel').hidden = false; document.body.classList.add('sel-open');
-  const g = $('selPic').getContext('2d'); g.clearRect(0, 0, 96, 72); g.drawImage(vestThumb(v.kind, 96, 72), 0, 0);
+  const g = $of('selPic', HTMLCanvasElement).getContext('2d'); g?.clearRect(0, 0, 96, 72); g?.drawImage(vestThumb(v.kind, 96, 72), 0, 0);
   SH.sfx('click'); renderVest();
 }
 export function renderVest(){
@@ -257,8 +269,8 @@ export function renderVest(){
 export function renderSel(){
   const l = state.sel; if (!l) return;
   if (!SH.BLD.includes(l)){ selectBuilding(null); return; }
-  const e = SH.ECO[l.type], mine = l.side === GAME.side, lv = l.lvl || 1, mult = SH.LVL_MULT[lv - 1];
-  const key = [l.id, l.done, l.upT, l.lvl, l.active, Math.floor(SH.RES[GAME.side].laine / 5), Math.floor(SH.RES[GAME.side].ron / 5), !l.done ? Math.floor((GAME.t - l.buildT) / l.bdur * 20) : 0, l.upT ? Math.floor((GAME.t - l.upT) / l.udur * 20) : 0, SH.BOATS.length].join(':');
+  const e: EcoDef | undefined = SH.ECO[l.type], mine = l.side === GAME.side, lv = l.lvl || 1, mult: number = SH.LVL_MULT[lv - 1];
+  const key = [l.id, l.done, l.upT, l.lvl, l.active, Math.floor(SH.RES[GAME.side].laine / 5), Math.floor(SH.RES[GAME.side].ron / 5), !l.done ? Math.floor((GAME.t - l.buildT) / l.bdur * 20) : 0, l.upT ? Math.floor((GAME.t - l.upT) / (l.udur || 0) * 20) : 0, SH.BOATS.length].join(':');
   if ($('sel').dataset.key === key) return;
   $('sel').dataset.key = key;
   $('selSide').innerHTML = flagSVG(l.side) + '<span>' + CAMP_FULL[l.side] + '</span>';
@@ -266,15 +278,15 @@ export function renderSel(){
   $('selLvl').textContent = (e && e.up) || SH.LVL_POP[l.type] ? SH.lvlName(l) + ' · niveau ' + lv + ' sur 3' : '';
   const st = $('selState');
   if (!l.done) st.innerHTML = '<span class="pill work">En chantier · ' + Math.floor(clamp((GAME.t - l.buildT) / l.bdur, 0, 1) * 100) + ' %</span>';
-  else if (l.upT) st.innerHTML = '<span class="pill work">Amélioration · ' + Math.floor(clamp((GAME.t - l.upT) / l.udur, 0, 1) * 100) + ' %</span>';
+  else if (l.upT) st.innerHTML = '<span class="pill work">Amélioration · ' + Math.floor(clamp((GAME.t - l.upT) / (l.udur || 0), 0, 1) * 100) + ' %</span>';
   else if (!l.active) st.innerHTML = '<span class="pill bad">À l’arrêt : pas de route jusqu’au QG</span>';
   else st.innerHTML = '<span class="pill ok">En service</span>';
-  const rows = [];
-  const R = SH.RES[l.side], eff = e && e.jobs ? R.eff : 1;
+  const rows: [string, string][] = [];
+  const R: Resources = SH.RES[l.side], eff = e && e.jobs ? R.eff : 1;
   if (e){
     const pop = SH.popOf(l); if (pop) rows.push(['Habitants', String(pop)]);
     if (e.jobs) rows.push(['Emplois', Math.round(e.jobs * mult ** .5) + (eff < 1 ? ' (il manque des habitants : ' + Math.round(eff * 100) + ' %)' : '')]);
-    for (const [k, nm] of [['c', 'Croquettes'], ['l', 'Laine'], ['r', 'Ronrons']]){
+    for (const [k, nm] of [['c', 'Croquettes'], ['l', 'Laine'], ['r', 'Ronrons']] as const){
       const v = e[k]; if (!v) continue;
       rows.push([nm, v > 0 ? fmtRate(v * mult * eff * (k === 'r' ? SH.taste(l.type, l.side) : 1)) : fmtRate(v * (1 + (mult - 1) * .5)) + ' (fonctionnement)']);
     }
@@ -286,8 +298,8 @@ export function renderSel(){
   if (e && e.desc){ const p = document.createElement('p'); p.textContent = e.desc; stats.append(p); }
   const act = $('selActions'); act.textContent = '';
   if (!mine) return;
-  const btn = (label, sub, fn, dis) => { const b = document.createElement('button'); b.className = 'btn'; b.type = 'button'; b.innerHTML = '<span>' + label + '</span>' + (sub ? '<i>' + sub + '</i>' : ''); b.disabled = !!dis; b.addEventListener('click', fn); act.append(b); return b; };
-  const uc = SH.upCost(l);
+  const btn = (label: string, sub: string, fn: () => void, dis?: boolean) => { const b = document.createElement('button'); b.className = 'btn'; b.type = 'button'; b.innerHTML = '<span>' + label + '</span>' + (sub ? '<i>' + sub + '</i>' : ''); b.disabled = !!dis; b.addEventListener('click', fn); act.append(b); return b; };
+  const uc: { l: number; r: number } | null = SH.upCost(l);
   if (uc && l.done) btn('Améliorer', uc.l + ' laine · ' + uc.r + ' ron.', () => { const why = SH.upgradeBuilding(l); if (why) toast(why); else { toast('Amélioration lancée.'); SH.sfx('click'); } renderHUD(); $('sel').dataset.key = ''; renderSel(); }, !!l.upT || !SH.canPay(l.side, uc.l, uc.r));
   if (l.type === 'port' && l.done){
     const bc = BARGE_COST;
@@ -296,8 +308,8 @@ export function renderSel(){
   if (l.type === 'port' || l.type === 'pecherie'){ const n = SH.BOATS.filter(b => b.home === l.id).length; const d = document.createElement('p'); d.className = 'sel-note'; d.textContent = n ? n + ' bateau' + (n > 1 ? 'x' : '') + ' en mer ou à quai.' : (l.type === 'port' ? 'Au niveau 2, le port arme des chalutiers, au niveau 3 un cargo.' : 'Un chalutier par niveau.'); act.append(d); }
   if (l.type !== 'qg') btn('Démolir', 'rend ' + Math.round(SH.costOf(l.type) / 2) + ' laine', () => { const refund = SH.demolishBuilding(l); toast(typeName(l.type, l.side) + ' démoli' + (TYPES[l.type].fem ? 'e' : '') + ', ' + refund + ' laine récupérée.'); SH.sfx('demolish', l.ca, l.cb); selectBuilding(null); SH.saveSoon(); renderHUD(); }).classList.add('danger');
 }
-export const BARGE_COST = { l: 40, c: 60, r: 30 };
-export function bargeTarget(a, b){
+export const BARGE_COST: Price = { l: 40, c: 60, r: 30 };
+export function bargeTarget(a: number, b: number){
   const from = state.bargeFrom; if (!from || !SH.BLD.includes(from)){ setTool('walk'); return; }
   const s = nearestShore(a, b, 60);
   if (!s){ toast('Vise une côte : la barge accoste sur une plage.'); return; }

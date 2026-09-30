@@ -1,28 +1,36 @@
-import { SH } from './00-shared.ts';
+import { SH, type Building, type Side } from './00-shared.ts';
 import { GAME, SIDES, TAU, hash2, other } from './01-core.ts';
-import { GA0, GB0, ISEED, W_ISLE_MIN, islandNear, mapScale, nearestShore } from './02-ground.ts';
+import { GA0, GB0, ISEED, W_ISLE_MIN, islandNear, mapScale, nearestShore, type Vec2 } from './02-ground.ts';
 import { SID, TC, TER, sideAt } from './08-territory.ts';
 import { RW, RWS, addRoad, nearRoad, polyAt, roadCost, roadProblem, sampleLine } from './09-roads.ts';
 import { coastDir, findSpot, footOf, makeBuilding, placeProblem } from './10-town.ts';
-import { WALL_COST, addWall, wallPieces, wallProblem } from './13-ui.js';
-import { BARGE_COST } from './14-hud.js';
+import { WALL_COST, addWall, wallPieces, wallProblem } from './13-ui.ts';
+import { BARGE_COST } from './14-hud.ts';
 /* ================= l'IA d'en face : elle debarque, construit, trace ses routes et pousse sa frontiere ================= */
 // un etat par camp : l'IA joue la CCR ou l'USC (et les deux dans les tests d'equilibrage)
-export const newBrain = () => ({ acc: 0, lastBarge: 0, lastWall: 0, lost: 0, lastCnt: 0, think: 2.6 });
-export const RIVAL = { usc: newBrain(), ccp: newBrain(), tries: 0, auto: { usc: false, ccp: true } };
+/** Plan d'urbanisme de l'IA : l'origine de sa grille de rues. */
+export interface Grid { x0: number; y0: number }
+/** L'etat de l'IA d'un camp : temps accumule avant de reflechir, derniers barge et mur, terrain perdu, grille de rues. */
+export interface Brain { acc: number; lastBarge: number; lastWall: number; lost: number; lastCnt: number; think: number; grid?: Grid }
+/** Les deux IA, le compteur de tirages, et les camps joues par l'IA. */
+export interface Rival { usc: Brain; ccp: Brain; tries: number; auto: Record<Side, boolean> }
+/** Un emplacement de batiment : centre (a, b) et orientation. */
+export type Spot = [number, number, number];
+export const newBrain = (): Brain => ({ acc: 0, lastBarge: 0, lastWall: 0, lost: 0, lastCnt: 0, think: 2.6 });
+export const RIVAL: Rival = { usc: newBrain(), ccp: newBrain(), tries: 0, auto: { usc: false, ccp: true } };
 // gouts de chaque camp pour les loisirs et le prestige
-export const RIVAL_FUN = { usc: ['parc', 'diner', 'cinema', 'kiosque', 'bowling', 'drivein', 'fontaine', 'panneau', 'motel'], ccp: ['parc', 'statue', 'kiosque', 'cirque', 'bulbes', 'panneau', 'fontaine', 'tribune'] };
-export const RIVAL_BIG = { usc: ['radio', 'stade', 'grandmagasin', 'artdeco', 'fusee', 'supermarche'], ccp: ['radio', 'stade', 'stalinien', 'fusee', 'grandmagasin', 'usine'] };
-export const count = (side, type) => SH.BLD.filter(l => l.side === side && l.type === type).length;
-export const rnd = (k) => hash2(Math.floor(GAME.t * 10) + k * 17, RIVAL.tries++);
+export const RIVAL_FUN: Record<Side, string[]> = { usc: ['parc', 'diner', 'cinema', 'kiosque', 'bowling', 'drivein', 'fontaine', 'panneau', 'motel'], ccp: ['parc', 'statue', 'kiosque', 'cirque', 'bulbes', 'panneau', 'fontaine', 'tribune'] };
+export const RIVAL_BIG: Record<Side, string[]> = { usc: ['radio', 'stade', 'grandmagasin', 'artdeco', 'fusee', 'supermarche'], ccp: ['radio', 'stade', 'stalinien', 'fusee', 'grandmagasin', 'usine'] };
+export const count = (side: Side, type: string) => SH.BLD.filter(l => l.side === side && l.type === type).length;
+export const rnd = (k: number) => hash2(Math.floor(GAME.t * 10) + k * 17, RIVAL.tries++);
 
 // plage de debarquement de l'IA : loin du joueur, sur une cote accueillante
 // avec plusieurs vraies iles (deux, quatre, archipel), elle debarque sur une autre ile que le joueur
-export function rivalLanding(pa, pb){
+export function rivalLanding(pa: number, pb: number){
   const isl = ISEED.isl.filter(it => it.ra >= W_ISLE_MIN), mine = islandNear(pa, pb);
   const multi = isl.length > 1 && ISEED.conf !== 'une' && ISEED.conf !== 'atoll', dmin = 500 * Math.min(1, mapScale());
   const nA = Math.max(18, Math.round(90 / isl.length));
-  let best = null, bs = -1;
+  let best: Vec2 | null = null, bs = -1;
   for (const it of isl) for (let k = 0; k < nA; k++){
     const an = k / nA * TAU, s = nearestShore(it.ca + Math.cos(an) * it.ra * .9, it.cb + Math.sin(an) * it.rb * .9, 160); if (!s) continue;
     const d = Math.hypot(s[0] - pa, s[1] - pb); if (d < dmin) continue;
@@ -33,10 +41,10 @@ export function rivalLanding(pa, pb){
   return best;
 }
 // la ou l'IA pose ses batiments : le long de ses routes, pres du QG
-export function rivalSpot(type, side){
+export function rivalSpot(type: string, side: Side): Spot | null {
   const e = SH.ECO[type], hq = SH.BLD.find(l => l.side === side && l.type === 'qg');
   if (!hq) return null;
-  let best = null, bs = -1e9;
+  let best: Spot | null = null, bs = -1e9;
   if (e.coast){
     // le long de la cote de son territoire
     for (let k = 0; k < 60; k++){
@@ -75,9 +83,9 @@ export function rivalSpot(type, side){
   return best;
 }
 // un avant-poste pres de la frontiere, du cote ou il reste le plus de terre libre
-export function rivalFlagSpot(side){
+export function rivalFlagSpot(side: Side): Spot | null {
   const sid = SID[side], own = TER.own, Wd = TER.W;
-  let best = null, bs = -1;
+  let best: Spot | null = null, bs = -1;
   for (let k = 0; k < 400; k++){
     const i = Math.floor(rnd(k) * TER.N); if (own[i] !== sid) continue;
     let free = 0;
@@ -91,7 +99,7 @@ export function rivalFlagSpot(side){
 }
 // plan d'urbanisme de l'IA : une grille de rues calee sur sa premiere route, prolongee troncon par troncon
 export const GRID_SP = 84;
-export function rivalGrid(side){
+export function rivalGrid(side: Side): Grid | null {
   const B = RIVAL[side]; if (B.grid) return B.grid;
   const r = SH.ROADS.find(o => o.side === side); if (!r) return null;
   const p = r.pts[0], q = r.pts[r.pts.length - 1], horiz = Math.abs(q[0] - p[0]) >= Math.abs(q[1] - p[1]);
@@ -99,9 +107,9 @@ export function rivalGrid(side){
   B.grid = horiz ? { x0: Math.min(p[0], q[0]), y0: p[1] } : { x0: p[0], y0: Math.min(p[1], q[1]) };
   return B.grid;
 }
-export const gridX = (g, i) => g.x0 + i * GRID_SP, gridY = (g, j) => g.y0 + j * GRID_SP;
+export const gridX = (g: Grid, i: number) => g.x0 + i * GRID_SP, gridY = (g: Grid, j: number) => g.y0 + j * GRID_SP;
 // un batiment qui ne demande pas de route ne doit pas boucher une future rue
-export function blocksGrid(side, l){
+export function blocksGrid(side: Side, l: Building){
   const g = RIVAL[side].grid; if (!g) return false;
   const m = RWS + 1;
   const i0 = Math.floor((l.a0 - m - g.x0) / GRID_SP), i1 = Math.floor((l.a1 + m - g.x0) / GRID_SP), j0 = Math.floor((l.b0 - m - g.y0) / GRID_SP), j1 = Math.floor((l.b1 + m - g.y0) / GRID_SP);
@@ -109,24 +117,24 @@ export function blocksGrid(side, l){
   for (let j = j0; j <= j1 + 1; j++){ const y = gridY(g, j); if (y > l.b0 - m && y < l.b1 + m) return true; }
   return false;
 }
-export function rivalRoad(side){
+export function rivalRoad(side: Side){
   const hq = SH.BLD.find(l => l.side === side && l.type === 'qg'); if (!hq) return false;
   const roads = SH.ROADS.filter(r => r.side === side); if (!roads.length) return SH.stubRoad(hq, side, null);
   const g = rivalGrid(side); if (!g) return false;
   // troncons de la grille qui touchent deja le reseau, les plus proches du QG d'abord
-  const ci = Math.round((hq.ca - g.x0) / GRID_SP), cj = Math.round((hq.cb - g.y0) / GRID_SP), cand = [];
+  const ci = Math.round((hq.ca - g.x0) / GRID_SP), cj = Math.round((hq.cb - g.y0) / GRID_SP), cand: [Vec2, Vec2][] = [];
   for (let i = ci - 6; i <= ci + 6; i++) for (let j = cj - 6; j <= cj + 6; j++){
     const x = gridX(g, i), y = gridY(g, j);
     cand.push([[x, y], [gridX(g, i + 1), y]], [[x, y], [x, gridY(g, j + 1)]]);
   }
-  const hqd = (seg) => Math.hypot((seg[0][0] + seg[1][0]) / 2 - hq.ca, (seg[0][1] + seg[1][1]) / 2 - hq.cb);
+  const hqd = (seg: [Vec2, Vec2]) => Math.hypot((seg[0][0] + seg[1][0]) / 2 - hq.ca, (seg[0][1] + seg[1][1]) / 2 - hq.cb);
   cand.sort((u, v) => hqd(u) - hqd(v));
   for (const [p, q] of cand){
     if (!nearRoad(p[0], p[1], 3, side) && !nearRoad(q[0], q[1], 3, side)) continue;
     if (nearRoad((p[0] + q[0]) / 2, (p[1] + q[1]) / 2, 3, side)) continue;
     // on raccourcit si le bout sort du territoire ou tombe a l'eau
     for (const f of [1, .75, .5]){
-      const e = [p[0] + (q[0] - p[0]) * f, p[1] + (q[1] - p[1]) * f], st = nearRoad(p[0], p[1], 3, side) ? p : q, en = st === p ? e : [q[0] + (p[0] - q[0]) * f, q[1] + (p[1] - q[1]) * f];
+      const e: Vec2 = [p[0] + (q[0] - p[0]) * f, p[1] + (q[1] - p[1]) * f], st = nearRoad(p[0], p[1], 3, side) ? p : q, en: Vec2 = st === p ? e : [q[0] + (p[0] - q[0]) * f, q[1] + (p[1] - q[1]) * f];
       const pts = sampleLine(st, en);
       if (roadProblem(pts, side)) continue;
       const c = roadCost(pts); if (!SH.canPay(side, c, 0)) return false;
@@ -135,7 +143,7 @@ export function rivalRoad(side){
   }
   return false;
 }
-export function rivalBuild(type, side){
+export function rivalBuild(type: string, side: Side){
   const pr = SH.priceOf(type, side);
   if (!SH.canAfford(side, pr)) return false;
   const spot = type === 'drapeau' ? rivalFlagSpot(side) : rivalSpot(type, side);
@@ -146,8 +154,8 @@ export function rivalBuild(type, side){
   return true;
 }
 // un pan de Rideau sur la frontiere commune, quand l'IA perd du terrain
-export function rivalWall(side){
-  const sid = SID[side], eid = SID[other(side)], own = TER.own, Wd = TER.W, pts = [];
+export function rivalWall(side: Side){
+  const sid = SID[side], eid = SID[other(side)], own = TER.own, Wd = TER.W, pts: Vec2[] = [];
   for (let i = Wd; i < TER.N - Wd; i++){
     if (own[i] !== sid) continue;
     if (own[i - 1] === eid || own[i + 1] === eid || own[i - Wd] === eid || own[i + Wd] === eid){
@@ -163,7 +171,7 @@ export function rivalWall(side){
     const hq = SH.BLD.find(l => l.side === side && l.type === 'qg') || { ca: p[0], cb: p[1] };
     // on recule le mur de 8 unites vers chez soi
     const mid = [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2], v = [hq.ca - mid[0], hq.cb - mid[1]], L = Math.hypot(v[0], v[1]) || 1;
-    const P = [Math.round(p[0] + v[0] / L * 8), Math.round(p[1] + v[1] / L * 8)], Q = [Math.round(q[0] + v[0] / L * 8), Math.round(q[1] + v[1] / L * 8)];
+    const P: Vec2 = [Math.round(p[0] + v[0] / L * 8), Math.round(p[1] + v[1] / L * 8)], Q: Vec2 = [Math.round(q[0] + v[0] / L * 8), Math.round(q[1] + v[1] / L * 8)];
     const pieces = wallPieces(P, Q), cost = pieces.length * WALL_COST;
     if (wallProblem(pieces, side) || !SH.canPay(side, cost, 0)) continue;
     SH.pay(side, cost, 0); addWall(P, Q, side);
@@ -174,10 +182,10 @@ export function rivalWall(side){
   return false;
 }
 // une barge vers une cote libre : ilot ou autre versant
-export function rivalBarge(side){
+export function rivalBarge(side: Side){
   const port = SH.BLD.find(l => l.side === side && l.type === 'port' && l.done); if (!port) return false;
   if (!SH.canAfford(side, BARGE_COST)) return false;
-  let best = null, bs = -1;
+  let best: Vec2 | null = null, bs = -1;
   for (let k = 0; k < 60; k++){
     const i = Math.floor(rnd(k) * TER.N); if (!TER.land[i] || TER.own[i]) continue;
     const a = GA0 + (i % TER.W + .5) * TC, b = GB0 + (((i / TER.W) | 0) + .5) * TC, s = nearestShore(a, b, 90); if (!s || sideAt(s[0], s[1])) continue;
@@ -188,26 +196,26 @@ export function rivalBarge(side){
   if (!SH.sendBarge(side, SH.pierEnd(port), best, 'drapeau')) return false;
   SH.pay(side, BARGE_COST.l, BARGE_COST.r, BARGE_COST.c); return true;
 }
-export function rivalUpgrade(side){
+export function rivalUpgrade(side: Side){
   const list = SH.BLD.filter(l => l.side === side && l.done && !l.upT && SH.upCost(l));
   list.sort((x, y) => (SH.LVL_POP[y.type] ? 2 : 0) - (SH.LVL_POP[x.type] ? 2 : 0) + ((x.lvl || 1) - (y.lvl || 1)));
   for (const l of list.slice(0, 4)){ const c = SH.upCost(l); if (SH.canPay(side, c.l + 20, c.r)){ SH.upgradeBuilding(l); return true; } }
   return false;
 }
-export function stepRival(dt){
+export function stepRival(dt: number){
   if (GAME.mode !== 'play') return;
   for (const side of SIDES) if (RIVAL.auto[side]) brainStep(side, dt);
 }
 // une liste de souhaits, dans l'ordre : le premier qui se pose (ou qui fait tracer une route) consomme le tour
-export function brainStep(side, dt){
+export function brainStep(side: Side, dt: number){
   const B = RIVAL[side], R = SH.RES[side];
   B.acc += dt; if (B.acc < B.think) return; B.acc = 0;
   const hq = SH.BLD.find(l => l.side === side && l.type === 'qg'); if (!hq || !hq.done) return;
   const busy = SH.BLD.filter(l => l.side === side && !l.done).length, maxBusy = 2 + Math.floor(R.pop / 35);
   if (busy >= maxBusy) return;
-  const has = (t) => count(side, t);
+  const has = (t: string) => count(side, t);
   const cnt = TER.cnt[side]; if (cnt < B.lastCnt) B.lost += B.lastCnt - cnt; B.lastCnt = cnt; B.lost *= .97;
-  const wish = [];
+  const wish: (string | null)[] = [];
   const food = R.short || R.rc < 3 + R.pop * .06 || R.croq < 50;
   const wool = R.rl < 8 + R.pop * .15 || R.laine < 40;
   if (food) wish.push(has('pecherie') < 3 ? 'pecherie' : null, 'kolkhoze', 'epicerie');

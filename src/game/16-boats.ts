@@ -9,7 +9,7 @@ import { DIR_ANG, DIR_V, drawCargo } from './06-types-more.ts';
 import { claimDisc } from './08-territory.ts';
 import { findSpot, makeBuilding } from './10-town.ts';
 import { worldToScreen } from './11-render.ts';
-import { $, toast } from './13-ui.js';
+import { $, toast } from './13-ui.ts';
 /* ================= en mer : barges de debarquement, chalutiers, cargos ================= */
 // grille de navigation : une case = 8 unites, un peu plus grande que l'ile pour arriver du large
 export const NS = 8, NAV: { A0: number; B0: number; W: number; H: number; ok: Uint8Array } = { A0: GA0 - 160, B0: GB0 - 160, W: Math.ceil((GW / GSC + 320) / NS), H: Math.ceil((GH / GSC + 320) / NS), ok: new Uint8Array(0) };

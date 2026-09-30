@@ -1,28 +1,33 @@
-import { SH } from './00-shared.ts';
+import { SH, type Side } from './00-shared.ts';
 import { BAYER, BLACK, COLOR, STAR7, WHITE, clamp, flagSmall, hash2 } from './01-core.ts';
 import { glyphAt } from './07-world.ts';
+import type { Cat } from './10-town.ts';
 import { PAL32, hex32 } from './11-render.ts';
 /* ================= portrait detaille du chat, en 1-bit ================= */
 export const PW = 160, PH = 120;
 export const pMask = new Uint8Array(PW * PH), pCol = new Uint8Array(PW * PH);
-export const pb = (x, y, tone) => BAYER[((y & 3) << 2) | (x & 3)] < tone ? 1 : 0;
-export function inTri(px, py, ax, ay, bx, by, cx, cy){
+export const pb = (x: number, y: number, tone: number) => BAYER[((y & 3) << 2) | (x & 3)] < tone ? 1 : 0;
+export function inTri(px: number, py: number, ax: number, ay: number, bx: number, by: number, cx: number, cy: number){
   const d1 = (px - bx) * (ay - by) - (ax - bx) * (py - by), d2 = (px - cx) * (by - cy) - (bx - cx) * (py - cy), d3 = (px - ax) * (cy - ay) - (cx - ax) * (py - ay);
   return !(((d1 < 0) || (d2 < 0) || (d3 < 0)) && ((d1 > 0) || (d2 > 0) || (d3 > 0)));
 }
-export const FUR = { white: 14, gray: 7, black: 2, tabby: 9, siamois: 13 };
+/** une paire de couleurs (sombre, claire) en hexadecimal */
+export type HexPair = [string, string];
+/** un camp, ou personne (les chats neutres) */
+export type PortraitSide = Side | 'neutre';
+export const FUR: Record<string, number> = { white: 14, gray: 7, black: 2, tabby: 9, siamois: 13 };
 export const EARLESS = ['casque', 'kepi', 'ushanka', 'foulard', 'bonnet', 'marin', 'cowboy', 'chantier'];
 SH.portraitTalk = false;
 export const M_BG = 0, M_BODY = 1, M_HEAD = 2, M_EAR = 3, M_INEAR = 4, M_HAT = 5;
 // couleurs du portrait (version couleur) : une paire sombre / claire par matiere
 export const PM = { BG_USC:0, BG_CCP:1, BG_NEU:2, FUR_WHITE:3, FUR_GRAY:4, FUR_BLACK:5, FUR_TABBY:6, FUR_SIAM:7, PINK:8, EYE:9, WHITE:10, DARK:11, GOLD:12, WOOD:13 };
-export const PPAL_HEX = [['#1b2f63','#f5ecd6'],['#4a0d13','#d6333a'],['#0c2238','#9fd3e6'],['#3d3542','#f7f2e8'],['#2a2e37','#aab1bd'],['#0c0b10','#5f5b72'],['#5a2c0c','#f39b40'],['#3b2618','#f1e3cb'],
+export const PPAL_HEX: HexPair[] = [['#1b2f63','#f5ecd6'],['#4a0d13','#d6333a'],['#0c2238','#9fd3e6'],['#3d3542','#f7f2e8'],['#2a2e37','#aab1bd'],['#0c0b10','#5f5b72'],['#5a2c0c','#f39b40'],['#3b2618','#f1e3cb'],
   ['#6e2a3a','#f09aac'],['#0a0a0a','#cfe35a'],['#101010','#ffffff'],['#0a0a0a','#e8e8e8'],['#6b4a12','#f4c542'],['#2b170b','#b07a47']];
-export const OUTFIT_HEX = { veste:['#1c2336','#f1ede4'], costume:['#1c2336','#f1ede4'], blouson:['#0b0b0e','#bfc4ce'], robe:['#7a1f3d','#f6b3c4'], pois:['#1f3a8a','#f7f1e6'],
+export const OUTFIT_HEX: Record<string, HexPair> = { veste:['#1c2336','#f1ede4'], costume:['#1c2336','#f1ede4'], blouson:['#0b0b0e','#bfc4ce'], robe:['#7a1f3d','#f6b3c4'], pois:['#1f3a8a','#f7f1e6'],
   'uniforme-usc':['#3d3a1e','#c9b98a'], 'uniforme-ccp':['#26301f','#8c9a6a'], salopette:['#1d3057','#e7e1d0'], pull:['#4a2a14','#e0a93f'], tablier:['#3b2230','#f4f0e8'],
   bleu:['#1c3350','#8fb1d8'], combi:['#3a3f4a','#f4f5f8'], caban:['#101c33','#dfe4ef'], mariniere:['#1b2b66','#f5f3ee'], 'gilet-sherif':['#6b1a1a','#e9c9a0'],
   blouse:['#556070','#fbfbfd'], bowling:['#12615e','#f39cc0'], fraise:['#b3202c','#fbf3e6'], survet:['#8e1622','#f4efe6'], trench:['#4a3a22','#d7c49a'] };
-export const HAT_HEX = { fedora:['#2e1d12','#9b7652'], espion:['#2e1d12','#9b7652'], coiffe:['#40434d','#ffffff'], toque:['#40434d','#ffffff'], beret:['#08080a','#7d7f8c'], banane:['#08080a','#7d7f8c'],
+export const HAT_HEX: Record<string, HexPair> = { fedora:['#2e1d12','#9b7652'], espion:['#2e1d12','#9b7652'], coiffe:['#40434d','#ffffff'], toque:['#40434d','#ffffff'], beret:['#08080a','#7d7f8c'], banane:['#08080a','#7d7f8c'],
   'haut-de-forme':['#08080a','#7d7f8c'], casque:['#1f2a18','#8a9a62'], gavroche:['#2a2a2e','#b9b2a4'], marin:['#0e1a33','#f4f4f4'], bonnet:['#5b1016','#e0525a'], casquette:['#5b1016','#e0525a'],
   kepi:['#1e2a1a','#7f8f5a'], foulard:['#7d1b24','#f0d9b5'], ushanka:['#2f1d10','#a9825a'], chantier:['#5a4410','#f5c83a'], cowboy:['#3a2412','#c99a62'], bigoudis:['#6e2a4a','#f4a6c8'],
   noeud:['#6e2a4a','#f4a6c8'], bandeau:['#b3202c','#ffffff'] };
@@ -32,9 +37,9 @@ export const PPAL32 = new Uint32Array((PM_HAT0 + HAT_KEYS.length) * 2);
 [...PPAL_HEX, ...OUTFIT_KEYS.map(k => OUTFIT_HEX[k]), ...HAT_KEYS.map(k => HAT_HEX[k])].forEach((pr, i) => { PPAL32[i * 2] = hex32(pr[0]); PPAL32[i * 2 + 1] = hex32(pr[1]); });
 export const pMat = new Uint8Array(PW * PH);
 export let PSUB = -1;
-export const FUR_PM = { white: PM.FUR_WHITE, gray: PM.FUR_GRAY, black: PM.FUR_BLACK, tabby: PM.FUR_TABBY, siamois: PM.FUR_SIAM };
+export const FUR_PM: Record<string, number> = { white: PM.FUR_WHITE, gray: PM.FUR_GRAY, black: PM.FUR_BLACK, tabby: PM.FUR_TABBY, siamois: PM.FUR_SIAM };
 
-export function portraitBg(side, x, y, t){
+export function portraitBg(side: PortraitSide, x: number, y: number, t: number){
   if (side === 'ccp'){
     if (x < 30 && y < 30){ const sx = Math.floor((x - 6) / 3), sy = Math.floor((y - 6) / 3); if (sx >= 0 && sy >= 0 && sx < 7 && sy < 7 && STAR7[sy][sx] === '1') return 1; }
     const ang = Math.atan2(y - 150, x - 80), ray = Math.floor((ang + t * .04) * 20 / Math.PI) & 1;
@@ -50,7 +55,7 @@ export function portraitBg(side, x, y, t){
   const d = Math.abs((x - 150) * .5 + (y - 10));
   return d < 12 ? pb(x, y, 4 - d * .3) : 0;
 }
-export function hatAt(look, dx, dy, x, y){
+export function hatAt(look: string, dx: number, dy: number, x: number, y: number){
   switch (look){
     case 'fedora': {
       if (((dx) / 36) ** 2 + ((dy + 25) / 5) ** 2 < 1) return dy > -23 ? 1 : pb(x, y, 4);
@@ -170,7 +175,7 @@ export function hatAt(look, dx, dy, x, y){
   }
   return -1;
 }
-export function outfitAt(o, cx, y, x, t){
+export function outfitAt(o: string, cx: number, y: number, x: number, t: number){
   const cy = y - 86;
   switch (o){
     case 'veste': case 'costume': {
@@ -291,8 +296,8 @@ export function outfitAt(o, cx, y, x, t){
   }
   return -1;
 }
-export function drawPortrait(c, t, cv){
-  const pctx = cv.getContext('2d');
+export function drawPortrait(c: Cat, t: number, cv: HTMLElement){
+  const pctx = cv instanceof HTMLCanvasElement ? cv.getContext('2d') : null; if (!pctx) return;
   const im = pctx.createImageData(PW, PH), d32 = new Uint32Array(im.data.buffer);
   const HX = 80, HY = 60 + Math.round(Math.sin(t * 2.1) * .6);
   const look = c.look, col = c.col, base = FUR[col];
@@ -371,8 +376,8 @@ export function drawPortrait(c, t, cv){
     if ((m === M_HAT && (pMask[i + PW] === M_HEAD || pMask[i + PW] === M_EAR)) || (m === M_HEAD && pMask[i + PW] === M_BODY)){ pCol[i] = dark ? 1 : 0; pMat[i] = PM.DARK; }
   }
   let SM = PM.DARK;
-  const set = (x, y, v, m) => { x = Math.round(x); y = Math.round(y); if (x >= 0 && y >= 0 && x < PW && y < PH && pMask[y * PW + x] !== M_HAT){ pCol[y * PW + x] = v; pMat[y * PW + x] = m == null ? SM : m; } };
-  const setA = (x, y, v, m) => { x = Math.round(x); y = Math.round(y); if (x >= 0 && y >= 0 && x < PW && y < PH){ pCol[y * PW + x] = v; pMat[y * PW + x] = m == null ? SM : m; } };
+  const set = (x: number, y: number, v: number, m?: number | null) => { x = Math.round(x); y = Math.round(y); if (x >= 0 && y >= 0 && x < PW && y < PH && pMask[y * PW + x] !== M_HAT){ pCol[y * PW + x] = v; pMat[y * PW + x] = m == null ? SM : m; } };
+  const setA = (x: number, y: number, v: number, m?: number | null) => { x = Math.round(x); y = Math.round(y); if (x >= 0 && y >= 0 && x < PW && y < PH){ pCol[y * PW + x] = v; pMat[y * PW + x] = m == null ? SM : m; } };
   const ink = dark ? 1 : 0;
   // 4. visage
   for (const s of [-1, 1]){
@@ -452,8 +457,9 @@ export function drawPortrait(c, t, cv){
   else for (let i = 0; i < PW * PH; i++) d32[i] = pCol[i] ? WHITE : BLACK;
   pctx.putImageData(im, 0, 0);
 }
-export function drawFlagIcon(cv, side){
-  const g = cv.getContext('2d'), im = g.createImageData(15, 10), d = new Uint32Array(im.data.buffer);
+export function drawFlagIcon(cv: HTMLElement, side: PortraitSide){
+  const g = cv instanceof HTMLCanvasElement ? cv.getContext('2d') : null; if (!g) return;
+  const im = g.createImageData(15, 10), d = new Uint32Array(im.data.buffer);
   d.fill(BLACK);
   const px = side === 'neutre' ? null : flagSmall(side, 13, 8);
   if (px) px.forEach(([x, y, m, v]) => { d[(y + 1) * 15 + x + 1] = COLOR ? PAL32[(m << 1) | v] : (v ? WHITE : BLACK); });

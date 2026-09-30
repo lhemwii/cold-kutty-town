@@ -1,23 +1,32 @@
-import { SH } from './00-shared.ts';
-import { COLOR, GAME, H, HOOKS, M, N, SIDES, TAU, W, cam, clamp, fput, hash2, other, state } from './01-core.ts';
+import { SH, type Side } from './00-shared.ts';
+import { COLOR, GAME, H, HOOKS, M, N, TAU, W, cam, clamp, fput, hash2, other, state } from './01-core.ts';
 import { TYPES } from './04-types.ts';
 import { terPct } from './08-territory.ts';
-import { catPos } from './10-town.ts';
+import { catPos, type Cat } from './10-town.ts';
 import { CLOCK, OV_ON, WEATHER, render, scene } from './11-render.ts';
-import { $, toast } from './13-ui.js';
+import { $, $of, toast } from './13-ui.ts';
+/** Une saison de l'ile. */
+export type Season = 'hiver' | 'printemps' | 'été' | 'automne';
+/** A qui s'adresse une fete ou une ligne du carnet : un camp, ou les deux. */
+export type FeteSide = Side | 'both';
+/** Une fete du calendrier. */
+export interface Fete { id: string; name: string; side: FeteSide }
+/** Le camp d'un chat : un des deux, ou neutre. */
+export type CatSide = Cat['side'];
 /* ================= calendrier : un jour de jeu = un mois ================= */
 export const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
 export const CAL = { m: 8 };
-export function seasonOf(m){ return m === 11 || m <= 1 ? 'hiver' : m <= 4 ? 'printemps' : m <= 7 ? 'été' : 'automne'; }
-export function feteOf(m){
+export function seasonOf(m: number): Season { return m === 11 || m <= 1 ? 'hiver' : m <= 4 ? 'printemps' : m <= 7 ? 'été' : 'automne'; }
+export function feteOf(m: number): Fete | null {
   if (m === 11) return { id: 'nouvel', name: 'les fêtes de fin d’année', side: 'both' };
   if (m === 6) return { id: 'reve', name: 'le Jour de l’USC', side: 'usc' };
   if (m === 4) return { id: 'plan', name: 'la Fête de la CCR', side: 'ccp' };
   return null;
 }
-export const feteSide = (side) => { const f = feteOf(CAL.m); return !!f && (f.side === 'both' || f.side === side); };
-export const hexRGB = (h) => { const v = parseInt(h.slice(1), 16); return [v >> 16, (v >> 8) & 255, v & 255]; };
-export const SEASON_PAL = {
+export const feteSide = (side: string) => { const f = feteOf(CAL.m); return !!f && (f.side === 'both' || f.side === side); };
+export const hexRGB = (h: string) => { const v = parseInt(h.slice(1), 16); return [v >> 16, (v >> 8) & 255, v & 255]; };
+// par saison : [matiere, teinte sombre, teinte claire]
+export const SEASON_PAL: Record<Season, [number, string, string][]> = {
   automne: [[M.TREE, '#a8612c', '#dd9b40'], [M.GRASS, '#7c9a40', '#a4bd62'], [M.FIELD, '#b08a3a', '#d8b35c']],
   hiver: [[M.TREE, '#4d6150', '#7d8e7b'], [M.GRASS, '#7a8d66', '#a0ae8a'], [M.FIELD, '#8c8a6a', '#b0ad8c']],
   printemps: [[M.TREE, '#5aa645', '#f3b4c6'], [M.GRASS, '#60a944', '#8ed06a']],
@@ -48,8 +57,8 @@ export function newMonth(){
   logDay('both', 'month', MONTHS[CAL.m]);
   SH.saveSoon();
 }
-export let calH = null;
-export function stepCal(dt, t){
+export let calH: number | null = null;
+export function stepCal(dt: number, t: number){
   const h = CLOCK.h;
   if (calH != null){
     if (calH > 20 && h < 4) newMonth();
@@ -60,19 +69,29 @@ export function stepCal(dt, t){
 HOOKS.step.push(stepCal);
 
 /* ================= carnet du jour : ce qui s'est passe, pour le journal ================= */
-export const DAYLOG = [];
-export function logDay(side, kind, txt, data){ DAYLOG.push({ side, kind, txt: String(txt || ''), data: data || {} }); if (DAYLOG.length > 40) DAYLOG.shift(); }
+/** Precisions d'une ligne du carnet, selon son genre. */
+export interface DayData { id?: number; type?: string; choice?: string; first?: boolean }
+/** Une ligne du carnet du jour. */
+export interface DayEntry { side: FeteSide; kind: string; txt: string; data: DayData }
+export const DAYLOG: DayEntry[] = [];
+export function logDay(side: FeteSide, kind: string, txt: string, data?: DayData){ DAYLOG.push({ side, kind, txt: String(txt || ''), data: data || {} }); if (DAYLOG.length > 40) DAYLOG.shift(); }
 
 /* ================= journal du matin : Gazette de Kutty et Pravdachat ================= */
-export const PAPER = { n: 1, issue: null, side: 'usc' };
-export const PAPER_NAME = { usc: 'Gazette de Kutty', ccp: 'Pravdachat' };
-export function campStats(){
-  const o = {};
-  for (const s2 of SIDES){ const R = SH.RES[s2]; o[s2] = { pct: Math.round(terPct(s2) * 100), croq: Math.floor(R.croq), laine: Math.floor(R.laine), ron: Math.floor(R.ron), pop: R.pop, short: !!R.short, space: SH.SPACE[s2].stage }; }
-  o.weather = WEATHER.shown === 'clair' || WEATHER.k < .4 ? 'clair' : WEATHER.shown; o.season = seasonOf(CAL.m); o.fete = feteOf(CAL.m); o.wall = SH.WALLS.length > 0;
-  return o;
+/** Les chiffres d'un camp, releves a la livraison du journal. */
+export interface CampStat { pct: number; croq: number; laine: number; ron: number; pop: number; short: boolean; space: number }
+/** Les chiffres des deux camps, et le temps qu'il fait. */
+export type CampStats = Record<Side, CampStat> & { weather: string; season: Season; fete: Fete | null; wall: boolean };
+/** Une edition du journal (celle d'un camp). */
+export interface Edition { titre: string; chapeau: string; articles: { titre: string; texte: string }[]; legende: string; breve: string }
+/** Un numero du journal : le carnet de la veille, les chiffres, les deux editions et leurs photos de une. */
+export interface Issue { n: number; m: number; log: DayEntry[]; stats: CampStats; ed: Record<Side, Edition> | null; busy: boolean; note: string; photo: Partial<Record<Side, HTMLCanvasElement>> }
+export const PAPER: { n: number; issue: Issue | null; side: Side } = { n: 1, issue: null, side: 'usc' };
+export const PAPER_NAME: Record<Side, string> = { usc: 'Gazette de Kutty', ccp: 'Pravdachat' };
+export function campStats(): CampStats {
+  const one = (s2: Side): CampStat => { const R = SH.RES[s2]; return { pct: Math.round(terPct(s2) * 100), croq: Math.floor(R.croq), laine: Math.floor(R.laine), ron: Math.floor(R.ron), pop: R.pop, short: !!R.short, space: SH.SPACE[s2].stage }; };
+  return { usc: one('usc'), ccp: one('ccp'), weather: WEATHER.shown === 'clair' || WEATHER.k < .4 ? 'clair' : WEATHER.shown, season: seasonOf(CAL.m), fete: feteOf(CAL.m), wall: SH.WALLS.length > 0 };
 }
-export function deliverPaper(first){
+export function deliverPaper(first: boolean){
   PAPER.issue = { n: PAPER.n++, m: CAL.m, log: DAYLOG.splice(0), stats: campStats(), ed: null, busy: false, note: '', photo: {} };
   const b = $('btnPaper'); if (b){ b.hidden = false; b.classList.toggle('fresh', !first); }
   if (!first){
@@ -81,17 +100,17 @@ export function deliverPaper(first){
   }
   if (!$('paper').hidden){ renderPaper(); generatePaper(PAPER.issue); }
 }
-export function reporter(side, n){ const L = SH.CATS.filter(c => c.side === side); return L.length ? L[n % L.length] : { name: 'la rédaction', job: '' }; }
-export function topOf(log, side){
+export function reporter(side: Side, n: number){ const L = SH.CATS.filter(c => c.side === side); return L.length ? L[n % L.length] : { name: 'la rédaction', job: '' }; }
+export function topOf(log: DayEntry[], side: Side): DayEntry | null {
   const mine = log.filter(e => e.side === side || e.side === 'both');
   for (const k of ['space', 'wall', 'barge', 'fete', 'event', 'upgrade', 'build', 'short', 'weather']){ for (let i = mine.length - 1; i >= 0; i--) if (mine[i].kind === k) return mine[i]; }
   return null;
 }
-export const WX_WORD = { clair: 'grand soleil', pluie: 'averses', neige: 'neige', brouillard: 'brouillard' };
-export function paperTemplate(iss, side){
+export const WX_WORD: Record<string, string> = { clair: 'grand soleil', pluie: 'averses', neige: 'neige', brouillard: 'brouillard' };
+export function paperTemplate(iss: Issue, side: Side): Edition {
   const S = iss.stats, me = S[side], ot = S[side === 'usc' ? 'ccp' : 'usc'], us = side === 'usc';
   const e = topOf(iss.log, side), fem = e && e.data.type && TYPES[e.data.type] && TYPES[e.data.type].fem;
-  let titre, chapeau, legende;
+  let titre: string, chapeau: string, legende: string;
   if (!e){
     titre = us ? 'Une journée tranquille chez les United Sands' : 'Le Plan avance exactement comme prévu';
     chapeau = us ? 'Rien à signaler, sinon des milkshakes, du soleil et des voitures qui brillent.' : 'Les usines tournent, les kolkhozes récoltent, les statistiques sont excellentes.';
@@ -123,32 +142,33 @@ export function paperTemplate(iss, side){
   return { titre, chapeau, articles: [a1, a2], legende, breve };
 }
 // textes tout faits, tires des evenements de la veille
-export function generatePaper(iss){
+export function generatePaper(iss: Issue | null){
   if (!iss || iss.ed) return;
   iss.ed = { usc: paperTemplate(iss, 'usc'), ccp: paperTemplate(iss, 'ccp') };
   renderPaper();
 }
 // la photo de une : on photographie l'endroit de l'evenement, puis on la tramee comme un vieux journal
-export function snapScene(a, b){
+export function snapScene(a: number, b: number){
   const out = document.createElement('canvas');
-  if (OV_ON){ out.width = scene.width; out.height = scene.height; out.getContext('2d').drawImage(scene, 0, 0); return out; }
+  if (OV_ON){ out.width = scene.width; out.height = scene.height; out.getContext('2d')?.drawImage(scene, 0, 0); return out; }
   const sa = cam.a, sb = cam.b; cam.a = a; cam.b = b;
-  try { render(SH.NOW_T); out.width = W; out.height = H; out.getContext('2d').drawImage(scene, 0, 0); }
+  try { render(SH.NOW_T); out.width = W; out.height = H; out.getContext('2d')?.drawImage(scene, 0, 0); }
   finally { cam.a = sa; cam.b = sb; render(SH.NOW_T); }
   return out;
 }
-export function photoSpot(iss, side){
+export function photoSpot(iss: Issue, side: Side): [number, number] {
   const e = topOf(iss.log, side), l = e && e.data.id ? SH.BLD.find(o => o.id === e.data.id && o.done) : null;
   if (l) return [l.ca, l.cb];
   const o = SH.BLD.find(x => x.side === side && x.type === 'qg') || SH.BLD.find(x => x.side === side);
   return o ? [o.ca, o.cb] : [cam.a, cam.b];
 }
-export function halftone(src, dst, ink){
+export function halftone(src: HTMLCanvasElement, dst: HTMLCanvasElement, ink: string){
   const g = dst.getContext('2d'), w = dst.width, h = dst.height, cell = 5;
+  if (!g) return;
   g.fillStyle = '#efe5cc'; g.fillRect(0, 0, w, h);
   const cw = Math.ceil(w / cell), ch = Math.ceil(h / cell);
   const tmp = document.createElement('canvas'); tmp.width = cw; tmp.height = ch;
-  const tg = tmp.getContext('2d');
+  const tg = tmp.getContext('2d'); if (!tg) return;
   const sw = src.width, sh = src.height, ar = w / h;
   let cw2 = sw, ch2 = sw / ar; if (ch2 > sh){ ch2 = sh; cw2 = sh * ar; }
   const zm = OV_ON ? .5 : .78; cw2 *= zm; ch2 *= zm;
@@ -164,7 +184,7 @@ export function halftone(src, dst, ink){
 export function renderPaper(){
   const iss = PAPER.issue, side = PAPER.side, np = $('np'); if (!iss || !np) return;
   np.dataset.side = side;
-  for (const b of document.querySelectorAll('[data-np]')) b.setAttribute('aria-pressed', b.dataset.np === side ? 'true' : 'false');
+  for (const b of document.querySelectorAll('[data-np]')) if (b instanceof HTMLElement) b.setAttribute('aria-pressed', b.dataset.np === side ? 'true' : 'false');
   $('npName').textContent = PAPER_NAME[side];
   $('npLine').textContent = 'N° ' + iss.n + ' · ' + MONTHS[iss.m] + ' · ' + (side === 'usc' ? 'Édition du matin · 5 cents' : 'Organe officiel de la CCR · 3 kopecks');
   const ed = iss.ed && iss.ed[side];
@@ -178,8 +198,9 @@ export function renderPaper(){
   $('npBreve').textContent = ed ? ed.breve : '';
   const rep = reporter(side, iss.n);
   $('npBy').textContent = side === 'usc' ? 'Reportage : ' + rep.name : 'Correspondant du peuple : ' + rep.name;
-  if (!iss.photo[side]){ const [a, b] = photoSpot(iss, side); iss.photo[side] = snapScene(a, b); }
-  halftone(iss.photo[side], $('npPhoto'), side === 'usc' ? '#241c14' : '#4a1712');
+  let photo = iss.photo[side];
+  if (!photo){ const [a, b] = photoSpot(iss, side); photo = iss.photo[side] = snapScene(a, b); }
+  halftone(photo, $of('npPhoto', HTMLCanvasElement), side === 'usc' ? '#241c14' : '#4a1712');
 }
 export function openPaper(){
   if (!PAPER.issue) deliverPaper(true);
@@ -191,17 +212,29 @@ export function closePaper(){ $('paper').hidden = true; scene.focus({ preventScr
 $('btnPaper').addEventListener('click', openPaper);
 $('paperClose').addEventListener('click', closePaper);
 $('paper').addEventListener('click', (e) => { if (e.target === $('paper')) closePaper(); });
-for (const b of document.querySelectorAll('[data-np]')) b.addEventListener('click', () => { PAPER.side = b.dataset.np; renderPaper(); });
+for (const b of document.querySelectorAll('[data-np]')) if (b instanceof HTMLElement) b.addEventListener('click', () => { const np = b.dataset.np; if (np === 'usc' || np === 'ccp') PAPER.side = np; renderPaper(); });
 
 /* ================= les chats se souviennent de toi ================= */
-export const MEM = {}, MEM_LS = 'cold-kutty-memoire-1';
+/** Une replique retenue : dite par toi (u) ou par le chat (c). */
+export interface MemTurn { r: 'u' | 'c'; s: string }
+/** Ce qu'un chat retient de toi : nombre de visites, date de la derniere, dernieres repliques. */
+export interface MemEntry { n: number; t: number; last: MemTurn[] }
+/** Ce qu'il faut d'un chat pour qu'il se souvienne (memCounted : visite deja comptee). */
+export interface MemCat { name: string; side: CatSide; memCounted?: boolean }
+/** Une replique de la conversation en cours avec un chat. */
+export interface ChatTurn { role: string; content: string }
+export const MEM: Record<string, MemEntry> = {}, MEM_LS = 'cold-kutty-memoire-1';
 export let memTimer = 0;
-export function memMerge(list){
+// une memoire relue (sauvegarde locale) : on ne garde que ce qui a la bonne forme
+const isMemTurn = (x: unknown): x is { r: 'u' | 'c'; s?: unknown } => !!x && typeof x === 'object' && 'r' in x && (x.r === 'u' || x.r === 'c');
+export function memMerge(list: unknown){
   if (!Array.isArray(list)) return;
-  for (const v of list){
-    if (!v || typeof v.name !== 'string' || !Array.isArray(v.last)) continue;
-    if (MEM[v.name] && (MEM[v.name].t || 0) >= (+v.t || 0)) continue;
-    MEM[v.name] = { n: clamp(+v.n || 0, 0, 9999), t: +v.t || 0, last: v.last.slice(-10).filter(x => x && (x.r === 'u' || x.r === 'c')).map(x => ({ r: x.r, s: String(x.s || '').slice(0, 220) })) };
+  const items: unknown[] = list;
+  for (const v of items){
+    if (!v || typeof v !== 'object' || !('name' in v) || typeof v.name !== 'string' || !('last' in v) || !Array.isArray(v.last)) continue;
+    const last: unknown[] = v.last, vt = 't' in v ? Number(v.t) || 0 : 0, vn = 'n' in v ? Number(v.n) || 0 : 0;
+    if (MEM[v.name] && (MEM[v.name].t || 0) >= vt) continue;
+    MEM[v.name] = { n: clamp(vn, 0, 9999), t: vt, last: last.slice(-10).filter(isMemTurn).map((x): MemTurn => ({ r: x.r, s: String(x.s || '').slice(0, 220) })) };
   }
 }
 export const memList = () => Object.keys(MEM).map(name => Object.assign({ name }, MEM[name]));
@@ -213,23 +246,25 @@ export function memSave(){
     try { localStorage.setItem(MEM_LS, JSON.stringify(list)); } catch (_) {}
   }, 1500);
 }
-export function memRemember(c, turns){
+export function memRemember(c: MemCat, turns: ChatTurn[]){
   const m = MEM[c.name] || (MEM[c.name] = { n: 0, t: 0, last: [] });
   if (!c.memCounted){ m.n++; c.memCounted = true; }
   m.t = Date.now();
-  m.last = turns.slice(1).slice(-10).map(x => ({ r: x.role === 'user' ? 'u' : 'c', s: String(x.content).slice(0, 220) }));
+  m.last = turns.slice(1).slice(-10).map((x): MemTurn => ({ r: x.role === 'user' ? 'u' : 'c', s: String(x.content).slice(0, 220) }));
   memSave();
 }
-export function memGreeting(c){
+export function memGreeting(c: MemCat){
   const m = MEM[c.name]; if (!m || !m.n) return null;
   const hi = c.side === 'ccp' ? 'Camarade ! Te revoilà.' : c.side === 'usc' ? 'Hé, te revoilà !' : 'Tiens, un revenant !';
-  let lastU = null; for (let i = m.last.length - 1; i >= 0; i--) if (m.last[i].r === 'u'){ lastU = m.last[i]; break; }
+  let lastU: MemTurn | null = null; for (let i = m.last.length - 1; i >= 0; i--) if (m.last[i].r === 'u'){ lastU = m.last[i]; break; }
   if (!lastU) return hi + ' Ça me fait plaisir de te revoir.';
   let s = lastU.s.replace(/\s+/g, ' ').trim(); if (s.length > 42) s = s.slice(0, 40).replace(/\s+\S*$/, '') + '…';
   return hi + ' La dernière fois, tu m’as dit « ' + s + ' ». Je m’en souviens très bien.';
 }
 /* ================= les chats se parlent entre eux ================= */
-export const CHATTER = {
+/** Un echange entre deux chats : la replique, puis la reponse. */
+export type Exchange = [string, string];
+export const CHATTER: Record<Side | 'cross' | 'neutre', Exchange[]> = {
   usc: [
     ['Tu as vu la nouvelle Cadillatte ?', 'Les ailerons dépassent du garage !'],
     ['On se fait un drive-in samedi ?', 'Seulement si c’est un film de souris martiennes.'],
@@ -262,8 +297,8 @@ export const CHATTER = {
     ['Tu as vu le phare cette nuit ?', 'Deux éclats toutes les seize secondes. Je les compte pour dormir.']
   ]
 };
-export function dynChatter(side){
-  const out = [];
+export function dynChatter(side: CatSide){
+  const out: Exchange[] = [];
   if (side === 'usc' || side === 'ccp'){
     const R = SH.RES[side];
     if (R.short) out.push(['Plus une croquette à la maison…', side === 'ccp' ? 'La file du Gastronom avance. Un peu.' : 'Il nous faudrait une pêcherie, vite.']);
@@ -277,23 +312,25 @@ export function dynChatter(side){
   if (SH.WALLS.length) out.push(['Tu as vu le Rideau de Laine ?', 'Il gratte, mais il tient chaud.']);
   return out;
 }
-export const BUB = { els: [], next: 5, cur: [] };
-export function bubbleEl(k){
+/** Une bulle de dialogue : qui parle, quoi, quand (t0 a t1), dans quelle bulle (k : 0 ou 1). */
+export interface Bubble { c: Cat; s: string; t0: number; t1: number; k: number }
+export const BUB: { els: HTMLDivElement[]; next: number; cur: Bubble[] } = { els: [], next: 5, cur: [] };
+export function bubbleEl(k: number){
   let el = BUB.els[k];
   if (!el){ el = document.createElement('div'); el.className = 'bubble'; el.hidden = true; $('bubbles').appendChild(el); BUB.els[k] = el; }
   return el;
 }
 export const bubblesOn = () => !OV_ON && !state.uiHidden && SH.Z >= SH.KDEF * .75 && !document.body.classList.contains('photo');
-export function stepBubbles(dt, t){
+export function stepBubbles(dt: number, t: number){
   if (!bubblesOn()){ BUB.cur = []; return; }
   BUB.cur = BUB.cur.filter(b => t < b.t1);
   if (BUB.cur.length || t < BUB.next) return;
   BUB.next = t + 6 + Math.random() * 7;
   const vis = SH.CATS.filter(c => c.screen && c !== state.chatCat && c.screen[0] > 12 && c.screen[0] < W - 12 && c.screen[1] > 40 && c.screen[1] < H - 8);
   if (!vis.length) return;
-  let best = null, bd = 1e9;
+  let best: [Cat, Cat] | null = null, bd = 1e9;
   for (let i = 0; i < vis.length; i++){ const p = catPos(vis[i], t); for (let j = i + 1; j < vis.length; j++){ const q = catPos(vis[j], t), d = Math.hypot(p.a - q.a, p.b - q.b); if (d < bd){ bd = d; best = [vis[i], vis[j]]; } } }
-  let A, B = null, pool;
+  let A: Cat, B: Cat | null = null, pool: Exchange[];
   if (best && bd < 80){
     [A, B] = best;
     const sa = A.side, sb = B.side;
@@ -308,11 +345,11 @@ export function stepBubbles(dt, t){
   BUB.cur = [{ c: A, s: pair[0], t0: t, t1: t + 3.4, k: 0 }];
   if (B) BUB.cur.push({ c: B, s: pair[1], t0: t + 2.6, t1: t + 6.2, k: 1 });
 }
-export function placeBubbles(t){
+export function placeBubbles(t: number){
   const on = bubblesOn(), r = on ? scene.getBoundingClientRect() : null;
   for (let k = 0; k < 2; k++){
     const el = bubbleEl(k), b = on ? BUB.cur.find(x => x.k === k) : null;
-    if (!b || t < b.t0 || t > b.t1 || !b.c.screen){ el.hidden = true; continue; }
+    if (!b || !r || t < b.t0 || t > b.t1 || !b.c.screen){ el.hidden = true; continue; }
     if (el.textContent !== b.s) el.textContent = b.s;
     el.hidden = false; el.dataset.side = b.c.side;
     const x = r.left + (b.c.screen[0] + .5) * r.width / W, y = r.top + (b.c.screen[1] - 10) * r.height / H;
@@ -323,7 +360,10 @@ HOOKS.step.push(stepBubbles);
 HOOKS.after.push(placeBubbles);
 
 /* ================= ce a quoi pensent les chats : petites icones au-dessus des tetes ================= */
-export const THINK_ICON = {
+/** Ce a quoi pense un chat. */
+export type Thought = 'coeur' | 'faim' | 'zzz' | 'alerte' | 'envie' | 'pluie' | 'fete' | 'grogne';
+// dessin de chaque pensee : r rouge, y jaune, b bleu, k trait, . vide
+export const THINK_ICON: Record<Thought, string[]> = {
   coeur: ['.r.r.', 'rrrrr', 'rrrrr', '.rrr.', '..r..'],
   faim: ['k.k.k.k', 'kkkkkkk', 'k.k.k.k'],
   zzz: ['kkk....', '..k.kkk', '.k....k', 'kkk..k.', '....kkk'],
@@ -333,8 +373,8 @@ export const THINK_ICON = {
   fete: ['...y...', '..yyy..', 'yyyyyyy', '..yyy..', '.y...y.'],
   grogne: ['k.....k', '.k...k.', '.......', '..kkk..', '.k...k.']
 };
-export function thoughtOf(c, seed){
-  const s = c.side, opts = [];
+export function thoughtOf(c: Cat, seed: number): Thought | null {
+  const s = c.side, opts: Thought[] = [];
   if (SH.NIGHT > .75) opts.push('zzz');
   if (s === 'usc' || s === 'ccp'){
     const R = SH.RES[s];
@@ -347,7 +387,7 @@ export function thoughtOf(c, seed){
   if (WEATHER.shown === 'pluie' && WEATHER.k > .5) opts.push('pluie');
   return opts.length ? opts[Math.floor(seed * opts.length)] : null;
 }
-export function drawThoughts(t){
+export function drawThoughts(t: number){
   if (SH.Z < SH.KDEF * .9 || document.body.classList.contains('photo')) return;
   SH.LV = 0;
   for (const c of SH.CATS){
