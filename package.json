@@ -9,7 +9,10 @@
     "typecheck": "tsc -p .",
     "build": "tsc -p . && vite build",
     "preview": "vite preview --port 4173 --strictPort",
-    "check": "tsc -p . && vite build"
+    "check": "tsc -p . && vite build",
+    "app:install": "npm --prefix desktop install",
+    "app": "npm run build && npm --prefix desktop start",
+    "app:dist": "npm run build && npm --prefix desktop run dist"
   },
   "engines": {
     "node": ">=20.19"

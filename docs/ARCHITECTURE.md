@@ -45,7 +45,20 @@ La conversion depuis l’ancienne portée unique a été faite par un script (an
 | `22-home.ts` | Accueil du jeu : menu, parties sauvegardées par emplacements (`ckt-saves`, `ckt-partie-*`, vignettes), profil, options, île qui tourne en fond. |
 | `23-planet.ts` | Éteint pour l’instant (`GLOBE_ON = false`), gardé pour le mode espace. Le globe, sans transition : de loin, `planetWarp` pose l’image plate du jeu sur une sphère dont le rayon descend en continu jusqu’à celui de la planète (`CURV`, `GR`, `geoSet`, `geoCast`, `geoProj` dans 01-core, `curvOf` dans 11-render). Hors de l’image plate : la carte de l’île, puis une texture tirée au sort (océans, continents, banquise, nuages). Jour et nuit, halo, étoiles fixes dans l’espace. Sert aussi de fond à l’accueil. |
 
+## Hors des modules numérotés
+
+Ces fichiers ne dépendent d’aucun module du jeu : n’importe quel module peut les importer.
+
+| Fichier | Rôle |
+|---|---|
+| `src/gpu/present.ts` | Affichage par PixiJS : mise en couleur de l’image par la palette, dans un shader (voir plus bas). |
+| `src/platform/standalone.ts` | Hors de claude.ai : Claude par `/api/claude`, téléchargements par le navigateur. |
+| `src/platform/store.ts` | Stockage du jeu, une valeur texte par clé : le navigateur sur le web, des fichiers dans la version de bureau. |
+| `src/platform/achievements.ts` | Succès : gardés sur la machine, envoyés à Steam dans la version de bureau. |
+| `desktop/main.mjs`, `desktop/preload.cjs` | Version de bureau (Electron) : fenêtre, protocole `app://`, sauvegardes sur disque, Steam (steamworks.js), et le pont `window.ckDesktop` exposé à la page. |
+
 ## Le rendu
+
 
 - **Projection isométrique.** Le monde a deux axes au sol, `a` (ouest vers est) et `b` (nord vers sud), plus la hauteur `z`. `prj(a, b, z)` donne le pixel à l’écran, `unprj(x, y)` fait l’inverse au sol. La caméra tourne librement (`cam.phi`).
 - **Trois buffers par pixel.** `fb` (allumé ou éteint), `mb` (la matière : herbe, route, toit, fenêtre...) et `lb` (le niveau d’éclairage, de 0 plein soleil à 4 ombre portée). À la fin de l’image, la palette transforme chaque triplet en couleur. Cette version utilise la palette couleur (`COLOR = true` dans `01-core.ts`).

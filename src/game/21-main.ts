@@ -10,7 +10,7 @@ import { CARS, RW, RWS, addRoad, buildGraph, makeRoad, repaintAllRoads, reseatCa
 import { catPos, findSpot, makeBuilding, placeProblem, rebuildTown, type Cat } from './10-town.ts';
 import { CLOCK, FAR, MAPV, OV_ON, WEATHER, ZLEVELS, ZMIN, centerOn, clampCam, layout, mapDirtyAll, mapInit, render, screenToWorld, setZoom, stepClock, stepWeather, stepZoom, worldToScreen, zoomLevels } from './11-render.ts';
 import { drawFlagIcon, drawPortrait } from './12-portrait.ts';
-import { $, $of, HISTORY, addWall, drawCompass, setSpeed, setTool, stepKeys, toast, updateClockUI, updateUndo } from './13-ui.ts';
+import { $, $of, HISTORY, achieve, addWall, drawCompass, setSpeed, setTool, stepKeys, toast, updateClockUI, updateUndo } from './13-ui.ts';
 import { THUMBS, buildMenu, flagSVG, lootVestige } from './14-hud.ts';
 import { DEMOS, EV, buildTime, newRes, stepEco, stepEvents, stepSpace } from './15-economy.ts';
 import { CREWS, buildNav, offshoreFrom, stepBoats, type Boat } from './16-boats.ts';
@@ -372,6 +372,8 @@ export function checkVictory(){
   for (const s of SIDES) if (terPct(s) >= .6){
     GAME.winner = s; SH.profileResult(s); saveSoon();
     const me = s === GAME.side;
+    if (me) achieve('VICTOIRE');
+
     $('endFlag').innerHTML = flagSVG(s);
     $('endTitle').textContent = me ? 'Victoire !' : 'L’autre camp l’emporte';
     $('endText').textContent = (me ? 'Les ' : 'La ') + CAMP_FULL[s] + (me ? ' tiennent ' : ' tient ') + Math.round(terPct(s) * 100) + ' % de l’île de Kutty. ' + (me ? 'Les chats ronronnent jusque sur les plages de l’autre camp.' : 'Tu peux continuer à jouer pour reprendre du terrain.');

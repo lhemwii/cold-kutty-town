@@ -170,9 +170,11 @@ Le jeu passe à une base prête pour la haute définition et pour Steam, sans ri
   - [ ] 3.3. Les objets en textures : chaque bâtiment, montagne et arbre est dessiné une fois par angle de vue dans une texture (comme la vue de loin le fait déjà), puis posé par PixiJS en sprites triés par profondeur. Ce qui bouge (chats, voitures, bateaux, drapeaux) reste dessiné à chaque image.
   - [ ] 3.4. Lumières de nuit, ombres portées et météo en shaders.
 - [ ] 4. Electron et steamworks.js dès qu’il y a une démo jouable :
-  - [ ] 4.1. Une fenêtre Electron qui charge le jeu construit (`dist/`), lancée par `npm run app` ; paquets Windows, macOS et Linux par electron-builder.
-  - [ ] 4.2. Adaptateur de plateforme pour la version de bureau (`src/platform/`) : sauvegardes dans le dossier de l’utilisateur plutôt que dans le navigateur.
+  - [x] 4.1. Une fenêtre Electron qui charge le jeu construit (`dist/`), lancée par `npm run app` ; paquets Windows, macOS et Linux par electron-builder.
+  - [x] 4.2. Adaptateur de plateforme pour la version de bureau (`src/platform/store.ts`) : sauvegardes dans le dossier de l’utilisateur plutôt que dans le navigateur (un fichier par clé, écrit d’un coup), retrouvées au lancement suivant.
   - [ ] 4.3. steamworks.js : succès et sauvegardes Steam (Steam Cloud), essayés avec l’identifiant d’essai de Steam en attendant celui du jeu.
+    - [x] Branchement : Steam démarre quand le jeu est lancé par Steam (ou `STEAM_APP_ID`), les succès passent par `src/platform/achievements.ts`, gardés aussi sur la machine et rendus à Steam au lancement suivant. Cinq succès provisoires (première pierre, grand port, Rideau de Laine, décollage, victoire), à redéfinir avec le jeu.
+    - [ ] Essai avec un vrai client Steam, puis déclaration des succès et du Steam Cloud automatique (dossier `saves/`) dans Steamworks, avec l’identifiant du jeu.
   - [ ] 4.4. Plus tard, Gemma sur la machine du joueur avec node-llama-cpp.
 
 

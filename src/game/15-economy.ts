@@ -9,7 +9,7 @@ import { cutTrees } from './07-world.ts';
 import { SID, TER, lockCells, rebuildLocks, terPct } from './08-territory.ts';
 import { reseatCars, roadAccess } from './09-roads.ts';
 import { rebuildTown } from './10-town.ts';
-import { $, toast } from './13-ui.ts';
+import { $, achieve, toast } from './13-ui.ts';
 /* ================= economie : croquettes, laine et ronrons ================= */
 // Par batiment, au niveau 1 et par minute : c croquettes, l laine, r ronrons (negatif = fonctionnement),
 // pop habitants, jobs emplois, fun loisirs, rad rayon d'influence, cost laine a la construction, costR ronrons,
@@ -180,12 +180,13 @@ export function onBuilt(l: Building): void {
     toast(nm + (TYPES[l.type].fem ? ' terminée' : ' terminé') + '.' + (!l.active ? ' Attention : pas de route jusqu’au QG, il reste à l’arrêt.' : ''));
     SH.sfx('build', l.ca, l.cb);
     if (typeof SH.radioFlash === 'function' && l.type !== 'maison') SH.radioFlash(l);
+    if (l.type !== 'qg') achieve('PREMIERE_PIERRE');
   }
   if (typeof SH.boatsForBuilding === 'function') SH.boatsForBuilding(l);
 }
 export function onUpgraded(l: Building): void {
   SH.logDay(l.side, 'upgrade', lvlName(l), { id: l.id, type: l.type });
-  if (l.side === GAME.side){ toast(typeName(l.type, l.side) + ' amélioré' + (TYPES[l.type].fem ? 'e' : '') + ' : ' + lvlName(l).toLowerCase() + ', niveau ' + l.lvl + '.'); SH.sfx('build', l.ca, l.cb); }
+  if (l.side === GAME.side){ toast(typeName(l.type, l.side) + ' amélioré' + (TYPES[l.type].fem ? 'e' : '') + ' : ' + lvlName(l).toLowerCase() + ', niveau ' + l.lvl + '.'); SH.sfx('build', l.ca, l.cb); if (l.type === 'port' && l.lvl >= 3) achieve('PORT_NIVEAU_3'); }
   if (typeof SH.boatsForBuilding === 'function') SH.boatsForBuilding(l);
 }
 export function upgradeBuilding(l: Building): string {
@@ -356,7 +357,9 @@ export function stepSpace(t: number): void {
       el.hidden = true;
       const sc = spaceCount; spaceCount = null;
       SH.sfx('launch');
+      if (sc.side === GAME.side) achieve('DECOLLAGE');
       RES[sc.side].ron += sc.gain;
+
       SH.logDay(sc.side, 'space', sc.what, { first: sc.first });
       SH.fwSalvo(sc.side, 7);
       toast((sc.side === 'ccp' ? 'La CCR' : 'L’USC') + ' envoie ' + sc.what + (sc.first ? ', avant l’autre camp !' : ', mais l’autre camp était déjà passé.') + (sc.side === GAME.side ? ' +' + sc.gain + ' ronrons.' : ''));

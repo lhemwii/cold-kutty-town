@@ -7,9 +7,10 @@ import { $, $of, drag, setPaused, setSpeed, toast } from './13-ui.ts';
 import { FLAG_HEX, FLAG_HI, flagSVG } from './14-hud.ts';
 import { MONTHS } from './17-calendar.ts';
 import { asSave, loadGame, newWorld, saveTimer, snapshot, startLanding, type SaveData } from './21-main.ts';
+import { store as KV } from '../platform/store.ts';
 /* ================= accueil : menu du jeu, parties sauvegardees, profil, options ================= */
-// Tout est garde dans le navigateur (localStorage) : un index des parties, chaque partie a part, sa vignette,
-// le profil et les options. Rien ne part sur un serveur.
+// Tout est garde sur la machine du joueur (le navigateur sur le web, des fichiers dans la version de bureau : platform/store.ts) :
+// un index des parties, chaque partie a part, sa vignette, le profil et les options. Rien ne part sur un serveur.
 export const SAVES_KEY = 'ckt-saves', PROFILE_KEY = 'ckt-profil', OPT_KEY = 'ckt-options', OLD_SAVE_KEY = 'cold-kutty-town-8';
 export const slotKey = (id: string) => 'ckt-partie-' + id, thumbKey = (id: string) => 'ckt-vignette-' + id;
 // ce qui est range : les options, le profil, et une ligne par partie dans l'index
@@ -19,10 +20,11 @@ export interface SaveEntry { id: string; name: string; side: Side; at: number; m
 export const isSide = (s: unknown): s is Side => s === 'usc' || s === 'ccp';
 // une valeur JSON relue du stockage : a verifier avant de s'en servir
 export const store = {
-  get(k: string, def: unknown): unknown { try { const s = localStorage.getItem(k); return s == null ? def : JSON.parse(s); } catch (_) { return def; } },
-  set(k: string, v: string | object){ try { localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v)); return true; } catch (_) { return false; } },
-  raw(k: string){ try { return localStorage.getItem(k); } catch (_) { return null; } },
-  del(k: string){ try { localStorage.removeItem(k); } catch (_) {} }
+  get(k: string, def: unknown): unknown { try { const s = KV.get(k); return s == null ? def : JSON.parse(s); } catch (_) { return def; } },
+  set(k: string, v: string | object){ return KV.set(k, typeof v === 'string' ? v : JSON.stringify(v)); },
+  raw(k: string){ return KV.get(k); },
+  del(k: string){ KV.del(k); }
+
 };
 export const OPT: Options = Object.assign({ vol: 70, mus: 100, speed: 1, wx: 1 }, store.get(OPT_KEY, {}));
 export const PROFILE: Profile = Object.assign({ name: '', side: 'usc', games: 0, wins: 0, losses: 0, secs: 0 }, store.get(PROFILE_KEY, {}));

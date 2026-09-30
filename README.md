@@ -32,9 +32,19 @@ npm run preview    # sert dist/ sur http://localhost:4173
 
 Le dépôt est relié à Vercel : chaque push sur `main` part en production, chaque autre branche donne une préversion avec sa propre adresse. Pour Claude en ligne, ajoute `ANTHROPIC_API_KEY` dans les variables d’environnement du projet Vercel.
 
+## Version de bureau (Steam)
+
+```bash
+npm run app:install   # une fois : Electron, electron-builder et steamworks.js (dans desktop/)
+npm run app           # construit le jeu et l’ouvre dans une fenêtre Electron
+npm run app:dist      # paquet pour ton système dans desktop/release/
+```
+
+Les parties y sont gardées dans des fichiers (dossier de l’utilisateur, `saves/`). Lancé par Steam, le jeu envoie ses succès à Steam.
+
 ## Comment c’est fait
 
-Du JavaScript en modules ES, qui passe module par module en TypeScript, construit avec Vite, rendu pixel par pixel dans un canvas. La suite prévue : PixiJS pour le rendu en haute définition, Electron pour Steam (voir le plan, étape 0.19). Le moteur isométrique est écrit à la main : buffers de pixels, palette jour et nuit, tri des objets par profondeur, lumières, ombres. Pas d’image : chaque bâtiment, chat, voiture et avion est dessiné par du code.
+Du TypeScript en modules ES, construit avec Vite. Le moteur dessine pixel par pixel dans ses tampons, PixiJS affiche l’image par la carte graphique, Electron en fait une version de bureau pour Steam (voir le plan, étape 0.19). Le moteur isométrique est écrit à la main : buffers de pixels, palette jour et nuit, tri des objets par profondeur, lumières, ombres. Pas d’image : chaque bâtiment, chat, voiture et avion est dessiné par du code.
 
 ```
 src/

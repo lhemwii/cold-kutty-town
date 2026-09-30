@@ -1,3 +1,4 @@
+import { store as KV } from '../platform/store.ts';
 import { SH, type Building } from './00-shared.ts';
 import { CAMP_SHORT, COLOR, GAME, H, HOOKS, N, TAU, W, cam, clamp, state } from './01-core.ts';
 import { GA0, GB0, T_SEA, typeAt } from './02-ground.ts';
@@ -15,7 +16,7 @@ export type Sound = { on: boolean; want: boolean; amb: number; next: number; ste
 export const SND: Sound = { on: false, ctx: null, want: false, amb: 0, next: 0, step: 0, bell: 0, us: null, master: null, white: null, brown: null, waves: null, city: null, rain: null, wind: null, mus: null, musU: null, musC: null, fx: null };
 // le graphe est-il construit ? (sndStart pose tout d'un coup)
 export function sndReady(s: Sound): s is Sound & SoundGraph { return !!(s.ctx && s.master && s.white && s.brown && s.waves && s.city && s.rain && s.wind && s.mus && s.musU && s.musC && s.fx); }
-try { SND.want = localStorage.getItem('cold-kutty-son') === '1'; } catch (_) {}
+SND.want = KV.get('cold-kutty-son') === '1';
 export function sndStart(){
   if (SND.ctx){ if (SND.ctx.state === 'suspended') SND.ctx.resume(); return true; }
   const win: Window & { webkitAudioContext?: typeof AudioContext } = window;
@@ -130,7 +131,8 @@ export function sfx(kind: string, a?: number | null, b?: number){
 export function setSound(on: boolean){
   if (on && !sndStart()){ toast('Le son n’est pas disponible dans ce navigateur.'); on = false; }
   SND.on = on; SND.want = on;
-  try { localStorage.setItem('cold-kutty-son', on ? '1' : '0'); } catch (_) {}
+  KV.set('cold-kutty-son', on ? '1' : '0');
+
   const b = $('btnSound'); b.setAttribute('aria-pressed', String(on)); b.setAttribute('aria-label', on ? 'Couper le son' : 'Activer le son');
   if (sndReady(SND)){ const now = SND.ctx.currentTime; SND.master.gain.setTargetAtTime(on ? SH.OPT.vol / 100 : 0, now, .15); if (on){ SND.next = Math.max(SND.next, now + .1); sndAmbience(SH.NOW_T); } }
 }

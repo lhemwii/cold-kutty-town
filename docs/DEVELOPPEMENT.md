@@ -10,6 +10,19 @@ npm run build      # vérifie les types, puis construit le site dans dist/
 npm run preview    # sert dist/ tel qu’il sera en ligne (http://localhost:4173)
 ```
 
+Version de bureau (Electron, dans `desktop/`, avec ses propres dépendances pour que Vercel ne télécharge pas Electron) :
+
+```bash
+npm run app:install  # une fois
+npm run app          # construit le jeu et l’ouvre dans une fenêtre
+npm run app:dist     # paquet Windows, macOS ou Linux (electron-builder) dans desktop/release/
+```
+
+- Le jeu y est servi par `app://jeu/…` depuis `dist/` (ou `resources/game` une fois emballé).
+- Les sauvegardes passent par `src/platform/store.ts` : le navigateur sur le web, un fichier par clé dans `saves/` du dossier de l’utilisateur sur le bureau. Steam peut synchroniser ce dossier tel quel (Steam Cloud automatique, réglé dans Steamworks).
+- Les succès passent par `src/platform/achievements.ts` (dans le jeu, `achieve('VICTOIRE')` depuis `13-ui`). Steam ne démarre que si le jeu est lancé par Steam, ou avec `STEAM_APP_ID=480 npm run app` pour un essai avec l’application d’essai de Steam (client Steam ouvert).
+- `CKT_SHOT=capture.png npm --prefix desktop start` prend une capture une fois le jeu chargé, puis quitte (essais automatiques).
+
 Il faut Node.js 20.19 ou plus récent.
 
 ## Branches et déploiement

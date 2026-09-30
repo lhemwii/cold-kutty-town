@@ -1,0 +1,53 @@
+{
+  "name": "cold-kutty-town-desktop",
+  "productName": "Cold Kutty Town",
+  "version": "0.7.0",
+  "private": true,
+  "description": "Cold Kutty Town : version de bureau (Electron), pour Steam.",
+  "main": "main.mjs",
+  "type": "module",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "build": {
+    "appId": "town.coldkutty.game",
+    "productName": "Cold Kutty Town",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "main.mjs",
+      "preload.cjs",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../dist",
+        "to": "game"
+      }
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.simulation-games"
+    },
+    "linux": {
+      "target": "AppImage",
+      "category": "Game"
+    },
+    "asarUnpack": [
+      "node_modules/steamworks.js/**"
+    ]
+  },
+  "devDependencies": {
+    "electron": "^44.5.1",
+    "electron-builder": "^26.15.3"
+  },
+  "dependencies": {
+    "steamworks.js": "^0.4.0"
+  }
+}

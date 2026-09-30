@@ -10,6 +10,7 @@ import { RW, addRoad, nearRoad, removeRoad, roadCost, roadProblem, sampleCurve, 
 import { bldAt, buildParts, coastDir, makeBuilding, placeProblem, rebuildTown, type Cat } from './10-town.ts';
 import { CLOCK, OV_ON, WEATHER, ZMIN, clampCam, mapDirtyAll, scene, screenToWorld, setZNow, setZoom, snapZoom, zoomStep } from './11-render.ts';
 import type { EcoDef, Price, Resources } from './15-economy.ts';
+import { ACHIEVEMENTS, unlock, type AchievementId } from '../platform/achievements.ts';
 /* ================= outils du joueur : observer, construire, routes, Rideau de Laine, demolir ================= */
 // element de la page par son id : la page les contient tous, une absence est une erreur de la page
 export function $(id: string): HTMLElement {
@@ -52,6 +53,10 @@ for (const b of document.querySelectorAll('[data-tool]')) if (b instanceof HTMLE
 
 export let toastTimer = 0;
 export function toast(msg: string){ const el = $('toast'); el.textContent = msg; el.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => el.hidden = true, 2800); }
+// succes du joueur : debloque (et envoye a Steam dans la version de bureau), avec un mot a l'ecran la premiere fois
+// (apres le message du moment, qui reste lisible)
+export function achieve(id: AchievementId){ if (unlock(id)) setTimeout(() => toast('Succès : ' + ACHIEVEMENTS[id].name + '.'), 1500); }
+
 
 /* ---- construire ---- */
 // position proposee pour le batiment sous le curseur (arrondie a 2 unites), et sa direction s'il est au bord de l'eau
@@ -122,7 +127,9 @@ export function wallProblem(pieces: WallPiece[], side: Side){
 }
 export function addWall(p: Vec2, q: Vec2, side: Side){
   const pieces = wallPieces(p, q), line = Date.now() % 100000 + Math.floor(Math.random() * 1000);
-  pieces.forEach(([pa, pb, qa, qb], k) => SH.WALLS.push({ side, pa, pb, qa, qb, g: side === 'usc' && k % 4 === 1 ? (k >> 2) % GRAFFITI.length : -1, line }));
+  if (side === GAME.side && GAME.mode === 'play' && pieces.length) achieve('RIDEAU');
+  pieces.forEach(([pa, pb, qa, qb], k) => SH.WALLS.push(
+{ side, pa, pb, qa, qb, g: side === 'usc' && k % 4 === 1 ? (k >> 2) % GRAFFITI.length : -1, line }));
   for (let k = 6; k < pieces.length; k += 12){ const [pa, pb, qa, qb] = pieces[k], L = Math.hypot(qa - pa, qb - pb) || 1; SH.WALL_TOWERS.push({ side, a: (pa + qa) / 2 + (qb - pb) / L * 5 * (side === 'usc' ? -1 : 1), b: (pb + qb) / 2 - (qa - pa) / L * 5 * (side === 'usc' ? -1 : 1), ph: k * 2.1, line }); }
   cutTreesAlong([p, q], 3);
   rebuildLocks(); rebuildTown();

@@ -1,3 +1,4 @@
+import { store as KV } from '../platform/store.ts';
 import { SH, type Side } from './00-shared.ts';
 import { COLOR, GAME, H, HOOKS, M, N, TAU, W, cam, clamp, fput, hash2, other, state } from './01-core.ts';
 import { TYPES } from './04-types.ts';
@@ -238,12 +239,13 @@ export function memMerge(list: unknown){
   }
 }
 export const memList = () => Object.keys(MEM).map(name => Object.assign({ name }, MEM[name]));
-try { const s = localStorage.getItem(MEM_LS); if (s) memMerge(JSON.parse(s)); } catch (_) {}
+try { const s = KV.get(MEM_LS); if (s) memMerge(JSON.parse(s)); } catch (_) {}
 export function memSave(){
   clearTimeout(memTimer);
   memTimer = setTimeout(async () => {
     const list = memList();
-    try { localStorage.setItem(MEM_LS, JSON.stringify(list)); } catch (_) {}
+    KV.set(MEM_LS, JSON.stringify(list));
+
   }, 1500);
 }
 export function memRemember(c: MemCat, turns: ChatTurn[]){
