@@ -34,7 +34,7 @@ La conversion depuis l’ancienne portée unique a été faite par un script (an
 | `11-render.ts` | Palette jour et nuit, météo, zoom, vue de loin en direct, rendu du sol avec territoires, objets, ombres. |
 | `12-portrait.ts` | Portrait détaillé du chat dans la fenêtre de discussion. |
 | `13-ui.ts` | Outils : observer, construire, routes, Rideau, démolir, annuler ; souris, tactile, clavier ; pause et vitesse. |
-| `14-hud.ts` | Barre du haut, détail des ressources, menu de construction par catégories, panneau du bâtiment sélectionné. |
+| `14-hud.ts` | HUD en disposition A : blocs du haut, détail des ressources, tiroir de construction par catégories, panneau du bâtiment sélectionné, mesures du HUD (`--hud-top`, `--hud-bot`) pour placer les panneaux de droite. |
 | `15-economy.ts` | Croquettes, laine, ronrons : table `ECO`, bilans, chantiers, améliorations, événements, course à l’espace. |
 | `16-boats.ts` | Navigation en mer (A*), barges, chalutiers, cargos, équipages. |
 | `17-calendar.ts` | Calendrier et saisons, journal du matin, mémoire des chats, bulles, pensées. |

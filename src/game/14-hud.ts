@@ -7,7 +7,7 @@ import { VEST_DEF, drawVestige, type VestDef, type VestKind, type Vestige } from
 import { TER, influenceOf, sideAt, terPct } from './08-territory.ts';
 import { footOf } from './10-town.ts';
 import { FAR, PALL } from './11-render.ts';
-import { $, $of, ICONS, andList, costHTML, ico, pips, pixelSVG, progress, setTool, toast, type Pal } from './13-ui.ts';
+import { $, $of, CAT_ICON, ICONS, andList, costHTML, ico, pips, pixelSVG, progress, setTool, toast, type Pal } from './13-ui.ts';
 import type { EcoDef, Flow, Price, Resources } from './15-economy.ts';
 /* ================= interface : barre du haut, menu de construction, batiment selectionne ================= */
 // icones et drapeaux en pixels : un dessin en caracteres, une couleur par lettre, rendu en SVG net
@@ -66,8 +66,8 @@ export function renderHUD(){
   }
   const pu = terPct('usc'), pc = terPct('ccp');
   $('tbU').style.width = (pu * 100).toFixed(2) + '%'; $('tbC').style.width = (pc * 100).toFixed(2) + '%';
-  $('tbUpct').textContent = 'USC ' + (pu * 100).toFixed(1).replace('.', ',') + ' %';
-  $('tbCpct').textContent = 'CCR ' + (pc * 100).toFixed(1).replace('.', ',') + ' %';
+  $('tbUpct').textContent = (pu * 100).toFixed(1).replace('.', ',') + ' %';
+  $('tbCpct').textContent = (pc * 100).toFixed(1).replace('.', ',') + ' %';
   if (resPopK) showResPop(resPopK);
   const key = Math.floor(R.laine) + ':' + Math.floor(R.ron) + ':' + Math.floor(R.croq / 5) + ':' + SH.BLD.length;
   if (key !== hudKey){ hudKey = key; refreshPalette(); }
@@ -153,7 +153,8 @@ export function vestThumb(kind: VestKind, w: number, h: number){
 export function buildMenu(){
   const cats = $('buildCats'), menu: [string, string][] = SH.CATS_MENU; cats.textContent = '';
   for (const [k, label] of menu){
-    const b = document.createElement('button'); b.className = 'btn cat'; b.type = 'button'; b.setAttribute('role', 'tab'); b.dataset.cat = k; b.textContent = label;
+    const b = document.createElement('button'); b.className = 'btn cat'; b.type = 'button'; b.setAttribute('role', 'tab'); b.dataset.cat = k; b.title = label;
+    b.innerHTML = ico(CAT_ICON[k] || 'fun') + '<span>' + label + '</span>';
     b.setAttribute('aria-selected', String(k === buildCat));
     b.addEventListener('click', () => { buildCat = k; for (const o of cats.children) o.setAttribute('aria-selected', String(o instanceof HTMLElement && o.dataset.cat === k)); fillPalette(); SH.sfx('click'); });
     cats.appendChild(b);
@@ -171,7 +172,6 @@ export function fillPalette(){
     const ct = document.createElement('span'); ct.className = 'bb-cost'; ct.innerHTML = costHTML(SH.priceOf(type, GAME.side));
     const eff = document.createElement('span'); eff.className = 'bb-eff'; eff.innerHTML = effLine(e);
     b.append(img, nm, ct, eff);
-    b.title = typeName(type, GAME.side) + '. ' + (e.desc || '');
     b.addEventListener('click', () => { state.buildType = type; for (const o of pal.children) o.setAttribute('aria-checked', String(o instanceof HTMLElement && o.dataset.t === type)); SH.ghost = null; if (state.tool !== 'build') setTool('build'); $('modeHint').innerHTML = '<b>' + typeName(type, GAME.side) + '</b><span>' + (e.desc || '') + '</span>'; SH.sfx('click'); });
     pal.appendChild(b);
   }
@@ -186,13 +186,24 @@ export function effLine(e: EcoDef){
   if (e.cat === 'frontiere' || e.cat === 'mer') bits.push('<span class="ci">rayon <b>' + e.rad + '</b></span>');
   return '<span class="cost">' + bits.slice(0, 2).join('') + '</span>';
 }
+/** ce qui manque pour payer un prix, en texte (« 12 laine et 5 ronrons ») ; vide si on peut payer */
+export function lackText(p: Price): string {
+  const R: Resources = SH.RES[GAME.side], m = (need: number, have: number) => Math.max(0, Math.ceil(need - have));
+  const l = m(p.l, R.laine), c = m(p.c, R.croq), r = m(p.r, R.ron);
+  return andList([l ? l + ' laine' : '', c ? c + ' croquettes' : '', r ? r + ' ronrons' : '']);
+}
 export function refreshPalette(){
-  const R = SH.RES[GAME.side];
-  for (const b of $('palette').children){ if (!(b instanceof HTMLElement)) continue; const p: Price = SH.priceOf(b.dataset.t, GAME.side); b.classList.toggle('poor', !SH.canAfford(GAME.side, p)); const c = b.querySelector('.bb-cost'); if (c) c.innerHTML = costHTML(p); }
+  for (const b of $('palette').children){
+    if (!(b instanceof HTMLElement)) continue;
+    const t = b.dataset.t || '', p: Price = SH.priceOf(t, GAME.side), e: EcoDef | undefined = SH.ECO[t], lack = lackText(p);
+    b.classList.toggle('poor', !!lack); const c = b.querySelector('.bb-cost'); if (c) c.innerHTML = costHTML(p);
+    b.title = typeName(t, GAME.side) + '. ' + (e && e.desc ? e.desc : '') + (lack ? ' Il manque ' + lack + '.' : '');
+  }
 }
 
 /* ---- batiment selectionne ---- */
 export function selectBuilding(l: Building | null){
+  if (l && state.chatCat) SH.closeChat();
   state.sel = l || null; state.selV = null;
   $('sel').hidden = !l;
   document.body.classList.toggle('sel-open', !!l);
@@ -215,7 +226,7 @@ export function lootVestige(v: Vestige | null, side: Side){
   return '';
 }
 export function selectVestige(v: Vestige){
-  selectBuilding(null);
+  selectBuilding(null); if (state.chatCat) SH.closeChat();
   state.selV = v; $('sel').hidden = false; document.body.classList.add('sel-open');
   const g = $of('selPic', HTMLCanvasElement).getContext('2d'); g?.clearRect(0, 0, 96, 72); g?.drawImage(vestThumb(v.kind, 96, 72), 0, 0);
   SH.sfx('click'); renderVest();
@@ -233,6 +244,7 @@ export function renderVest(){
   const p = document.createElement('p'); p.textContent = D.desc; stats.append(p);
   const act = $('selActions'); act.textContent = '';
   const b = document.createElement('button'); b.className = 'btn'; b.type = 'button'; b.innerHTML = '<span>Fouiller</span><i>' + vestLootHTML(D.loot) + '</i>'; b.disabled = !mine;
+  if (!mine) b.title = 'Ces ruines sont hors de ton territoire.';
   b.addEventListener('click', () => {
     const why = lootVestige(v, GAME.side); if (why){ toast(why); return; }
     toast(D.name + ' fouillé' + (v.kind === 'statue' ? 'e' : '') + ' : ' + vestLoot(D.loot) + '.');
@@ -274,12 +286,13 @@ export function renderSel(){
   if (e && e.desc){ const p = document.createElement('p'); p.textContent = e.desc; stats.append(p); }
   const act = $('selActions'); act.textContent = '';
   if (!mine) return;
-  const btn = (label: string, sub: string, fn: () => void, dis?: boolean) => { const b = document.createElement('button'); b.className = 'btn'; b.type = 'button'; b.innerHTML = '<span>' + label + '</span>' + (sub ? '<i>' + sub + '</i>' : ''); b.disabled = !!dis; b.addEventListener('click', fn); act.append(b); return b; };
+  // why : ce qui empeche l'action, dit au survol du bouton grise
+  const btn = (label: string, sub: string, fn: () => void, why?: string) => { const b = document.createElement('button'); b.className = 'btn'; b.type = 'button'; b.innerHTML = '<span>' + label + '</span>' + (sub ? '<i>' + sub + '</i>' : ''); b.disabled = !!why; if (why) b.title = why; b.addEventListener('click', fn); act.append(b); return b; };
   const uc: { l: number; r: number } | null = SH.upCost(l);
-  if (uc && l.done) btn('Améliorer', costHTML({ l: uc.l, c: 0, r: uc.r }), () => { const why = SH.upgradeBuilding(l); if (why) toast(why); else { toast('Amélioration lancée.'); SH.sfx('click'); } renderHUD(); $('sel').dataset.key = ''; renderSel(); }, !!l.upT || !SH.canPay(l.side, uc.l, uc.r));
+  if (uc && l.done) btn('Améliorer', costHTML({ l: uc.l, c: 0, r: uc.r }), () => { const why = SH.upgradeBuilding(l); if (why) toast(why); else { toast('Amélioration lancée.'); SH.sfx('click'); } renderHUD(); $('sel').dataset.key = ''; renderSel(); }, l.upT ? 'Amélioration déjà en cours.' : lackText({ l: uc.l, c: 0, r: uc.r }) ? 'Il manque ' + lackText({ l: uc.l, c: 0, r: uc.r }) + '.' : '');
   if (l.type === 'port' && l.done){
     const bc = BARGE_COST;
-    btn('Barge de débarquement', costHTML(bc), () => { if (!SH.canAfford(GAME.side, bc)){ toast('Il faut ' + SH.costLabel(bc) + '.'); return; } state.bargeFrom = l; setTool('barge'); toast('Clique sur la côte où la barge doit accoster.'); }, !SH.canAfford(GAME.side, bc));
+    btn('Barge de débarquement', costHTML(bc), () => { if (!SH.canAfford(GAME.side, bc)){ toast('Il faut ' + SH.costLabel(bc) + '.'); return; } state.bargeFrom = l; setTool('barge'); toast('Clique sur la côte où la barge doit accoster.'); }, lackText(bc) ? 'Il manque ' + lackText(bc) + '.' : '');
   }
   if (l.type === 'port' || l.type === 'pecherie'){ const n = SH.BOATS.filter(b => b.home === l.id).length; const d = document.createElement('p'); d.className = 'sel-note'; d.textContent = n ? n + ' bateau' + (n > 1 ? 'x' : '') + ' en mer ou à quai.' : (l.type === 'port' ? 'Au niveau 2, le port arme des chalutiers, au niveau 3 un cargo.' : 'Un chalutier par niveau.'); act.append(d); }
   if (l.type !== 'qg') btn('Démolir', 'rend ' + costHTML({ l: Math.round(SH.costOf(l.type) / 2), c: 0, r: 0 }), () => { const refund = SH.demolishBuilding(l); toast(typeName(l.type, l.side) + ' démoli' + (TYPES[l.type].fem ? 'e' : '') + ', ' + refund + ' laine récupérée.'); SH.sfx('demolish', l.ca, l.cb); selectBuilding(null); SH.saveSoon(); renderHUD(); }).classList.add('danger');
@@ -298,6 +311,20 @@ export function bargeTarget(a: number, b: number){
   toast('La barge appareille.'); SH.sfx('click');
   setTool('walk'); renderHUD();
 }
+
+/* ---- disposition : le bas des blocs du haut et la hauteur du bas de l'ecran, pour les panneaux de droite ---- */
+export function layoutHUD(){
+  const st = document.documentElement.style;
+  let top = 0; for (const id of ['hudRes', 'hudRace', 'hudTime']){ const r = $(id).getBoundingClientRect(); if (r.height) top = Math.max(top, r.bottom); }
+  // la radio compte quand elle passe sous la colonne de droite (ecran etroit)
+  const ra = $('radio').getBoundingClientRect(); if (ra.height && ra.right > window.innerWidth - 70) top = Math.max(top, ra.bottom);
+  const bo = $('bottom').getBoundingClientRect();
+  st.setProperty('--hud-top', Math.round(top) + 'px');
+  st.setProperty('--hud-bot', Math.round(bo.height ? window.innerHeight - bo.top : 0) + 'px');
+}
+const hudRO = new ResizeObserver(layoutHUD);
+for (const id of ['topbar', 'hudRes', 'hudRace', 'hudTime', 'bottom']) hudRO.observe($(id));
+window.addEventListener('resize', layoutHUD);
 
 // appeles depuis des modules plus petits en numero
 Object.assign(SH, { renderHUD, selectBuilding, selectVestige, bargeTarget });

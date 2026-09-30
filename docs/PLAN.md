@@ -153,7 +153,13 @@ Au lancement d’une partie, on choisit la taille de la carte et la forme du mon
 
 - [x] Plus de texte gris nulle part : il est noir ou blanc. Un bouton indisponible garde son texte noir (bordure en pointillés, fond hachuré) ; un texte qui clignote passe du rouge à l’invisible, sans gris.
 - [x] Plus de point du milieu (« · ») : on illustre. Coûts et habitants en icônes de ressources, la date avec l’icône de la saison, la radio avec le drapeau du camp, le niveau d’un bâtiment en pastilles, un chantier en barre d’avancement ; dans un message en texte seul, « et ».
-- [ ] Propositions pour un HUD plus ergonomique (à valider avant de le refaire).
+- [x] Propositions pour un HUD plus ergonomique : trois dispositions (A, la barre d’outils au centre ; B, la colonne de commande ; C, tout au contexte). Choix : A, à améliorer ensuite.
+- [x] HUD en disposition A (retouches à venir selon les retours) :
+  - en haut, trois blocs : ressources à gauche (la radio dessous), course au territoire au centre avec les deux drapeaux et l’objectif de 60 %, date, heure, vitesse, Journal et Menu à droite ;
+  - une colonne fine à droite pour la vue (zoom, rotation, boussole, météo, son, photo), en icônes avec une bulle d’aide ;
+  - en bas au centre, les outils en gros boutons avec leur touche, et Annuler à côté ; Construire ouvre un tiroir au-dessus, catégories en onglets illustrés ;
+  - la mini-carte en bas à gauche, la fiche d’un bâtiment ou la conversation à droite, un seul panneau à la fois ;
+  - le logo seulement à l’accueil, aucun texte sous 11 pixels, une ressource qui baisse ou manque signalée sur son icône, un bouton indisponible qui dit pourquoi au survol.
 
 ## Étape 0.19. TypeScript, PixiJS, Vite et Electron (en cours)
 

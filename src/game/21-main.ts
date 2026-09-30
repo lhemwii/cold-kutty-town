@@ -291,7 +291,6 @@ export function enterPlay(){
   $('intro').hidden = true; $('landing').hidden = true; $('endBox').hidden = true;
   $('topbar').hidden = false; $('bottom').hidden = false; $('radio').hidden = false;
   document.body.dataset.side = GAME.side; document.body.classList.add('playing');
-  $('tbFlag').innerHTML = flagSVG(GAME.side); $('tbCampName').textContent = CAMP_FULL[GAME.side];
   THUMBS_CLEAR(); buildMenu(); setTool('walk'); SH.renderHUD(); updateCalUI();
   if (!PAPER.issue) deliverPaper(true);
 }

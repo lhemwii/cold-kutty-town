@@ -51,10 +51,11 @@ Chaque bâtiment a une **production** et un **coût de fonctionnement** par minu
 
 ## 8. L’écran
 
-- **Barre du haut** : camp, trois ressources avec leur débit par minute et le détail au survol, habitants et emplois, barre de territoire des deux camps avec l’objectif, pause et vitesse (×1, ×2, ×4).
-- **Dock en bas** : Observer, Construire (menu par catégories avec vignettes, prix et effet), Route, Courbe, Rideau, Démolir, Annuler, Journal.
-- **Panneau du bâtiment sélectionné** : état (chantier, en service, à l’arrêt), production, fonctionnement, emplois, rayon d’influence, Améliorer, Démolir, Barge.
-- **Vue de loin en direct** au dézoom : toute l’île en pixel art, qui bouge et tourne comme de près (territoires et frontières, bâtiments, vrais bateaux). Mini-carte cliquable.
+- **En haut, trois blocs** : à gauche les trois ressources avec leur débit par minute, le détail au survol et un signal sur l’icône quand une ressource baisse ou va manquer, puis habitants et emplois ; au centre la course au territoire (les deux drapeaux, la barre des deux camps, l’objectif de 60 %, ton camp sur sa couleur) ; à droite la date avec la saison, l’heure, pause et vitesse (×1, ×2, ×4), le Journal et le Menu. La radio défile sous les ressources.
+- **Colonne de vue à droite**, en icônes : zoom, rotation, boussole, météo, son, photo.
+- **Outils en bas au centre**, en gros boutons avec leur touche : Observer, Construire, Route, Courbe, Rideau, Démolir, Annuler. Construire ouvre un tiroir au-dessus (catégories en onglets illustrés, vignettes avec prix et effet).
+- **Panneau du bâtiment sélectionné**, à droite (un seul panneau à la fois, la conversation avec un chat au même endroit) : état (chantier, en service, à l’arrêt), production, fonctionnement, emplois, rayon d’influence, Améliorer, Démolir, Barge. Un bouton indisponible dit pourquoi au survol.
+- **Vue de loin en direct** au dézoom : toute l’île en pixel art, qui bouge et tourne comme de près (territoires et frontières, bâtiments, vrais bateaux). Mini-carte cliquable, en bas à gauche.
 - Radio qui défile, événements à choix, journal du matin (Gazette de Kutty et Pravdachat).
 
 ## 9. Les chats

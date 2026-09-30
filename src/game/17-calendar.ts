@@ -40,7 +40,8 @@ export function applySeason(){
 }
 export function updateCalUI(){
   const el = $('calLabel');
-  if (el) el.innerHTML = '<span>' + MONTHS[CAL.m] + '</span>' + ico(seasonOf(CAL.m), seasonOf(CAL.m));
+  const mo = MONTHS[CAL.m];
+  el.innerHTML = ico(seasonOf(CAL.m), seasonOf(CAL.m)) + '<span class="cal-m">' + mo.charAt(0).toUpperCase() + mo.slice(1) + '</span>';
 }
 export function newMonth(){
   CAL.m++; if (CAL.m > 11){ CAL.m = 0; SH.fwSalvo('both', 16); SH.radioQueue.unshift(['neutre', 'Radio du port', 'Bonne année ! Les deux camps tirent leur feu d’artifice en même temps. Pour une fois.']); }
