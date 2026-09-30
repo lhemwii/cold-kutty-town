@@ -15,7 +15,8 @@ export const M = { SEA:0, GRASS:1, BEACH:2, ROAD:3, WALK:4, STRIP:5, ROCK:6, PIE
   RAIL:63, RAIN:64, SNOW:65, GIRDER:66, TRAIN_CCP:67, FW_BLUE:68, FW_GREEN:69, BUBBLE:70, ICON_R:71, ICON_Y:72, REFLECT:73, HULL:74,
   FOREST:75, WOOL:76, FISH:77 };
 // crochets : chaque module ajoute ses fonctions (pas de jeu, dessins dynamiques, dessus de l'image, retouche finale, apres rendu)
-export const HOOKS = { step: [], dyn: [], top: [], post: [], after: [], town: [], map: [] };
+/** @type {{ step: ((dt: number, t: number) => void)[], dyn: ((t: number, out: object[]) => void)[], top: ((t: number) => void)[], post: ((t: number) => void)[], after: ((t: number) => void)[], town: ((parts: import('./00-shared.ts').Part[], lights: import('./00-shared.ts').Light[]) => void)[] }} */
+export const HOOKS = { step: [], dyn: [], top: [], post: [], after: [], town: [] };
 // couleur d'accent : un shader peut rendre 4 (accent clair) ou 5 (accent sombre)
 SH.ACC = 24;
 // version couleur : niveau d'eclairage par pixel (0 plein soleil ... 3 face a l'ombre, 4 ombre portee au sol)
@@ -71,7 +72,11 @@ export const cam = { a: 40, b: -20, phi: 0, phiT: null, target: null };
 export let PC = 1, PS = 0, TX = 0, TY = 0;
 export let W = 0, H = 0, N = 0;
 SH.K = 2; SH.DPR = 1; SH.KDEF = 2; SH.KMIN = 1; SH.KMAX = 8;
-export let fb = null, mb = null, lb = null, img = null, px32 = null;
+/** @type {Uint8Array} */ export let fb = null;
+/** @type {Uint8Array} */ export let mb = null;
+/** @type {Uint8Array} */ export let lb = null;
+/** @type {ImageData} */ export let img = null;
+/** @type {Uint32Array} */ export let px32 = null;
 SH.ctx = null;
 SH.GHOST = false; SH.GHOST_T = 0;
 
@@ -212,7 +217,11 @@ export function faceVisible(n){ return (n[0] * PC - n[1] * PS) + (n[0] * PS + n[
 export function moonDot(n){ const l = Math.hypot(n[0], n[1], n[2]) || 1; return (n[0] * MOON[0] + n[1] * MOON[1] + n[2] * MOON[2]) / l; }
 export function shOf(s){ return typeof s === 'number' ? CONST_SH[s] : s; }
 // pts : [a,b,z, a,b,z, ...], n : normale sortante, sh : 0, 1, fonction(x, y) ou null, edge : couleur du contour ou -1
+/** @typedef {(x: number, y: number) => number} PixFn  motif d'une face, pixel par pixel (0 sombre, 1 clair, 3 fenetre, 4 et 5 accent) */
+/** @typedef {number | PixFn | null | undefined} Shade */
+/** @typedef {(u: number, h: number, x: number, y: number, k: number) => number} SideFn  motif d'un mur : u le long du mur, h la hauteur, k la face */
 export function sunLevel(n){ const l = Math.hypot(n[0], n[1], n[2]) || 1, d = (n[0] * SUN[0] + n[1] * SUN[1] + n[2] * SUN[2]) / l; return d > .55 ? 0 : d > .3 ? 1 : d > .05 ? 2 : 3; }
+/** @param {number[]} pts @param {number[]} n @param {Shade} sh @param {number} edge @returns {boolean} */
 export function drawFace(pts, n, sh, edge){
   if (SH.CAPTURE){ for (let i = 0; i < pts.length; i += 3) SH.CAPTURE.push(pts[i], pts[i + 1], pts[i + 2]); return false; }
   if (!faceVisible(n)) return false;
@@ -226,6 +235,7 @@ export function drawFace(pts, n, sh, edge){
   return true;
 }
 // mur de p vers q (normale sortante a droite), fn(u, h, x, y) : u le long du mur, h hauteur au-dessus de z0
+/** @param {number} pa @param {number} pb @param {number} qa @param {number} qb @param {number} z0 @param {number} z1 @param {SideFn | Shade} fn @param {number} [edge] @param {number} [zPeak] @returns {boolean} */
 export function wallFace(pa, pb, qa, qb, z0, z1, fn, edge, zPeak){
   const L = Math.hypot(qa - pa, qb - pb) || 1, ea = (qa - pa) / L, eb = (qb - pb) / L;
   const n = [-eb, ea, 0];
@@ -241,6 +251,7 @@ export function wallFace(pa, pb, qa, qb, z0, z1, fn, edge, zPeak){
   return drawFace(pts, n, sh, edge == null ? 1 : edge);
 }
 // boite alignee : side(u, h, x, y, k) avec k = 0 (+b), 1 (+a), 2 (-b), 3 (-a)
+/** @param {number} a0 @param {number} a1 @param {number} b0 @param {number} b1 @param {number} z0 @param {number} z1 @param {SideFn | number} side @param {Shade} top @param {number} [edge] */
 export function boxS(a0, a1, b0, b1, z0, z1, side, top, edge){
   const e = edge == null ? 1 : edge;
   const Wl = [a0,b1,a1,b1, a1,b1,a1,b0, a1,b0,a0,b0, a0,b0,a0,b1];
@@ -330,6 +341,7 @@ export function blit(s, dx, dy){
 export function blitAt(s, a, b, z){ const p = prj(a, b, z || 0); blit(s, Math.round(p[0]), Math.round(p[1])); }
 
 /* ================= petite police 3x5 pour les enseignes ================= */
+/** @type {Record<string, string>} */
 export const FONT = {};
 ('A010101111101101 B110101110101110 C011100100100011 D110101101101110 E111100110100111 F111100110100100 ' +
  'G011100101101011 H101101111101101 I111010010010111 J001001001101010 K101101110101101 L100100100100111 ' +

@@ -5,7 +5,9 @@ export const SIDE_N = [[0,1,0],[1,0,0],[0,-1,0],[-1,0,0]];
 export const WALL_T = SIDE_N.map(n => COLOR ? 0 : 2.4 * Math.max(0, moonDot(n)));
 [[M.USC, M.ROOF_USC], [M.USC2, M.ROOF_USC2], [M.USC3, M.ROOF_USC3], [M.USC4, M.ROOF_USC2], [M.USC5, M.ROOF_USC], [M.CCP, M.ROOF_CCP], [M.CCP2, M.ROOF_CCP], [M.CCP3, M.ROOF_CCP], [M.BRICK, M.ROOF_USC], [M.SANDSTONE, M.ROOF_USC2]].forEach(([w, r]) => ROOF_OF[w] = r);
 export const wallBase = (k, x, y) => bz(x, y) < WALL_T[k] ? 1 : 0;
+/** @type {(a: number, b: number, r: number, k?: number) => import('./00-shared.ts').Light} */
 export const Lc = (a, b, r, k) => ({ kind: 'circle', a, b, r, k: k || 1.1, att: .9 });
+/** @type {(a: number, b: number, zb: number, draw: (t: number) => void) => import('./00-shared.ts').Part} */
 export const part = (a, b, zb, draw) => ({ a, b, zb: zb || 0, draw });
 export function sideLight(a0, a1, b0, b1, k, r, kk){
   const n = SIDE_N[k], ca = (a0 + a1) / 2, cb = (b0 + b1) / 2;

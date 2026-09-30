@@ -85,7 +85,7 @@ export function rebuildLocks(): void {
   for (const l of SH.BLD) if (l.side) lockCells(l.a0, l.a1, l.b0, l.b1, SID[l.side]);
   for (const w of SH.WALLS){
     const L = Math.hypot(w.qa - w.pa, w.qb - w.pb) || 1;
-    for (let s = 0; s <= L; s += TC / 2){ const a = w.pa + (w.qa - w.pa) * s / L, b = w.pb + (w.qb - w.pb) * s / L; lockCells(a - 8, a + 8, b - 8, b + 8, SID[w.side as Side]); }
+    for (let s = 0; s <= L; s += TC / 2){ const a = w.pa + (w.qa - w.pa) * s / L, b = w.pb + (w.qb - w.pb) * s / L; lockCells(a - 8, a + 8, b - 8, b + 8, SID[w.side]); }
   }
 }
 // prendre une case (debarquement, drapeau pose par barge) : on ne vole jamais une case verrouillee

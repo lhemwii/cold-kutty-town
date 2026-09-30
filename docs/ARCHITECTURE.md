@@ -27,16 +27,16 @@ La conversion depuis l’ancienne portée unique a été faite par un script (an
 | `02-ground.js` | Le monde tiré au sort : tailles de carte (`MAP_SIZES`, `setMapSize`) et formes (`MAP_CONFS` : une île, deux, quatre, archipel, atoll), îles et îlots, plages, chaînes de montagnes, forêts, grille du sol (2 cellules par unité, 1 au-delà de « grande »), défrichage. La grille, le territoire (`TER`), la carte `MAPV` et la navigation (`NAV`) sont redimensionnés à chaque nouvelle partie ; les distances à la côte restent en demi-unités quelle que soit la finesse. |
 | `03-buildings-base.js` | Aides de décor : lumières, fumée, arbres, maisons à pignon, voitures (aussi en biais), coques de bateaux, fanions. |
 | `04-types.js`, `05-types-extra.js`, `06-types-more.js` | Catalogue des bâtiments. Chaque type sait se dessiner. `06` contient aussi QG, port (3 niveaux), pêcherie, bergerie, phare, avant-poste, Checkpoint. |
-| `07-world.js` | Forêts et montagnes rangées par cases, Rideau de Laine en pans libres, miradors, phare, lampadaires, voilier, vestiges catzi (`VEST`, `VEST_DEF`). |
+| `07-world.ts` | Forêts et montagnes rangées par cases, Rideau de Laine en pans libres, miradors, phare, lampadaires, voilier, vestiges catzi (`VEST`, `VEST_DEF`). |
 | `08-territory.js` | Territoires : grille de cases de 4 unités, influence des bâtiments, expansion en direct, pression aux frontières, verrous. |
-| `09-roads.js` | Routes droites et courbes : peinture au sol, graphe, raccords, accès au QG, voitures. |
-| `10-town.js` | Bâtiments posés (`BLD`), règles de pose, chats nommés qui arrivent avec leur bâtiment, reconstruction de la scène. Bâtiments tournés d’un quart de tour (`buildParts`, `turnDraw`). |
+| `09-roads.ts` | Routes droites et courbes : peinture au sol, graphe, raccords, accès au QG, voitures. |
+| `10-town.ts` | Bâtiments posés (`BLD`), règles de pose, chats nommés qui arrivent avec leur bâtiment, reconstruction de la scène. Bâtiments tournés d’un quart de tour (`buildParts`, `turnDraw`). |
 | `11-render.js` | Palette jour et nuit, météo, zoom, vue de loin en direct, rendu du sol avec territoires, objets, ombres. |
 | `12-portrait.js` | Portrait détaillé du chat dans la fenêtre de discussion. |
 | `13-ui.js` | Outils : observer, construire, routes, Rideau, démolir, annuler ; souris, tactile, clavier ; pause et vitesse. |
 | `14-hud.js` | Barre du haut, détail des ressources, menu de construction par catégories, panneau du bâtiment sélectionné. |
 | `15-economy.js` | Croquettes, laine, ronrons : table `ECO`, bilans, chantiers, améliorations, événements, course à l’espace. |
-| `16-boats.js` | Navigation en mer (A*), barges, chalutiers, cargos, équipages. |
+| `16-boats.ts` | Navigation en mer (A*), barges, chalutiers, cargos, équipages. |
 | `17-calendar.js` | Calendrier et saisons, journal du matin, mémoire des chats, bulles, pensées. |
 | `18-life.js` | Feux d’artifice, passants, matchs, reflets de nuit. |
 | `19-extras.js` | Son, mini-carte, fiche au survol, mode photo. |

@@ -4,16 +4,16 @@ import { IS, ISEED, MAP_CONFS, MAP_SIZES, buildGround, clearForest, islandNear, 
 import { TYPES } from './04-types.js';
 import { typeName } from './05-types-extra.js';
 import { DIR_V } from './06-types-more.js';
-import { LAMP_POS, PEAKS, TREES, VEST, buildForests, buildMountains, buildVestiges } from './07-world.js';
+import { LAMP_POS, PEAKS, TREES, VEST, buildForests, buildMountains, buildVestiges } from './07-world.ts';
 import { SNAME, TER, claimDisc, initTerritory, rebuildLocks, stepTerritory, terBoxRebuild, terPct } from './08-territory.ts';
-import { CARS, RW, RWS, addRoad, buildGraph, makeRoad, repaintAllRoads, reseatCars, roadProblem, sampleCurve, sampleLine, stepCars } from './09-roads.js';
-import { catPos, findSpot, makeBuilding, placeProblem, rebuildTown } from './10-town.js';
+import { CARS, RW, RWS, addRoad, buildGraph, makeRoad, repaintAllRoads, reseatCars, roadProblem, sampleCurve, sampleLine, stepCars } from './09-roads.ts';
+import { catPos, findSpot, makeBuilding, placeProblem, rebuildTown } from './10-town.ts';
 import { CLOCK, FAR, MAPV, OV_ON, WEATHER, ZLEVELS, ZMIN, centerOn, clampCam, layout, mapDirtyAll, mapInit, render, screenToWorld, setZoom, stepClock, stepWeather, stepZoom, worldToScreen, zoomLevels } from './11-render.js';
 import { drawFlagIcon, drawPortrait } from './12-portrait.js';
 import { $, HISTORY, addWall, drawCompass, setSpeed, setTool, stepKeys, toast, updateClockUI, updateUndo } from './13-ui.js';
 import { THUMBS, buildMenu, flagSVG, lootVestige } from './14-hud.js';
 import { DEMOS, EV, buildTime, newRes, stepEco, stepEvents, stepSpace } from './15-economy.ts';
-import { CREWS, buildNav, offshoreFrom, stepBoats } from './16-boats.js';
+import { CREWS, buildNav, offshoreFrom, stepBoats } from './16-boats.ts';
 import { PAPER, applySeason, deliverPaper, memGreeting, memRemember, updateCalUI } from './17-calendar.js';
 import { RIVAL, newBrain, rivalLanding, stepRival } from './20-rival.js';
 /* ================= radio ================= */

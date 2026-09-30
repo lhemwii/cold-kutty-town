@@ -2,8 +2,8 @@ import { SH } from './00-shared.ts';
 import { GAME, SIDES, TAU, hash2, other } from './01-core.js';
 import { GA0, GB0, ISEED, W_ISLE_MIN, islandNear, mapScale, nearestShore } from './02-ground.ts';
 import { SID, TC, TER, sideAt } from './08-territory.ts';
-import { RW, RWS, addRoad, nearRoad, polyAt, roadCost, roadProblem, sampleLine } from './09-roads.js';
-import { coastDir, findSpot, footOf, makeBuilding, placeProblem } from './10-town.js';
+import { RW, RWS, addRoad, nearRoad, polyAt, roadCost, roadProblem, sampleLine } from './09-roads.ts';
+import { coastDir, findSpot, footOf, makeBuilding, placeProblem } from './10-town.ts';
 import { WALL_COST, addWall, wallPieces, wallProblem } from './13-ui.js';
 import { BARGE_COST } from './14-hud.js';
 /* ================= l'IA d'en face : elle debarque, construit, trace ses routes et pousse sa frontiere ================= */

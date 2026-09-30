@@ -1,46 +1,56 @@
 import { SH } from './00-shared.ts';
+import type { Building, Light, Side } from './00-shared.ts';
+import type { Vec2 } from './02-ground.ts';
 import { M, SIDES, clamp, hash2 } from './01-core.js';
 import { GA0, GB0, GH, GSC, GW, T_ROAD, T_ROCK, T_SEA, T_WALK, cellOf, gBase, gLand, gTone, gType, resetArea, typeAt } from './02-ground.ts';
-import { LAMP_POS, cutTreesAlong } from './07-world.js';
+import { LAMP_POS, cutTreesAlong } from './07-world.ts';
 import { sideAt } from './08-territory.ts';
 /* ================= routes : droites ou courbes, raccordees entre elles, parcourues par les voitures ================= */
 export const RW = 6, SW = 3, RWS = RW + SW;
+/** Une route : ses points tous les ~4 unites, la longueur cumulee a chaque point, sa longueur et sa boite (a0, a1, b0, b1). */
+export interface Road { id: number; side: Side; pts: Vec2[]; cum: number[]; len: number; box: [number, number, number, number] }
+/** Graphe des routes : un noeud a chaque bout et croisement, une arete entre deux noeuds (avec sa geometrie). */
+export interface RoadNode { a: number; b: number; side: Side; comp: number }
+export interface RoadEdge { n0: number; n1: number; pts: Vec2[]; cum: number[]; len: number; side: Side; road: number }
+/** Une voiture : son arete, sa position le long (s), son sens, sa vitesse, et ses phares. */
+export interface Car { id: number; side: Side; e: number; s: number; dir: number; v: number; hops: number; pos: { a: number; b: number; ang: number } | null; light: Light & { kind: 'cone' } }
+/** Un rectangle au sol (un batiment, une zone). */
+type Rect = { a0: number; a1: number; b0: number; b1: number };
 SH.ROADS = []; export let ROAD_ID = 1;
-// une route : ses points tous les ~4 unites, la longueur cumulee, sa boite
-export function makeRoad(pts, side, id){
+export function makeRoad(pts: Vec2[], side: Side, id?: number): Road {
   const cum = [0];
   for (let k = 1; k < pts.length; k++) cum.push(cum[k - 1] + Math.hypot(pts[k][0] - pts[k - 1][0], pts[k][1] - pts[k - 1][1]));
   let a0 = 1e9, a1 = -1e9, b0 = 1e9, b1 = -1e9;
   for (const [a, b] of pts){ a0 = Math.min(a0, a); a1 = Math.max(a1, a); b0 = Math.min(b0, b); b1 = Math.max(b1, b); }
   return { id: id || ROAD_ID++, side, pts, cum, len: cum[cum.length - 1], box: [a0, a1, b0, b1] };
 }
-export function sampleLine(p, q){
-  const L = Math.hypot(q[0] - p[0], q[1] - p[1]), n = Math.max(1, Math.ceil(L / 4)), out = [];
+export function sampleLine(p: Vec2, q: Vec2): Vec2[] {
+  const L = Math.hypot(q[0] - p[0], q[1] - p[1]), n = Math.max(1, Math.ceil(L / 4)), out: Vec2[] = [];
   for (let k = 0; k <= n; k++) out.push([p[0] + (q[0] - p[0]) * k / n, p[1] + (q[1] - p[1]) * k / n]);
   return out;
 }
-export function sampleCurve(p, c, q){
-  const L = Math.hypot(c[0] - p[0], c[1] - p[1]) + Math.hypot(q[0] - c[0], q[1] - c[1]), n = Math.max(2, Math.ceil(L / 4)), out = [];
+export function sampleCurve(p: Vec2, c: Vec2, q: Vec2): Vec2[] {
+  const L = Math.hypot(c[0] - p[0], c[1] - p[1]) + Math.hypot(q[0] - c[0], q[1] - c[1]), n = Math.max(2, Math.ceil(L / 4)), out: Vec2[] = [];
   for (let k = 0; k <= n; k++){ const t = k / n, u = 1 - t; out.push([u * u * p[0] + 2 * u * t * c[0] + t * t * q[0], u * u * p[1] + 2 * u * t * c[1] + t * t * q[1]]); }
   return out;
 }
 // point d'un segment le plus proche : [distance, s entre 0 et 1]
-export function segDist(pa, pb, qa, qb, a, b){
+export function segDist(pa: number, pb: number, qa: number, qb: number, a: number, b: number): [number, number] {
   const da = qa - pa, db = qb - pb, L2 = da * da + db * db || 1;
   const s = clamp(((a - pa) * da + (b - pb) * db) / L2, 0, 1);
   return [Math.hypot(pa + da * s - a, pb + db * s - b), s];
 }
 // point d'une route le plus proche : distance, position le long, coordonnees
-export function roadNearest(r, a, b){
-  let best = [1e9, 0, 0, 0];
+export function roadNearest(r: Road, a: number, b: number): [number, number, number, number] {
+  let best: [number, number, number, number] = [1e9, 0, 0, 0];
   for (let k = 0; k + 1 < r.pts.length; k++){
     const [d, s] = segDist(r.pts[k][0], r.pts[k][1], r.pts[k + 1][0], r.pts[k + 1][1], a, b);
     if (d < best[0]){ const L = r.cum[k + 1] - r.cum[k]; best = [d, r.cum[k] + s * L, r.pts[k][0] + (r.pts[k + 1][0] - r.pts[k][0]) * s, r.pts[k][1] + (r.pts[k + 1][1] - r.pts[k][1]) * s]; }
   }
   return best;
 }
-export function nearRoad(a, b, maxD, side){
-  let best = null;
+export function nearRoad(a: number, b: number, maxD: number, side?: Side): { r: Road; d: number; s: number; a: number; b: number } | null {
+  let best: { r: Road; d: number; s: number; a: number; b: number } | null = null;
   for (const r of SH.ROADS){
     if (side && r.side !== side) continue;
     if (a < r.box[0] - maxD || a > r.box[1] + maxD || b < r.box[2] - maxD || b > r.box[3] + maxD) continue;
@@ -49,14 +59,14 @@ export function nearRoad(a, b, maxD, side){
   return best;
 }
 // point a la position s (en unites) le long d'une polyligne, et le cap
-export function polyAt(pts, cum, s){
+export function polyAt(pts: Vec2[], cum: number[], s: number): [number, number, number] {
   let k = 0; while (k < cum.length - 2 && cum[k + 1] < s) k++;
   const L = (cum[k + 1] - cum[k]) || 1, f = clamp((s - cum[k]) / L, 0, 1);
   return [pts[k][0] + (pts[k + 1][0] - pts[k][0]) * f, pts[k][1] + (pts[k + 1][1] - pts[k][1]) * f, Math.atan2(pts[k + 1][1] - pts[k][1], pts[k + 1][0] - pts[k][0])];
 }
 
 /* ---- peinture au sol : trottoirs, chaussee, ligne blanche en tirets, carrefours sans ligne ---- */
-export function paintRoadsArea(a0, a1, b0, b1){
+export function paintRoadsArea(a0: number, a1: number, b0: number, b1: number): void {
   const ia0 = Math.max(0, Math.floor((a0 - GA0) * GSC)), ia1 = Math.min(GW - 1, Math.ceil((a1 - GA0) * GSC));
   const ib0 = Math.max(0, Math.floor((b0 - GB0) * GSC)), ib1 = Math.min(GH - 1, Math.ceil((b1 - GB0) * GSC));
   if (ia0 > ia1 || ib0 > ib1) return;
@@ -68,13 +78,13 @@ export function paintRoadsArea(a0, a1, b0, b1){
   }
   paintTile(ia0, ia1, ib0, ib1);
 }
-export function paintTile(ia0, ia1, ib0, ib1){
+export function paintTile(ia0: number, ia1: number, ib0: number, ib1: number): void {
   resetArea(ia0, ia1, ib0, ib1);
   const w = ia1 - ia0 + 1, h = ib1 - ib0 + 1, cnt = new Uint8Array(w * h), last = new Int32Array(w * h);
   const A0 = GA0 + ia0 / GSC, A1 = GA0 + (ia1 + 1) / GSC, B0 = GB0 + ib0 / GSC, B1 = GB0 + (ib1 + 1) / GSC;
   const list = SH.ROADS.filter(r => r.box[1] + RWS >= A0 && r.box[0] - RWS <= A1 && r.box[3] + RWS >= B0 && r.box[2] - RWS <= B1);
   if (!list.length) return;
-  const each = (r, pad, f) => {
+  const each = (r: Road, pad: number, f: (i: number, j: number, d: number, along: number) => void): void => {
     for (let k = 0; k + 1 < r.pts.length; k++){
       const [pa, pb] = r.pts[k], [qa, qb] = r.pts[k + 1], segL = r.cum[k + 1] - r.cum[k];
       const xa = Math.max(ia0, Math.floor((Math.min(pa, qa) - pad - GA0) * GSC)), xb = Math.min(ia1, Math.ceil((Math.max(pa, qa) + pad - GA0) * GSC));
@@ -97,21 +107,21 @@ export function paintTile(ia0, ia1, ib0, ib1){
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (cnt[y * w + x] > 1) gTone[(ib0 + y) * GW + ia0 + x] = 0;
 }
 // le sol vient d'etre refait : on ne repeint que la ou passent des routes (repeindre toute la carte prenait une demi-seconde sur les grandes)
-export function repaintAllRoads(){ for (const r of SH.ROADS) repaintRoad(r); }
-export function repaintRoad(r){ paintRoadsArea(r.box[0] - RWS - 2, r.box[1] + RWS + 2, r.box[2] - RWS - 2, r.box[3] + RWS + 2); SH.mapDirtyRect(r.box[0] - RWS, r.box[1] + RWS, r.box[2] - RWS, r.box[3] + RWS); }
+export function repaintAllRoads(): void { for (const r of SH.ROADS) repaintRoad(r); }
+export function repaintRoad(r: Road): void { paintRoadsArea(r.box[0] - RWS - 2, r.box[1] + RWS + 2, r.box[2] - RWS - 2, r.box[3] + RWS + 2); SH.mapDirtyRect(r.box[0] - RWS, r.box[1] + RWS, r.box[2] - RWS, r.box[3] + RWS); }
 
 /* ---- graphe : noeuds aux bouts et aux croisements, aretes avec leur geometrie ---- */
-export let NODES = [], EDGES = [], NODE_EDGES = [];
-export function nodeAt(a, b, side){
+export let NODES: RoadNode[] = [], EDGES: RoadEdge[] = [], NODE_EDGES: number[][] = [];
+export function nodeAt(a: number, b: number, side: Side): number {
   for (let i = 0; i < NODES.length; i++){ const n = NODES[i]; if (Math.abs(n.a - a) < 2.5 && Math.abs(n.b - b) < 2.5) return i; }
   NODES.push({ a, b, side, comp: -1 }); NODE_EDGES.push([]); return NODES.length - 1;
 }
-export function segInter(p, q, r, s){
+export function segInter(p: number[], q: number[], r: number[], s: number[]): number | null {
   const d = (q[0] - p[0]) * (s[1] - r[1]) - (q[1] - p[1]) * (s[0] - r[0]); if (Math.abs(d) < 1e-9) return null;
   const t = ((r[0] - p[0]) * (s[1] - r[1]) - (r[1] - p[1]) * (s[0] - r[0])) / d, u = ((r[0] - p[0]) * (q[1] - p[1]) - (r[1] - p[1]) * (q[0] - p[0])) / d;
   return (t >= -1e-6 && t <= 1 + 1e-6 && u >= -1e-6 && u <= 1 + 1e-6) ? t : null;
 }
-export function buildGraph(){
+export function buildGraph(): void {
   NODES = []; EDGES = []; NODE_EDGES = [];
   for (const r of SH.ROADS){
     const cuts = [0, r.len];
@@ -129,13 +139,13 @@ export function buildGraph(){
     if (r.len - stops[stops.length - 1] > .01) stops.push(r.len); else stops[stops.length - 1] = r.len;
     for (let k = 0; k + 1 < stops.length; k++){
       const s0 = stops[k], s1 = stops[k + 1]; if (s1 - s0 < 1) continue;
-      const pts = [polyAt(r.pts, r.cum, s0).slice(0, 2)];
+      const p0 = polyAt(r.pts, r.cum, s0), p1 = polyAt(r.pts, r.cum, s1), pts: Vec2[] = [[p0[0], p0[1]]];
       for (let j = 0; j < r.pts.length; j++) if (r.cum[j] > s0 + .01 && r.cum[j] < s1 - .01) pts.push(r.pts[j]);
-      pts.push(polyAt(r.pts, r.cum, s1).slice(0, 2));
+      pts.push([p1[0], p1[1]]);
       const n0 = nodeAt(pts[0][0], pts[0][1], r.side), n1 = nodeAt(pts[pts.length - 1][0], pts[pts.length - 1][1], r.side);
       if (n0 === n1) continue;
       const cum = [0]; for (let j = 1; j < pts.length; j++) cum.push(cum[j - 1] + Math.hypot(pts[j][0] - pts[j - 1][0], pts[j][1] - pts[j - 1][1]));
-      const e = { n0, n1, pts, cum, len: cum[cum.length - 1], side: r.side, road: r.id };
+      const e: RoadEdge = { n0, n1, pts, cum, len: cum[cum.length - 1], side: r.side, road: r.id };
       NODE_EDGES[n0].push(EDGES.length); NODE_EDGES[n1].push(EDGES.length); EDGES.push(e);
     }
   }
@@ -144,16 +154,16 @@ export function buildGraph(){
   for (let i = 0; i < NODES.length; i++){
     if (NODES[i].comp >= 0) continue;
     const st = [i]; NODES[i].comp = c;
-    while (st.length){ const n = st.pop(); for (const ei of NODE_EDGES[n]){ const e = EDGES[ei], m = e.n0 === n ? e.n1 : e.n0; if (NODES[m].comp < 0){ NODES[m].comp = c; st.push(m); } } }
+    while (st.length){ const n = st.pop() as number; for (const ei of NODE_EDGES[n]){ const e = EDGES[ei], m = e.n0 === n ? e.n1 : e.n0; if (NODES[m].comp < 0){ NODES[m].comp = c; st.push(m); } } }
     c++;
   }
   ROAD_COMP.clear();
   for (const e of EDGES) ROAD_COMP.set(e.road, NODES[e.n0].comp);
   rebuildLamps();
 }
-export const ROAD_COMP = new Map();
+export const ROAD_COMP = new Map<number, number>();
 // lampadaires tous les ~46 unites, un cote puis l'autre
-export function rebuildLamps(){
+export function rebuildLamps(): void {
   LAMP_POS.length = 0;
   for (const r of SH.ROADS){
     let k = 0;
@@ -165,17 +175,17 @@ export function rebuildLamps(){
   }
 }
 // distance entre un rectangle et une route
-export function rectRoadDist(l, r){
+export function rectRoadDist(l: Rect, r: Road): number {
   if (l.a1 < r.box[0] - 30 || l.a0 > r.box[1] + 30 || l.b1 < r.box[2] - 30 || l.b0 > r.box[3] + 30) return 1e9;
   let best = 1e9;
   for (const [a, b] of r.pts){ const d = Math.hypot(Math.max(l.a0 - a, 0, a - l.a1), Math.max(l.b0 - b, 0, b - l.b1)); if (d < best) best = d; }
   return best;
 }
 // un batiment est desservi s'il touche une route reliee a celle du QG de son camp
-export function roadAccess(l){
+export function roadAccess(l: Building): boolean {
   const E = SH.ECO[l.type]; if (E && E.noRoad) return true;
   const hq = SH.BLD.find(o => o.type === 'qg' && o.side === l.side);
-  const hqComps = new Set();
+  const hqComps = new Set<number | undefined>();
   if (hq) for (const r of SH.ROADS) if (r.side === l.side && rectRoadDist(hq, r) < RW + 10) hqComps.add(ROAD_COMP.get(r.id));
   for (const r of SH.ROADS){
     if (r.side !== l.side || rectRoadDist(l, r) > RW + 10) continue;
@@ -185,7 +195,7 @@ export function roadAccess(l){
 }
 
 /* ---- tracer une route : verifications ---- */
-export function roadProblem(pts, side){
+export function roadProblem(pts: Vec2[], side: Side): string {
   let L = 0; for (let k = 1; k < pts.length; k++) L += Math.hypot(pts[k][0] - pts[k - 1][0], pts[k][1] - pts[k - 1][1]);
   if (L < 12) return 'Trop court : tire la route un peu plus loin.';
   if (L > 700) return 'Trop long : fais-la en plusieurs morceaux.';
@@ -202,22 +212,22 @@ export function roadProblem(pts, side){
   if (over > pts.length * .8) return 'Il y a déjà une route ici.';
   return '';
 }
-export const roadCost = (pts) => { let L = 0; for (let k = 1; k < pts.length; k++) L += Math.hypot(pts[k][0] - pts[k - 1][0], pts[k][1] - pts[k - 1][1]); return Math.max(2, Math.ceil(L / 9)); };
+export const roadCost = (pts: Vec2[]): number => { let L = 0; for (let k = 1; k < pts.length; k++) L += Math.hypot(pts[k][0] - pts[k - 1][0], pts[k][1] - pts[k - 1][1]); return Math.max(2, Math.ceil(L / 9)); };
 // pose effective (le joueur comme l'IA passent par ici)
-export function addRoad(pts, side){
+export function addRoad(pts: Vec2[], side: Side): Road {
   const r = makeRoad(pts, side);
   SH.ROADS.push(r);
   cutTreesAlong(pts, RWS);
   repaintRoad(r); buildGraph(); reseatCars(); SH.refreshAccess();
   return r;
 }
-export function removeRoad(r){
+export function removeRoad(r: Road): void {
   const k = SH.ROADS.indexOf(r); if (k < 0) return;
   SH.ROADS.splice(k, 1); repaintRoad(r); buildGraph(); reseatCars(); SH.refreshAccess();
 }
 // accrocher un point a une route ou un bout de route proche
-export function snapRoadPoint(a, b, side){
-  let best = null, bd = 12;
+export function snapRoadPoint(a: number, b: number, side?: Side): Vec2 {
+  let best: Vec2 | null = null, bd = 12;
   for (const r of SH.ROADS){ if (side && r.side !== side) continue; for (const e of [r.pts[0], r.pts[r.pts.length - 1]]){ const d = Math.hypot(e[0] - a, e[1] - b); if (d < bd){ bd = d; best = [e[0], e[1]]; } } }
   if (best) return best;
   const n = nearRoad(a, b, 10, side);
@@ -225,13 +235,13 @@ export function snapRoadPoint(a, b, side){
 }
 
 /* ---- voitures : elles roulent a droite sur les aretes du graphe ---- */
-export const CARS = [];
-export function reseatCars(){
-  const want = { usc: 0, ccp: 0 };
+export const CARS: Car[] = [];
+export function reseatCars(): void {
+  const want: Record<Side, number> = { usc: 0, ccp: 0 };
   for (const s of SIDES) want[s] = Math.min(28, Math.floor((SH.RES[s] ? SH.RES[s].pop : 0) / 9));
   CARS.length = 0;
   for (const s of SIDES){
-    const pool = []; EDGES.forEach((e, i) => { if (e.side === s && e.len > 10) pool.push(i); });
+    const pool: number[] = []; EDGES.forEach((e, i) => { if (e.side === s && e.len > 10) pool.push(i); });
     if (!pool.length) continue;
     for (let k = 0; k < want[s]; k++){
       const ei = pool[Math.floor(hash2(k * 13 + (s === 'usc' ? 1 : 2), CARS.length) * pool.length)], e = EDGES[ei];
@@ -240,7 +250,7 @@ export function reseatCars(){
     }
   }
 }
-export function stepCars(dt){
+export function stepCars(dt: number): void {
   for (const c of CARS){
     let e = EDGES[c.e]; if (!e){ c.pos = null; continue; }
     c.s += c.v * dt * c.dir;

@@ -3,9 +3,9 @@ import { CAMP_FULL, GAME, H, M, PC, PS, SC, TX, TY, W, clamp, dep, fb, getView, 
 import { nearestShore } from './02-ground.ts';
 import { TYPES } from './04-types.js';
 import { typeName } from './05-types-extra.js';
-import { VEST_DEF, drawVestige } from './07-world.js';
+import { VEST_DEF, drawVestige } from './07-world.ts';
 import { TER, influenceOf, sideAt, terPct } from './08-territory.ts';
-import { footOf } from './10-town.js';
+import { footOf } from './10-town.ts';
 import { FAR, PALL } from './11-render.js';
 import { $, setTool, toast } from './13-ui.js';
 /* ================= interface : barre du haut, menu de construction, batiment selectionne ================= */

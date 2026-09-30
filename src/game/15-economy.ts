@@ -1,13 +1,14 @@
 import { SH } from './00-shared.ts';
 import type { Building, Side } from './00-shared.ts';
+import type { Drawable } from './07-world.ts';
 import { CAMP_FULL, GAME, H, M, SC, SIDES, TAU, W, bz, cam, clamp, dep, fput, hash2, line3, other, prj, state } from './01-core.js';
 import { pennant } from './03-buildings-base.js';
 import { TYPES } from './04-types.js';
 import { typeName } from './05-types-extra.js';
-import { cutTrees } from './07-world.js';
+import { cutTrees } from './07-world.ts';
 import { SID, TER, lockCells, rebuildLocks, terPct } from './08-territory.ts';
-import { reseatCars, roadAccess } from './09-roads.js';
-import { rebuildTown } from './10-town.js';
+import { reseatCars, roadAccess } from './09-roads.ts';
+import { rebuildTown } from './10-town.ts';
 import { $, toast } from './13-ui.js';
 /* ================= economie : croquettes, laine et ronrons ================= */
 // Par batiment, au niveau 1 et par minute : c croquettes, l laine, r ronrons (negatif = fonctionnement),
@@ -240,8 +241,6 @@ export function drawDust(l: Building, t: number, amt: number): void {
     if (bz(x, y) < 8) fput(x, y, 1);
   }
 }
-/** Un objet a dessiner, trie par profondeur (d) : voir render() dans 11-render. */
-export interface Drawable { d: number; a: number; b: number; f: (t: number) => void; [k: string]: unknown }
 export function siteDrawables(t: number, out: Drawable[]): void {
   const gt = GAME.t;
   for (const l of SH.BLD){

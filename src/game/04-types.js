@@ -46,7 +46,7 @@ export const STATUE_USC = artSprite([
 
 /* ================= les types de batiments ================= */
 export function seedOf(lot){ return Math.abs(Math.round(lot.ca * 7 + lot.cb * 13)) % 97; }
-/** @type {Record<string, { name: string, nameCCP?: string, fem?: boolean, build: (lot: any, seed: number) => any }>} */
+/** @type {Record<string, { name: string, nameCCP?: string, fem?: boolean, build: (lot: import('./00-shared.ts').Building, seed: number) => import('./00-shared.ts').BuiltParts }>} */
 export const TYPES = {
   maison: { name: 'Maison', fem: true, build(lot, seed){
     const lv = lot.lvl || 1;

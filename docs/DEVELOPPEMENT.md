@@ -25,7 +25,7 @@ Pour l’instant, les chats et le journal utilisent des textes tout faits. `api/
 
 1. Dans `src/game/04-types.js` (ou `05`, `06`), ajoute une entrée à `TYPES` avec `name`, `nameCCP` si le nom change côté CCR, `fem`, et une fonction `build(lot, seed)` qui renvoie ses `parts`, `decals` et `lights`. `lot` porte l’emprise (`a0..a1`, `b0..b1`, `ca`, `cb`), le camp, le niveau et, pour la côte, la direction de la mer (`dir`).
 2. Donne-lui sa ligne dans `ECO` (`15-economy.js`) : catégorie du menu, coût, production et fonctionnement par minute, habitants, emplois, loisirs, rayon d’influence, `up` s’il s’améliore, `coast` s’il se pose face à l’eau, `noRoad` s’il n’a pas besoin de route. Il apparaît alors tout seul dans le menu.
-3. Si son emprise n’est pas 36 x 31, ajoute-la dans `FOOT` (`10-town.js`).
+3. Si son emprise n’est pas 36 x 31, ajoute-la dans `FOOT` (`10-town.ts`).
 
 ## Modules et imports
 

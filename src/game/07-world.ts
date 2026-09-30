@@ -1,18 +1,22 @@
 import { SH } from './00-shared.ts';
+import type { Side } from './00-shared.ts';
+import type { Vec2 } from './02-ground.ts';
 import { COLOR, FONT, H, M, PC, PS, SC, SHADOW_V, TAU, UP, W, bay, blit, blitAt, boxS, bz, cam, clamp, dep, drawFace, fput, hash2, lb, line3, prj, state, textW, unprj, wallFace } from './01-core.js';
 import { GA0, GB0, GH, GSC, GW, IS, ISEED, MOUNT_T, T_FOREST, T_GRASS, T_ROCK, baseAt, cellOf, clearForest, gBase, gLand, landDAt, mapScale, mountN } from './02-ground.ts';
 import { pennant, treeSpr, treeSprSc } from './03-buildings-base.js';
 /* ================= forets : des milliers d'arbres, ranges par cases pour ne dessiner que ceux a l'ecran ================= */
 export const TB = 64;                     // taille d'une case d'arbres, en unites
-export const TREES = { list: [], grid: new Map(), ver: 0 };
-export const treeKey = (i, j) => i * 4096 + j;
-export function treeCell(a, b){ return treeKey(Math.floor(a / TB), Math.floor(b / TB)); }
-export function addTree(a, b, r){
-  const t = { a, b, r, alive: true };
+/** Un arbre : position, rayon du feuillage, et s'il est encore debout. */
+export interface Tree { a: number; b: number; r: number; alive: boolean }
+export const TREES: { list: Tree[]; grid: Map<number, Tree[]>; ver: number } = { list: [], grid: new Map(), ver: 0 };
+export const treeKey = (i: number, j: number): number => i * 4096 + j;
+export function treeCell(a: number, b: number): number { return treeKey(Math.floor(a / TB), Math.floor(b / TB)); }
+export function addTree(a: number, b: number, r: number): void {
+  const t: Tree = { a, b, r, alive: true };
   TREES.list.push(t);
   const k = treeCell(a, b); let L = TREES.grid.get(k); if (!L){ L = []; TREES.grid.set(k, L); } L.push(t);
 }
-export function buildForests(seed){
+export function buildForests(seed: number): void {
   TREES.list = []; TREES.grid = new Map(); TREES.ver++;
   // foret dense sur le sol de foret, arbres isoles ailleurs
   for (let b = GB0 + 4; b < GB0 + GH / GSC - 4; b += 6.5){
@@ -26,8 +30,10 @@ export function buildForests(seed){
   }
 }
 /* ================= montagnes : des sommets en 3D sur les zones rocheuses ================= */
-export const PEAKS = { list: [], grid: new Map() };
-export function buildMountains(seed){
+/** Un sommet : centre, hauteur H, rayon R, base a 6 cotes, sommet decale, neige au-dessus d'une certaine hauteur. */
+export interface Peak { a: number; b: number; H: number; R: number; base: Vec2[]; apex: Vec2; snow: boolean }
+export const PEAKS: { list: Peak[]; grid: Map<number, Peak[]> } = { list: [], grid: new Map() };
+export function buildMountains(seed: number): void {
   PEAKS.list = []; PEAKS.grid = new Map();
   for (let b = GB0 + 10; b < GB0 + GH / GSC - 10; b += 30){
     for (let a = GA0 + 10; a < GA0 + GW / GSC - 10; a += 36){
@@ -37,15 +43,15 @@ export function buildMountains(seed){
       if (hash2(ja - 3, jb + 9) > .45 + m * 1.5) continue;
       const H = Math.round(22 + m * 80 + hash2(ja, jb) * 12), R = 14 + H * .5;
       // base irreguliere a 6 cotes, sommet un peu decale
-      const n = 6, ph = hash2(ja + 1, jb) * TAU, base = [];
+      const n = 6, ph = hash2(ja + 1, jb) * TAU, base: Vec2[] = [];
       for (let k = 0; k < n; k++){ const an = ph + k * TAU / n, rr = R * (.78 + hash2(ja + k, jb - k) * .44); base.push([ja + Math.cos(an) * rr, jb + Math.sin(an) * rr]); }
-      const pk = { a: ja, b: jb, H, R, base, apex: [ja + (hash2(ja, jb + 5) - .5) * R * .3, jb + (hash2(ja + 5, jb) - .5) * R * .3], snow: H > 58 };
+      const pk: Peak = { a: ja, b: jb, H, R, base, apex: [ja + (hash2(ja, jb + 5) - .5) * R * .3, jb + (hash2(ja + 5, jb) - .5) * R * .3], snow: H > 58 };
       PEAKS.list.push(pk);
       const key = treeCell(ja, jb); let L = PEAKS.grid.get(key); if (!L){ L = []; PEAKS.grid.set(key, L); } L.push(pk);
     }
   }
 }
-export function drawPeak(pk){
+export function drawPeak(pk: Peak): void {
   const n = pk.base.length, [ta, tb] = pk.apex, H = pk.H;
   for (let k = 0; k < n; k++){
     const [pa, pb] = pk.base[k], [qa, qb] = pk.base[(k + 1) % n];
@@ -63,24 +69,24 @@ export function drawPeak(pk){
   }
 }
 // (le rectangle est d'abord ramene a la carte : de tres loin, la vue deborde largement sur la mer)
-export function clipToMap(a0, a1, b0, b1){ return [Math.max(a0, GA0 - 100), Math.min(a1, GA0 + GW / GSC + 100), Math.max(b0, GB0 - 100), Math.min(b1, GB0 + GH / GSC + 100)]; }
-export function peaksIn(a0, a1, b0, b1, fn){
+export function clipToMap(a0: number, a1: number, b0: number, b1: number): [number, number, number, number] { return [Math.max(a0, GA0 - 100), Math.min(a1, GA0 + GW / GSC + 100), Math.max(b0, GB0 - 100), Math.min(b1, GB0 + GH / GSC + 100)]; }
+export function peaksIn(a0: number, a1: number, b0: number, b1: number, fn: (p: Peak) => void): void {
   [a0, a1, b0, b1] = clipToMap(a0, a1, b0, b1);
   for (let i = Math.floor(a0 / TB); i <= Math.floor(a1 / TB); i++) for (let j = Math.floor(b0 / TB); j <= Math.floor(b1 / TB); j++){
     const L = PEAKS.grid.get(treeKey(i, j)); if (L) for (const p of L) fn(p);
   }
 }
 // arbres dans un rectangle (vivants seulement)
-export function treesIn(a0, a1, b0, b1, fn){
+export function treesIn(a0: number, a1: number, b0: number, b1: number, fn: (t: Tree) => void): void {
   [a0, a1, b0, b1] = clipToMap(a0, a1, b0, b1);
   for (let i = Math.floor(a0 / TB); i <= Math.floor(a1 / TB); i++) for (let j = Math.floor(b0 / TB); j <= Math.floor(b1 / TB); j++){
     const L = TREES.grid.get(treeKey(i, j)); if (!L) continue;
     for (const t of L) if (t.alive && t.a >= a0 && t.a <= a1 && t.b >= b0 && t.b <= b1) fn(t);
   }
 }
-export function cutTrees(a0, a1, b0, b1){ let n = 0; treesIn(a0 - 3, a1 + 3, b0 - 3, b1 + 3, (t) => { t.alive = false; n++; }); if (n) TREES.ver++; clearForest(a0, a1, b0, b1); return n; }
+export function cutTrees(a0: number, a1: number, b0: number, b1: number): number { let n = 0; treesIn(a0 - 3, a1 + 3, b0 - 3, b1 + 3, (t) => { t.alive = false; n++; }); if (n) TREES.ver++; clearForest(a0, a1, b0, b1); return n; }
 // arbres le long d'un trait (routes, mur)
-export function cutTreesAlong(pts, w){
+export function cutTreesAlong(pts: Vec2[], w: number): number {
   let n = 0;
   for (let k = 0; k + 1 < pts.length; k++){
     const [pa, pb] = pts[k], [qa, qb] = pts[k + 1], L = Math.hypot(qa - pa, qb - pb) || 1;
@@ -94,7 +100,9 @@ export function cutTreesAlong(pts, w){
   return n;
 }
 // arbres visibles, ajoutes a la liste de dessin ; leurs ombres sont posees directement au sol
-export function treeDrawables(out, t, withShadows){
+/** Un objet a dessiner, trie par profondeur (d) : voir render() dans 11-render. */
+export interface Drawable { d: number; a?: number; b?: number; f: (t: number) => void; m?: number; key?: object; still?: boolean; raw?: boolean; side?: Side; big?: boolean }
+export function treeDrawables(out: Drawable[], t: number, withShadows: boolean): void {
   const cs = [unprj(-20, -20), unprj(W + 20, -20), unprj(-20, H + 60), unprj(W + 20, H + 60)];
   let a0 = 1e9, a1 = -1e9, b0 = 1e9, b1 = -1e9;
   for (const [a, b] of cs){ a0 = Math.min(a0, a); a1 = Math.max(a1, a); b0 = Math.min(b0, b); b1 = Math.max(b1, b); }
@@ -122,8 +130,7 @@ export function treeDrawables(out, t, withShadows){
   });
 }
 // ombre d'arbre : un ovale decale selon le soleil, seulement sur le sol
-export function treeShadow(tr, q, s){
-  s = s || 1;
+export function treeShadow(tr: Tree, q: number[], s = 1): void {
   const h = tr.r * 2 + 3, sa = tr.a + h * SHADOW_V[0] * .5, sb = tr.b + h * SHADOW_V[1] * .5, p = prj(sa, sb, 0);
   const cx = Math.round(p[0]), cy = Math.round(p[1]), rx = Math.max(1, (tr.r + 2) * s), ry = Math.max(s < 1 ? 1 : 2, tr.r * .6 * s);
   for (let dy = -Math.ceil(ry); dy <= Math.ceil(ry); dy++){
@@ -135,9 +142,12 @@ export function treeShadow(tr, q, s){
 
 /* ================= le Rideau de Laine : segments que chaque camp tricote lui-meme ================= */
 // WALLS : pans de 10 unites au plus { side, pa, pb, qa, qb, g, line } ; WALL_TOWERS : miradors le long des lignes
+/** Un pan du Rideau de Laine : de (pa, pb) a (qa, qb), numero de graffiti (-1 : aucun), ligne a laquelle il appartient. */
+export interface Wall { side: Side; pa: number; pb: number; qa: number; qb: number; g: number; line: number }
+export interface WallTower { side: Side; a: number; b: number; ph: number; line: number }
 SH.WALLS = []; SH.WALL_TOWERS = [];
 export const GRAFFITI = ['PAIX', 'MIAOU', 'LIBRE', 'LOVE', 'ELVIS'];
-export function glyphAt(str, u, h, u0, h0, s){
+export function glyphAt(str: string, u: number, h: number, u0: number, h0: number, s: number): boolean {
   const col = Math.floor((u - u0) / s), row = Math.floor((h0 - h) / s);
   if (col < 0 || row < 0 || row > 4) return false;
   const ch = Math.floor(col / 4), cc = col % 4;
@@ -145,10 +155,12 @@ export function glyphAt(str, u, h, u0, h0, s){
   const g = FONT[str[ch]]; return !!g && g[row * 3 + cc] === '1';
 }
 // un pan de mur entre deux points : laine grise tricotee, barbeles, graffiti cote USC
-export function drawWallPiece(pa, pb, qa, qb, g, side){
+// (g : numero du graffiti dans GRAFFITI, -1 pour aucun ; le trace en cours passe directement un texte, souvent vide)
+export function drawWallPiece(pa: number, pb: number, qa: number, qb: number, gi: number | string, side: Side): void {
+  const g = typeof gi === 'number' ? (gi >= 0 ? GRAFFITI[gi % GRAFFITI.length] : '') : gi;
   const L = Math.hypot(qa - pa, qb - pb) || 1, na = -(qb - pb) / L * .8, nb = (qa - pa) / L * .8;
   SH.CUR = M.WALL;
-  const fn = (u, h, x, y) => {
+  const fn = (u: number, h: number, x: number, y: number): number => {
     if (h > 6.2) return 1;
     if ((u % 2.5) < .3) return 0;
     if (g){ const s = Math.min(.55, (L - 1) / (textW(g) + 1)); if (glyphAt(g, u, h, .8, 5.2, s)) return (bz(x, y) < 12) ? 1 : 0; }
@@ -161,14 +173,14 @@ export function drawWallPiece(pa, pb, qa, qb, g, side){
   const n = Math.ceil(L / .8);
   for (let k = 0; k <= n; k++){ const f = k / n, p = prj(pa + (qa - pa) * f, pb + (qb - pb) * f, 8.2 + ((k & 1) ? .6 : 0)); fput(Math.round(p[0]), Math.round(p[1]), 1); }
 }
-export function towerSpot(tw, t){ return [tw.a + Math.sin(t * .7 + tw.ph) * 14, tw.b + Math.cos(t * .35 + tw.ph) * 14]; }
-export function drawTower(tw, t){
+export function towerSpot(tw: WallTower, t: number): Vec2 { return [tw.a + Math.sin(t * .7 + tw.ph) * 14, tw.b + Math.cos(t * .35 + tw.ph) * 14]; }
+export function drawTower(tw: WallTower, t: number): void {
   const { a, b } = tw;
   SH.CUR = M.METAL;
   for (const [da, db] of [[-2.2,-2.2],[2.2,-2.2],[2.2,2.2],[-2.2,2.2]]) line3(a + da, b + db, 0, a + da * .7, b + db * .7, 16, 1);
   line3(a - 2.2, b + 2.2, 5, a + 2.2, b + 2.2, 11, 1); line3(a + 2.2, b - 2.2, 5, a + 2.2, b + 2.2, 11, 1);
-  boxS(a - 3, a + 3, b - 3, b + 3, 16, 21, (u, h, x, y) => (h > 1.8 && h < 3.6) ? ((Math.floor(u * 1.5) % 3 === 0) ? 0 : 1) : (bz(x, y) < 2 ? 1 : 0), 0);
-  boxS(a - 3.6, a + 3.6, b - 3.6, b + 3.6, 21, 22, 1, (x, y) => bz(x, y) < 4 ? 1 : 0);
+  boxS(a - 3, a + 3, b - 3, b + 3, 16, 21, (u: number, h: number, x: number, y: number) => (h > 1.8 && h < 3.6) ? ((Math.floor(u * 1.5) % 3 === 0) ? 0 : 1) : (bz(x, y) < 2 ? 1 : 0), 0);
+  boxS(a - 3.6, a + 3.6, b - 3.6, b + 3.6, 21, 22, 1, (x: number, y: number) => bz(x, y) < 4 ? 1 : 0);
   const top = prj(a, b, 23);
   pennant(Math.round(top[0]), Math.round(top[1]) - 4, tw.side, t, a);
   if (COLOR && SH.DAY) return;
@@ -181,10 +193,10 @@ export function drawTower(tw, t){
 
 /* ================= le phare : une tour a rayures, a poser sur la cote ================= */
 export const PL_H = 3, TOWER_H = 40, GYO = -PL_H - TOWER_H;
-export function lhBase(a, b){ const p = prj(a, b, 0); return [Math.round(p[0]), Math.round(p[1])]; }
-export function drawLighthouse(a, b, side){
+export function lhBase(a: number, b: number): Vec2 { const p = prj(a, b, 0); return [Math.round(p[0]), Math.round(p[1])]; }
+export function drawLighthouse(a: number, b: number, side: Side): void {
   const [ox, oy] = lhBase(a, b);
-  const P = (x, y, c) => fput(ox + x, oy + y, c);
+  const P = (x: number, y: number, c: number): void => fput(ox + x, oy + y, c);
   const PRX = 10, PRY = 4.5;
   SH.CUR = M.ROCK;
   for (let x = -PRX; x <= PRX; x++){
@@ -213,10 +225,10 @@ export function drawLighthouse(a, b, side){
     P(x, y, c);
   }
 }
-export function drawLantern(a, b){
+export function drawLantern(a: number, b: number): void {
   const [ox, oy] = lhBase(a, b), g = GYO;
   SH.CUR = M.LAMP;
-  const P = (x, y, c) => fput(ox + x, oy + y, c);
+  const P = (x: number, y: number, c: number): void => fput(ox + x, oy + y, c);
   for (let x = -7; x <= 7; x++) P(x, g, 1);
   for (let x = -6; x <= 6; x++) P(x, g + 1, (x & 1) ? 0 : 1);
   for (let x = -3; x <= 3; x++) P(x, g - 1, 0);
@@ -228,7 +240,7 @@ export function drawLantern(a, b){
   [4, 3, 2, 1].forEach((hw, r) => { const y = g - 9 - r; for (let x = -hw; x <= hw; x++) P(x, y, x === -hw ? 1 : x === hw ? 0 : (bay(x, y) < 5 ? 1 : 0)); });
   P(0, g - 13, 1); P(0, g - 14, 1); P(-1, g - 15, 1); P(0, g - 15, 1); P(1, g - 15, 1);
 }
-export function drawGlow(a, b, t){
+export function drawGlow(a: number, b: number, t: number): void {
   const [ox, oy] = lhBase(a, b), lx = ox, ly = oy + GYO - 5;
   SH.CUR = M.LAMP;
   const va = (PC + PS) / Math.SQRT2, vb = (PC - PS) / Math.SQRT2;
@@ -242,8 +254,8 @@ export function drawGlow(a, b, t){
 }
 
 /* ================= lampadaires le long des routes ================= */
-export const LAMP_POS = [];
-export function drawLampHeads(){
+export const LAMP_POS: Vec2[] = [];
+export function drawLampHeads(): void {
   SH.CUR = M.LAMP;
   for (const [a, b] of LAMP_POS){
     const p = prj(a, b, 0), hx = Math.round(p[0]) + 3, hy = Math.round(p[1]) - 13;
@@ -256,13 +268,13 @@ export function drawLampHeads(){
 }
 
 /* ================= le voilier qui fait le tour de l'ile, au large ================= */
-export function sailPos(t){ const ph = t * 0.01 + 1.2, c = Math.cos(ph), s = Math.sin(ph); return [IS.ca + (ISEED.ea + 190) * Math.sign(c) * Math.sqrt(Math.abs(c)), IS.cb + (ISEED.eb + 150) * Math.sign(s) * Math.sqrt(Math.abs(s))]; }
-export function drawSailboat(t){
+export function sailPos(t: number): Vec2 { const ph = t * 0.01 + 1.2, c = Math.cos(ph), s = Math.sin(ph); return [IS.ca + (ISEED.ea + 190) * Math.sign(c) * Math.sqrt(Math.abs(c)), IS.cb + (ISEED.eb + 150) * Math.sign(s) * Math.sqrt(Math.abs(s))]; }
+export function drawSailboat(t: number): void {
   const [a, b] = sailPos(t), [a2, b2] = sailPos(t + 1);
   const p = prj(a, b, 0), q = prj(a2, b2, 0);
   const bx = Math.round(p[0]), f = (q[0] - p[0]) >= 0 ? 1 : -1;
   const by = Math.round(p[1]) + (Math.sin(t * 2.2) > 0.35 ? -1 : 0);
-  const P = (x, y, c) => fput(bx + x * f, by + y, c);
+  const P = (x: number, y: number, c: number): void => fput(bx + x * f, by + y, c);
   SH.CUR = M.PIER;
   for (let x = -7; x <= 8; x++) P(x, -2, 1);
   for (let x = -7; x <= 7; x++) P(x, -1, (x === -7 || x === 7) ? 1 : 0);
@@ -277,18 +289,22 @@ export function drawSailboat(t){
 /* ================= vestiges catzi : ruines d'un ancien regime dechu, a fouiller ================= */
 // Avant les deux camps, l'ile etait tenue par le regime catzi de Catdolf. Il en reste des ruines dans la nature.
 // Une fois dans son territoire, on les fouille : elles rapportent des ressources et liberent le terrain.
-export const VEST_DEF = {
+export type VestKind = 'bunker' | 'canon' | 'depot' | 'statue';
+export interface VestDef { name: string; loot: { c: number; l: number; r: number }; desc: string }
+/** Un vestige sur la carte : sa sorte, sa position, son orientation, et s'il a deja ete fouille. */
+export interface Vestige { id: number; kind: VestKind; a: number; b: number; ang: number; looted: boolean; vest: true }
+export const VEST_DEF: Record<VestKind, VestDef> = {
   bunker: { name: 'Bunker catzi', loot: { c: 30, l: 40, r: 0 }, desc: 'Un bunker de béton de l’ancien régime catzi. Dedans : des rations et des pelotes de laine militaire.' },
   canon: { name: 'Canon rouillé', loot: { c: 0, l: 30, r: 10 }, desc: 'Un vieux canon catzi qui ne tirera plus jamais. On le démonte pour la ferraille.' },
   depot: { name: 'Dépôt abandonné', loot: { c: 60, l: 15, r: 0 }, desc: 'Des caisses oubliées par l’armée catzi. Les croquettes sont encore bonnes, ou presque.' },
   statue: { name: 'Statue renversée de Catdolf', loot: { c: 0, l: 80, r: 60 }, desc: 'L’ancien chef catzi, tombé de son socle depuis longtemps. Fondue, elle rapporte gros, et tout le monde est content de la voir disparaître.' }
 };
-export let VEST = [];
-export function buildVestiges(seed){
+export let VEST: Vestige[] = [];
+export function buildVestiges(seed: number): void {
   VEST = [];
   // une statue de Catdolf ; les autres vestiges sont d'autant plus nombreux que la carte est grande
-  const base = ['bunker', 'bunker', 'bunker', 'bunker', 'canon', 'canon', 'canon', 'depot', 'depot', 'depot'], reps = Math.max(1, Math.round(mapScale() * mapScale() * .8));
-  const kinds = ['statue']; for (let r = 0; r < reps; r++) kinds.push(...base);
+  const base: VestKind[] = ['bunker', 'bunker', 'bunker', 'bunker', 'canon', 'canon', 'canon', 'depot', 'depot', 'depot'], reps = Math.max(1, Math.round(mapScale() * mapScale() * .8));
+  const kinds: VestKind[] = ['statue']; for (let r = 0; r < reps; r++) kinds.push(...base);
   for (let k = 0, tries = 0; k < kinds.length && tries < 900 * reps; tries++){
     const a = IS.ca + (hash2(seed + tries * 7, 31) - .5) * ISEED.ea * 1.9, b = IS.cb + (hash2(seed - tries * 5, 57) - .5) * ISEED.eb * 1.9;
     const t = baseAt(a, b);
@@ -300,8 +316,8 @@ export function buildVestiges(seed){
     k++;
   }
 }
-export const vestAt = (a, b, r) => { let best = null, bd = r || 8; for (const v of VEST){ if (v.looted) continue; const d = Math.hypot(v.a + (v.kind === 'statue' ? 10 : 0) - a, v.b + (v.kind === 'statue' ? 5 : 0) - b); if (d < bd){ bd = d; best = v; } } return best; };
-export function vestDrawables(out){
+export const vestAt = (a: number, b: number, r?: number): Vestige | null => { let best: Vestige | null = null, bd = r || 8; for (const v of VEST){ if (v.looted) continue; const d = Math.hypot(v.a + (v.kind === 'statue' ? 10 : 0) - a, v.b + (v.kind === 'statue' ? 5 : 0) - b); if (d < bd){ bd = d; best = v; } } return best; };
+export function vestDrawables(out: Drawable[]): void {
   const s = SC;
   for (const v of VEST){
     if (v.looted) continue;
@@ -310,8 +326,8 @@ export function vestDrawables(out){
   }
 }
 // dessins : tout reste bas et abime, rien d'autre que des ruines
-export function drawVestige(v){
-  const a = v.a, b = v.b, rough = (x, y) => bz(x, y) < 5 ? 0 : 1;
+export function drawVestige(v: { kind: VestKind; a: number; b: number; ang: number }): void {
+  const a = v.a, b = v.b, rough = (x: number, y: number): number => bz(x, y) < 5 ? 0 : 1;
   if (v.kind === 'bunker'){
     SH.CUR = M.CONCRETE; SH.ACC = M.METAL;
     boxS(a - 9, a + 9, b - 6.5, b + 6.5, 0, 5, (u, h, x, y, k) => (h > 2.2 && h < 3.4 && u > 3 && u < ((k & 1) ? 10 : 15)) ? 5 : rough(x, y), (x, y) => bz(x, y) < 3 ? 0 : 1, 0);

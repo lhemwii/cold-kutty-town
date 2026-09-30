@@ -2,10 +2,10 @@ import { SH } from './00-shared.ts';
 import { BAYER, COLOR, GAME, GEO, GLOBE_ON, H, HOOKS, M, N, PC, PROJ_FIX, PS, RAYHIT, RP, SC, SHADOW_V, TAU, TX, TY, W, cam, clamp, dep, fb, fput, geoCast, geoProj, geoSet, getView, groundDelta, hash2, img, lb, litAt, mb, prj, px32, setProj, setView, state, unprj } from './01-core.js';
 import { GA0, GB0, GH, GQW, GSC, GW, TYPE_MAT, T_BEACH, T_DIRT, T_FOREST, T_GRASS, T_PIER, T_QUAY, T_ROAD, T_ROCK, T_SEA, T_WALK, cellOf, gPh, gSea, gTone, gType, gVar, mapScale } from './02-ground.ts';
 import { drawCarAng } from './03-buildings-base.js';
-import { VEST, drawGlow, drawLampHeads, drawLantern, drawSailboat, sailPos, towerSpot, treeDrawables } from './07-world.js';
+import { VEST, drawGlow, drawLampHeads, drawLantern, drawSailboat, sailPos, towerSpot, treeDrawables } from './07-world.ts';
 import { TC, TER, terIdx } from './08-territory.ts';
-import { CARS } from './09-roads.js';
-import { BEACONS, DECALS, LIGHTS_STATIC, STATIC_PARTS, catMat, catPixels, catPos } from './10-town.js';
+import { CARS } from './09-roads.ts';
+import { BEACONS, DECALS, LIGHTS_STATIC, STATIC_PARTS, catMat, catPixels, catPos } from './10-town.ts';
 /* ================= palette de la version couleur : pour chaque matiere, teinte sombre puis claire ================= */
 // palette de jour, couleurs realistes : pour chaque matiere, teinte de base puis teinte claire (bordures, reflets)
 export const PAL_HEX = [
@@ -305,6 +305,7 @@ export function zoomStep(dir, ax, ay){
   return setZoom(nz, ax, ay);
 }
 export function setZoom(nz, ax, ay, instant){
+  if (!Number.isFinite(nz)) return false;
   nz = clamp(nz, ZMIN(), SH.KMAX);
   SH.ZANCH = ax == null ? null : [ax, ay];
   if (Math.abs(nz - SH.ZT) < 1e-6 && !instant) return false;

@@ -4,10 +4,10 @@ import { T_SEA, baseAt, landDAt, nearestShore } from './02-ground.ts';
 import { pennant } from './03-buildings-base.js';
 import { TYPES } from './04-types.js';
 import { typeName } from './05-types-extra.js';
-import { GRAFFITI, cutTreesAlong, drawWallPiece, vestAt } from './07-world.js';
+import { GRAFFITI, cutTreesAlong, drawWallPiece, vestAt } from './07-world.ts';
 import { TER, influenceOf, rebuildLocks, sideAt } from './08-territory.ts';
-import { RW, addRoad, nearRoad, removeRoad, roadCost, roadProblem, sampleCurve, sampleLine, segDist, snapRoadPoint } from './09-roads.js';
-import { bldAt, buildParts, coastDir, makeBuilding, placeProblem, rebuildTown } from './10-town.js';
+import { RW, addRoad, nearRoad, removeRoad, roadCost, roadProblem, sampleCurve, sampleLine, segDist, snapRoadPoint } from './09-roads.ts';
+import { bldAt, buildParts, coastDir, makeBuilding, placeProblem, rebuildTown } from './10-town.ts';
 import { CLOCK, OV_ON, WEATHER, ZMIN, clampCam, mapDirtyAll, scene, screenToWorld, setZNow, setZoom, snapZoom, zoomStep } from './11-render.js';
 /* ================= outils du joueur : observer, construire, routes, Rideau de Laine, demolir ================= */
 /** @type {(id: string) => HTMLElement} */

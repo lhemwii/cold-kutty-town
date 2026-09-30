@@ -1,6 +1,11 @@
 // Etat partage entre modules : les variables que plusieurs modules modifient (zoom, dessin en cours, listes du monde),
 // et ce qu'un module appelle dans un module plus grand en numero (enregistre par ce dernier a son chargement).
 // Les types communs a tout le jeu sont declares ici, pour que chaque module puisse les importer.
+// (un import de type seul, meme d'un module plus grand en numero, ne change rien a l'ordre de chargement)
+import type { Road } from './09-roads.ts';
+import type { Wall, WallTower } from './07-world.ts';
+import type { Cat } from './10-town.ts';
+import type { Boat } from './16-boats.ts';
 
 /** Un camp : United Sands of Cats ou Cats Communist Republic. */
 export type Side = 'usc' | 'ccp';
@@ -27,12 +32,43 @@ export interface Building {
   active: boolean;
 }
 
+/** Une lumiere au sol la nuit : un disque (lampadaire, projecteur) ou un cone (phares d'une voiture). */
+export type Light =
+  | { kind: 'circle'; a: number; b: number; r: number; k: number; att: number; m?: number }
+  | { kind: 'cone'; a: number; b: number; da: number; db: number; tan: number; w0: number; len: number; k: number; att: number; m?: number };
+
+/** Une piece de decor statique (un morceau de batiment, un pan de mur, un lampadaire), triee par profondeur autour de (a, b). */
+export interface Part {
+  a: number; b: number;
+  /** decalage de tri en profondeur */
+  zb: number;
+  draw: (t: number) => void;
+  /** points (a, b, z a la suite) ajoutes a l'ombre portee */
+  shadow?: number[];
+  m?: number; side?: Side; lot?: Building;
+}
+/** Ce que renvoie le dessin d'un type de batiment : ses pieces, ses decors au sol, ses lumieres, son ombre, son phare. */
+export interface BuiltParts {
+  parts: Part[];
+  decals?: ((t: number) => void)[];
+  lights?: Light[];
+  shadowPts?: number[];
+  beacon?: number[];
+  /** batiment tourne : ramene un point du repere du batiment sur la carte */
+  turned?: (a: number, b: number) => [number, number];
+}
+
 /**
  * Ce que porte SH. Les champs deja convertis en TypeScript sont types ; les autres restent libres
  * le temps de la conversion (voir docs/PLAN.md, etape 0.19).
  */
 export interface Shared {
   BLD: Building[];
+  ROADS: Road[];
+  WALLS: Wall[];
+  WALL_TOWERS: WallTower[];
+  CATS: Cat[];
+  BOATS: Boat[];
   NIGHT: number;
   TOWN_VER: number;
   [name: string]: any;
