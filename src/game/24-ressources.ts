@@ -342,7 +342,7 @@ $('btnRes').addEventListener('click', () => { const el = $('xres'); el.hidden = 
 let resAcc = 0;
 HOOKS.step.push((dt: number) => { resAcc += dt; if (resAcc > .5){ resAcc = 0; renderResPanel(); } });
 // le bouton porte l'icone d'une pelote tricotee
-$('btnRes').innerHTML = ico('tricot');
+{ const ri = $('btnRes').querySelector('.res-ico'); if (ri) ri.innerHTML = ico('tricot'); }
 
 /* ---- bilan de fin de mois : ce qui a ete gagne et depense pendant le mois ---- */
 let monthSeen = -1, monthStart: number[] = [];

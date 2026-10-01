@@ -33,3 +33,4 @@ import './game/28-monde.ts';
 import './game/29-recherche.ts';
 import './game/30-armee.ts';
 import './game/31-espace.ts';
+import './game/32-diplomatie.ts';

@@ -102,10 +102,12 @@ SH.combatStep = (dt: number) => {
     // au repos : on vise l'ennemi qui passe a portee de vue
     if (acq && !u.order && u.pi >= u.path.length){
       let best: Unit | null = null, bd = d.sight * .8;
-      for (const e of UNITS){ if (e.side === u.side || e.dead || e.aboard) continue; const ed = UNIT_DEF[e.kind]; if (!canHit(d, ed || null)) continue; const dd = dist(u.a, u.b, e.a, e.b); if (dd < bd && sees(u.side, e.a, e.b)){ bd = dd; best = e; } }
+      for (const e of UNITS){ if (e.side === u.side || e.dead || e.aboard || (SH.atPeace && SH.atPeace(u.side, e.side))) continue; const ed = UNIT_DEF[e.kind]; if (!canHit(d, ed || null)) continue; const dd = dist(u.a, u.b, e.a, e.b); if (dd < bd && sees(u.side, e.a, e.b)){ bd = dd; best = e; } }
       if (best) u.order = { kind: 'attack', uid: best.id, auto: true };
     }
     const o = u.order; if (!o || o.kind !== 'attack' || u.cool > 0) continue;
+    // en treve : une attaque voulue la rompt (32-diplomatie)
+    if (SH.atPeace && SH.atPeace(u.side, u.side === 'usc' ? 'ccp' : 'usc')){ if (o.auto){ u.order = null; continue; } if (SH.breakPeace) SH.breakPeace(u.side); }
     if (o.uid){
       const t = unitById(o.uid); if (!t || t.dead) continue; const td = UNIT_DEF[t.kind];
       if (!canHit(d, td || null) || dist(u.a, u.b, t.a, t.b) > d.range) continue;
@@ -124,7 +126,7 @@ SH.combatStep = (dt: number) => {
     const df = DEF[l.type]; if (!df || !l.done) continue;
     const k = 'def' + l.id, cd = (DEFCOOL.get(k) || 0) - dt; DEFCOOL.set(k, cd); if (cd > 0) continue;
     let best: Unit | null = null, bd = df.range;
-    for (const e of UNITS){ if (e.side === l.side || e.dead || e.aboard) continue; const ed = UNIT_DEF[e.kind]; if (!ed || !df.vs.includes(ed.domain)) continue; const dd = dist(l.ca, l.cb, e.a, e.b); if (dd < bd){ bd = dd; best = e; } }
+    for (const e of UNITS){ if (e.side === l.side || e.dead || e.aboard || (SH.atPeace && SH.atPeace(l.side, e.side))) continue; const ed = UNIT_DEF[e.kind]; if (!ed || !df.vs.includes(ed.domain)) continue; const dd = dist(l.ca, l.cb, e.a, e.b); if (dd < bd){ bd = dd; best = e; } }
     if (!best) continue;
     DEFCOOL.set(k, df.rate); hitUnit(best, df.atk, l.side); shoot(l.ca, l.cb, df.z, best.a, best.b, zOf(best), df.atk > 12);
   }
@@ -135,13 +137,14 @@ SH.combatStep = (dt: number) => {
     const d = UNIT_DEF[u.kind]; if (!d || d.domain !== 'terre' || d.atk <= 0) continue;
     const owner = sideAt(u.a, u.b); if (!owner || owner === u.side) continue;
     const near = (SH.BLD as Building[]).find(l => l.side === owner && l.done && bldDist(l, u.a, u.b) < 22);
-    if (near){ const R0 = RES[owner], R1 = RES[u.side], take = u.kind === 'jeep' ? 6 : 3, c = Math.min(take, R0.croq), w = Math.min(take, R0.laine); R0.croq -= c; R0.laine -= w; R1.croq += c; R1.laine += w; if (u.side === GAME.side && (c + w) > 0 && SH.floatText) SH.floatText(u.a, u.b, '+' + Math.round(c + w) + ' pillé'); if (owner === GAME.side) warn('On pille ' + typeName(near.type, owner).toLowerCase() + ' !', near.ca, near.cb); }
+    if (near){ if (SH.onHostile) SH.onHostile(u.side, owner, 1); const R0 = RES[owner], R1 = RES[u.side], take = u.kind === 'jeep' ? 6 : 3, c = Math.min(take, R0.croq), w = Math.min(take, R0.laine); R0.croq -= c; R0.laine -= w; R1.croq += c; R1.laine += w; if (u.side === GAME.side && (c + w) > 0 && SH.floatText) SH.floatText(u.a, u.b, '+' + Math.round(c + w) + ' pillé'); if (owner === GAME.side) warn('On pille ' + typeName(near.type, owner).toLowerCase() + ' !', near.ca, near.cb); }
     // personne pour defendre a la ronde : la case passe a l'envahisseur
     else if (!UNITS.some(e => e.side === owner && !e.dead && dist(e.a, e.b, u.a, u.b) < 50)) claimDisc(u.a, u.b, 10, u.side);
   }
 };
 function hitUnit(t: Unit, atk: number, by: Side){
   const td = UNIT_DEF[t.kind]; if (!td) return;
+  if (SH.onHostile) SH.onHostile(by, t.side, 1);
   t.hp -= atk; t.flash = .2;
   if (t.hp <= 0){ t.dead = true; boom(t.a, t.b, td.domain === 'mer' ? 10 : 6); if (t.cargo) for (const id of t.cargo){ const c = unitById(id); if (c) c.dead = true; } if (t.side === GAME.side) warn(unitName(t.kind, t.side) + ' perdu' + (td.n && td.n > 1 ? 's' : '') + '.', t.a, t.b); else if (by === GAME.side) SH.sfx('demolish', t.a, t.b); }
   else if (t.side === GAME.side) warn('Nos unités sont attaquées.', t.a, t.b);
@@ -149,6 +152,7 @@ function hitUnit(t: Unit, atk: number, by: Side){
 // a zero : les soldats prennent le batiment, le reste le detruit ; un hotel de ville tombe, pas plus
 function hitBuilding(l: Building, atk: number, by: Unit){
   const mx = bhpMax(l); l.hp = bhp(l) - atk; HIT_T.set(l.id, GAME.t);
+  if (SH.onHostile) SH.onHostile(by.side, l.side, 2);
   if (l.side === GAME.side) warn(typeName(l.type, l.side) + ' attaqué' + (TYPES[l.type] && TYPES[l.type].fem ? 'e' : '') + ' !', l.ca, l.cb);
   if (l.hp > 0) return;
   const side = by.side, old = l.side;

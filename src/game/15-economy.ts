@@ -177,6 +177,8 @@ export function ecoTally(side: Side): void {
     if (e.stock) cap += e.stock * mult;
     if (e.cat === 'prestige') prestige += 5 * mult;
   }
+  // habitants venus d'ailleurs ou partis (fuites a travers le Rideau, immigration par le port ; 32-diplomatie)
+  if (SH.popAdj) pop = Math.max(0, pop + SH.popAdj(side));
   eauU += pop * .5;
   const elecCov = elecU ? clamp(elecP / elecU, 0, 1) : 1, eauCov = eauU ? clamp(eauP / eauU, 0, 1) : 1;
   // les habitants se repartissent entre les metiers selon les priorites du joueur

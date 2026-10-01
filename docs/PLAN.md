@@ -315,14 +315,17 @@ Chaque étape laisse le jeu jouable. L’ordre proposé : d’abord ce qui exist
 - [x] Les espions de l’autre camp agissent de temps en temps (vol de recherche, sabotage), quand il a une agence.
 - [ ] À revoir ensemble : voir la fusée et les satellites dans le ciel à chaque jalon, des missions d’espion plus variées (retourner un habitant, faux renseignements), l’IA qui forme de vrais espions.
 
-## Étape 11. Le commerce et la diplomatie
+## Étape 11. Le commerce et la diplomatie (fait)
 
-- [ ] Le Rideau de Laine comme lieu où l’on parle à l’ennemi : portes, checkpoint, ambassade.
-- [ ] Échanges entre l’USC et la CCR en Catcoins, au checkpoint.
-- [ ] Nations alliées au large, par le port : importer des biens et des habitants, exporter les surplus.
-- [ ] Traités (accords commerciaux, trêve, échanges) avec un temps d’acceptation ; l’IA dit pourquoi elle refuse.
-- [ ] Les habitants s’enfuient vers le camp où ils vivent mieux ; points de passage du Rideau (mirador, haut-parleurs, pont des échanges, tunnel d’évasion).
-- [ ] Capitulation.
+- [x] Le Rideau de Laine est l’endroit où l’on parle à l’ennemi : il faut un checkpoint ou la nouvelle Ambassade à son bord pour proposer un traité. Écran P (Pourparlers, aussi dans le dock).
+- [x] L’humeur de l’autre camp (glaciale, froide, tiède, cordiale, chaleureuse) baisse quand on l’attaque, remonte avec le temps et le commerce.
+- [x] Traités : accord commercial (des Catcoins pour les deux camps, marché du checkpoint ouvert), trêve de cinq minutes (plus de combat ; une attaque la rompt), ouverture des frontières, paix. L’autre camp réfléchit trente secondes à une minute, puis accepte, ou refuse en disant pourquoi (« Le Plan prévoit l’autosuffisance… »). Il propose aussi de lui-même (accord, trêve quand il perd, paix quand tout va bien).
+- [x] Marché du checkpoint : vendre et acheter croquettes, laine, ronrons, pâté, tricot, charbon, pétrole en Catcoins (meilleurs prix avec le pont des échanges).
+- [x] Au large, par le port : les nations amies (les Îles de la Truite pour l’USC, la République des Harengs pour la CCR) achètent les surplus et vendent ce qui manque, plus cher ; on peut y accueillir des habitants. Un cargo arrive au port.
+- [x] Les habitants passent vers le camp où l’on vit le mieux (bien-être : ronrons, loisirs, eau, pâté, herbe à chat, famine). Le Rideau les retient ; points de passage au bord du Rideau : mirador (moins de départs), haut-parleurs (plus d’arrivées), tunnel d’évasion (le mur d’en face ne retient plus), pont des échanges.
+- [x] Capitulation : l’exiger (acceptée seulement par un camp à bout de forces : sans hôtel de ville, très affaibli), ou capituler soi-même (deux clics).
+- [x] Les boutons Ressources, Recherche et Pourparlers passent dans le dock, avec leur nom.
+- [ ] À revoir ensemble : les prix du marché, le rythme des fuites, une vraie scène au checkpoint (files de chats, échanges visibles), des nations amies plus vivantes.
 
 ## Étape 12. Gagner, et les types de partie
 

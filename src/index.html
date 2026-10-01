@@ -30,8 +30,6 @@
     <button class="res" type="button" data-k="l" aria-describedby="resPop"><span class="ico" data-ico="laine"></span><span class="res-lab">Laine</span><b id="vL">0</b><i id="dL">+0</i></button>
     <button class="res" type="button" data-k="r" aria-describedby="resPop"><span class="ico" data-ico="paw"></span><span class="res-lab">Ronrons</span><b id="vR">0</b><i id="dR">+0</i></button>
     <div class="res pop" title="Habitants et emplois"><span class="ico" data-ico="pop"></span><b id="vP">0</b><i id="dP">habitants</i></div>
-    <button class="btn k res-more sci-btn" type="button" id="btnSci" aria-pressed="false" aria-label="Recherche" title="Recherche (E)"><span class="sci-ico"></span><i class="sci-bar"><i id="sciBar"></i></i></button>
-    <button class="btn k res-more" type="button" id="btnRes" aria-pressed="false" aria-label="Ressources" title="Ressources : luxe, Catcoins, charbon, électricité, eau..."></button>
   </section>
   <section class="hud-race panel" id="hudRace" aria-label="Territoire des deux camps" title="Part de l’île tenue par chaque camp. Elle compte dans le score de fin de partie.">
     <span class="flag rf" data-flag="usc"></span>
@@ -106,6 +104,7 @@
 <section class="units panel" id="units" aria-label="Unités choisies" hidden></section>
 <section class="units panel" id="card" aria-label="Fiche" hidden></section>
 <section class="sci panel" id="sci" role="dialog" aria-label="Recherche" hidden></section>
+<section class="sci panel" id="dip" role="dialog" aria-label="Pourparlers" hidden></section>
 
 <div class="tip" id="tip" hidden></div>
 
@@ -165,6 +164,10 @@
     <button class="btn tool" type="button" data-tool="rail" aria-pressed="false" title="Voie ferrée (V)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 1h1.5L4 15H2.5zM10.5 1H12l1.5 14H12z" fill="currentColor"/><path d="M3 3h10v1.4H3zM3 7h10v1.4H3zM2.6 11h10.8v1.4H2.6z" fill="currentColor"/></svg><span>Voie</span><kbd>V</kbd></button>
     <button class="btn tool" type="button" data-tool="wall" aria-pressed="false" title="Rideau de Laine (M)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 5h14v9H1z" fill="currentColor"/><path d="M1 8h14v1H1zM1 11h14v1H1zM5 5h1v3H5zM10 5h1v3h-1zM3 9h1v2H3zM8 9h1v2H8zM13 9h1v2h-1z" fill="var(--ink)"/><path d="M1 3l2 1 2-1 2 1 2-1 2 1 2-1 2 1" stroke="currentColor" fill="none"/></svg><span>Rideau</span><kbd>M</kbd></button>
     <button class="btn tool" type="button" data-tool="demolish" aria-pressed="false" title="Démolir (X)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 2l11 11-1 1L2 3zM13 2l1 1L3 14l-1-1z" fill="currentColor"/></svg><span>Démolir</span><kbd>X</kbd></button>
+    <span class="tools-sep"></span>
+    <button class="btn tool" type="button" id="btnRes" aria-pressed="false" title="Ressources : luxe, Catcoins, charbon, électricité, eau, métiers"><span class="pix-ico res-ico"></span><span>Ressources</span></button>
+    <button class="btn tool sci-btn" type="button" id="btnSci" aria-pressed="false" title="Recherche (E)"><span class="pix-ico sci-ico"></span><span>Recherche</span><kbd>E</kbd><i class="sci-bar"><i id="sciBar"></i></i></button>
+    <button class="btn tool" type="button" id="btnDip" aria-pressed="false" title="Pourparlers : traités, commerce (P)"><span class="pix-ico dip-ico"></span><span>Pourparlers</span><kbd>P</kbd></button>
     <span class="tools-sep"></span>
     <button class="btn tool" type="button" id="btnUndo" disabled title="Rien à annuler"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3L1 7l5 4V8.5c3.5 0 6 1 7.5 4C13 8 10.5 5.5 6 5.5z" fill="currentColor"/></svg><span>Annuler</span><kbd>Ctrl Z</kbd></button>
   </nav>

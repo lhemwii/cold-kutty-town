@@ -524,3 +524,22 @@ body.playing .home{background:rgba(12,26,48,.55)}
 .sr-row[data-side="usc"] i.on{background:var(--usc)}
 .sr-row[data-side="ccp"] i.on{background:var(--ccp)}
 .sr-lab{font:700 11px/1 var(--text)}
+
+/* pourparlers (etape 11) */
+.dip-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.dip-box{display:grid;gap:6px;align-content:start}
+.dip-box h3{margin:0;font:700 11px/1.2 var(--display);letter-spacing:.06em;text-transform:uppercase}
+.dip-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
+.dip-row span{display:grid;gap:2px}
+.dip-row small{font:600 11px/1.3 var(--text)}
+.dip-row i{font:700 11px/1.2 var(--text);font-style:normal}
+.dip-on{color:#2e7d45}
+.dip-good{display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center}
+.dip-good .btn,.dip-row .btn{padding:6px 8px;font-size:12px}
+.dip-offer{display:grid;gap:6px;padding:8px;border:2px solid #2e7d45}
+.dip-offer div{display:flex;gap:6px}
+#btnDip.alert{outline:3px solid #2e7d45;outline-offset:1px}
+
+.tool .pix-ico{display:block;width:16px;height:16px}
+.tool .pix-ico svg,.tool .pix-ico canvas,.tool .pix-ico img{width:16px;height:16px}
+.tool.sci-btn .sci-bar{left:6px;right:6px;bottom:3px}

@@ -119,6 +119,8 @@ Proposition à valider, faite à partir de la vision du [PRD](PRD.md).
 | **Centre atomique et silo** [existe] P3<br>Recherche : Bombe atomique. Une bombe pour 20 uranium ; le silo la lance. | Bâtiment secret, trèfle jaune. | Combinat atomique secret. |
 | **Agence de renseignement** [existe] P2<br>Coût : 80 laine, 40 ronrons. Recherche : Espionnage.<br>Forme les espions. | Immeuble de pierre à antennes, AGENCE. | Bureau du Peuple, étoile rouge. |
 | **Station d’écoute** [existe] P3<br>Coût : 70 laine, 30 ronrons. Recherche : Écoute.<br>Voit les unités ennemies dans un grand rayon. | Bâtiment bas et grands dômes blancs. | Les mêmes. |
+| **Ambassade** [existe] P2<br>Coût : 60 laine, 20 ronrons. Au bord du Rideau.<br>Pour parler à l’autre camp (traités). | Bâtiment clair, deux drapeaux. | Ambassade du Peuple. |
+| **Mirador, haut-parleurs, pont des échanges, tunnel d’évasion** [existe] P2<br>Au bord du Rideau : moins de départs, plus d’arrivées, de meilleurs prix, le mur d’en face contourné. | Bois, métal, poutrelles. | Les mêmes, du Peuple. |
 | **Ponton de pêche** [existe] P2<br>Coût : 20 laine.<br>Au bord d’une rivière ou d’un étang : 6 croquettes. | Ponton de bois et cabane. | Ponton du kolkhoze. |
 | **Dépôt de bus** [nouveau] P3<br>Coût : 40 laine.<br>Habitants plus mobiles. | Dépôt de bus jaunes. | Dépôt de trolleybus. |
 

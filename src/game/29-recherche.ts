@@ -212,7 +212,7 @@ export function renderSci(){
 export function toggleSci(on?: boolean){
   const el = $('sci'), show = on == null ? el.hidden : on;
   el.hidden = !show; btn.setAttribute('aria-pressed', String(show));
-  if (show) renderSci();
+  if (show){ const d = document.getElementById('dip'); if (d) d.hidden = true; renderSci(); }
 }
 btn.addEventListener('click', () => { toggleSci(); SH.sfx('click'); });
 SH.KEYS = SH.KEYS || {};
