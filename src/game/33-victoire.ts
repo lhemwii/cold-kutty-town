@@ -20,7 +20,7 @@ const WIN_DESC: Record<WinKind, string> = {
   militaire: 'Plus aucun hôtel de ville à l’autre camp, ou sa capitulation.',
   science: 'Réussir le premier les cinq jalons de la science.',
   sociale: 'Au moins 150 habitants, deux fois plus que l’autre camp, sans famine, pendant trois minutes.',
-  economie: '4 000 Catcoins et une production une fois et demie celle de l’autre camp, pendant trois minutes.',
+  economie: '2 500 Catcoins et une production une fois et demie celle de l’autre camp, pendant trois minutes.',
   circonstance: 'Tenir 70 % de l’île deux minutes, ou dix minutes de paix signée (le meilleur score l’emporte).',
 };
 export interface GameOpt { minutes: number; wins: Record<WinKind, boolean> }
@@ -61,7 +61,7 @@ export function progress(k: WinKind, s: Side): number {
     case 'militaire': return maxCities[o] ? 1 - cityCount(o) / maxCities[o] : 0;
     case 'science': return SPACE[s].stage / 5;
     case 'sociale': return R.short ? 0 : Math.min(1, R.pop / Math.max(150, Ro.pop * 2));
-    case 'economie': { const pr = Math.max(0, R.rc + R.rl + R.rr), po = Math.max(1, Ro.rc + Ro.rl + Ro.rr); return Math.min(1, R.x.coins / 4000, pr / po / 1.5); }
+    case 'economie': { const pr = Math.max(0, R.rc + R.rl + R.rr), po = Math.max(1, Ro.rc + Ro.rl + Ro.rr); return Math.min(1, R.x.coins / 2500, pr / po / 1.5); }
     case 'circonstance': return Math.max(Math.min(1, terPct(s) / .7), treatyOn('paix') ? Math.min(1, (GAME.t - (PEACE_T ?? GAME.t)) / 600) : 0);
   }
 }

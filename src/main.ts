@@ -35,3 +35,4 @@ import './game/30-armee.ts';
 import './game/31-espace.ts';
 import './game/32-diplomatie.ts';
 import './game/33-victoire.ts';
+import './game/34-ecran.ts';

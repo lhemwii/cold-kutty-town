@@ -54,6 +54,7 @@ La conversion depuis l’ancienne portée unique a été faite par un script (an
 | `31-espace.ts` | Étape 10 : les cinq jalons de la science (`SPACE_STEPS` de 15-economy, lancés quand `SH.spaceReady` le dit : recherche faite et lancement commandé et payé), satellites dans `SH.FOG_SOURCES`, course à l’espace dans le HUD (`#spaceRace`) ; agence, station d’écoute, espions (`SH.hiddenUnit`, missions par `SH.unitActions` et `SH.unitAct` du panneau des unités), sabotage (`SH.prodMult`), espions de l’autre camp. |
 | `32-diplomatie.ts` | Étape 11 : humeur et traités (`DIP`, `SH.atPeace` et `SH.breakPeace` lus par le combat, `SH.onHostile`), propositions avec délai et raisons du refus, propositions de l’autre camp, marché du checkpoint et commerce au large (Catcoins), habitants qui passent d’un camp à l’autre (`SH.popAdj`, ajouté au compte des habitants dans 15-economy), points de passage, capitulation (`SH.onCapitulate`). Écran `#dip` (P). |
 | `33-victoire.ts` | Étape 12 : options de la partie (`OPT` : durée du Blitz, victoires cochées ; prises dans le formulaire de nouvelle partie, gardées dans la sauvegarde), progression et seuils de chaque victoire, `SH.checkWin` (appelé chaque seconde par 21-main), score, fin du Blitz, `SH.onCapitulate`, succès, écran de la course aux victoires (`#vic`, clic sur le bloc du territoire ou O). |
+| `34-ecran.ts` | Étape 13 : luxe et Catcoins dans le HUD, écran d’aide (H), tutoriel du premier lancement (clé `ckt-tuto`), dock repliable et appui long au téléphone. |
 
 ## Hors des modules numérotés
 

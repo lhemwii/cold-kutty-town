@@ -329,20 +329,21 @@ Chaque étape laisse le jeu jouable. L’ordre proposé : d’abord ce qui exist
 
 ## Étape 12. Gagner, et les types de partie (fait, à équilibrer)
 
-- [x] Cinq victoires, chacune cochée ou non dans « Nouvelle partie » : militaire (plus un hôtel de ville à l’autre camp, ou sa capitulation), scientifique (le premier aux cinq jalons), sociale (au moins 150 habitants, deux fois plus que l’autre camp, sans famine, trois minutes), économique (4 000 Catcoins et une production une fois et demie celle de l’autre camp, trois minutes), de circonstance (70 % de l’île deux minutes, ou dix minutes de paix signée : le meilleur score l’emporte).
+- [x] Cinq victoires, chacune cochée ou non dans « Nouvelle partie » : militaire (plus un hôtel de ville à l’autre camp, ou sa capitulation), scientifique (le premier aux cinq jalons), sociale (au moins 150 habitants, deux fois plus que l’autre camp, sans famine, trois minutes), économique (2 500 Catcoins et une production une fois et demie celle de l’autre camp, trois minutes), de circonstance (70 % de l’île deux minutes, ou dix minutes de paix signée : le meilleur score l’emporte).
 - [x] Types de partie : Sans fin (jusqu’à une victoire) et Blitz de 20, 40 ou 60 minutes (le temps restant s’affiche sous l’horloge ; à la fin, le meilleur score gagne). Le score additionne territoire, habitants, recherches, jalons, Catcoins, production, villes et force.
 - [x] La course aux victoires : un clic sur le bloc du territoire (ou O) montre, pour chaque victoire, où en est chaque camp et le temps qu’il lui reste à tenir.
 - [x] Succès redéfinis (`src/platform/achievements.ts`) : une deuxième ville, un premier train, dix recherches, un chat sur la Lune, la paix, une recherche volée, vingt transfuges, chacune des victoires, gagner un Blitz.
 - [~] Équilibrage : une partie jouée par l’IA des deux côtés sert de mesure (voir l’étape 16) ; les seuils restent à régler en jouant.
 
-## Étape 13. L’écran, deuxième version
+## Étape 13. L’écran, deuxième version (fait)
 
-- [ ] Revoir le HUD une fois les étapes 2 à 12 posées : moins de boutons, plus d’informations. Retirer l’outil Observer (sans outil choisi, on sélectionne). Faire une place à l’onglet Ressources, au luxe (pâté, tricot), à la recherche, aux unités sélectionnées.
-- [ ] Tutoriel au premier lancement.
+- [x] HUD revu : plus d’outil Observer (sans outil, on choisit ; Échap y revient) ; Ressources, Recherche (avec sa barre d’avancement) et Pourparlers dans le dock ; le luxe (pâté, tricot) et les Catcoins dans le bloc des ressources ; la course à l’espace dans le bloc du territoire, qui ouvre la course aux victoires ; les unités choisies dans leur panneau.
+- [x] Tutoriel au premier lancement : sept étapes qui avancent seules quand on fait ce qu’elles disent (QG, maison, route, nourriture, laine, recherche, victoires) ; on peut passer ou fermer, et le relancer depuis l’aide.
 - [x] Icônes pixel pour chaque catégorie du menu de construction (étape 0.20).
-- [~] Raccourcis clavier : écrits sur les outils (étape 0.20) ; reste un écran d’aide.
-- [ ] Vraie version téléphone (dock repliable, gestes).
-- [ ] Logo en SVG avec la tête de chat.
+- [x] Raccourcis clavier : écrits sur les outils, et un écran d’aide (H, ou le bouton « ? » du rail de droite) qui les donne tous.
+- [x] Téléphone : le dock se replie (bouton Outils) et passe sur deux rangées ouvert ; l’appui long fait le clic droit (envoyer les unités, arrêter un tracé) ; panneaux à la hauteur de l’écran.
+- [x] Logo en SVG : une tête de chat mi-bleue mi-rouge, sur l’écran d’accueil.
+- [ ] À revoir ensemble : la place du tutoriel au téléphone (il cache une partie de l’île), la règle du jeu dans l’accueil, une vraie maquette du HUD pour la suite.
 
 ## Étape 14. Vie et contenu
 
