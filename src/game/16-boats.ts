@@ -19,7 +19,7 @@ export function buildNav(): void {
   NAV.ok = new Uint8Array(NAV.W * NAV.H);
   for (let y = 0; y < NAV.H; y++) for (let x = 0; x < NAV.W; x++){
     const a = NAV.A0 + (x + .5) * NS, b = NAV.B0 + (y + .5) * NS;
-    NAV.ok[y * NAV.W + x] = seaDAt(a, b) >= 9 && seaDAt(a - 3, b - 3) >= 4 && seaDAt(a + 3, b + 3) >= 4 && seaDAt(a - 3, b + 3) >= 4 && seaDAt(a + 3, b - 3) >= 4 ? 1 : 0;
+    NAV.ok[y * NAV.W + x] = (seaDAt(a, b) >= 9 && seaDAt(a - 3, b - 3) >= 4 && seaDAt(a + 3, b + 3) >= 4 && seaDAt(a - 3, b + 3) >= 4 && seaDAt(a + 3, b - 3) >= 4) || (SH.riverNav && SH.riverNav(a, b)) ? 1 : 0;
   }
 }
 export const navIdx = (a: number, b: number): number => { const x = Math.floor((a - NAV.A0) / NS), y = Math.floor((b - NAV.B0) / NS); return (x < 0 || y < 0 || x >= NAV.W || y >= NAV.H) ? -1 : y * NAV.W + x; };
@@ -237,7 +237,7 @@ HOOKS.dyn.push((t: number, list: object[]) => {
     if (b.state === 'gone') continue;
     const q = prj(b.a, b.b, 0); if (q[0] < -60 || q[0] > W + 60 || q[1] < -40 || q[1] > H + 40) continue;
     const f = b.kind === 'barge' ? () => drawBarge(b, t) : b.kind === 'cargo' ? () => drawCargo({ a: b.a, b: b.b, ang: b.ang, L: 40, W: 9, seed: b.id % 5, side: b.side }, t) : () => drawFishing(b, t);
-    out.push({ d: dep(b.a, b.b), f, a: b.a, b: b.b, big: true });
+    out.push({ d: dep(b.a, b.b), f, a: b.a, b: b.b, big: true, side: b.side });
   }
   for (let k = CREWS.length - 1; k >= 0; k--){ const c = CREWS[k]; if (GAME.t - c.t0 > 7){ CREWS.splice(k, 1); continue; } out.push({ d: dep(c.a1, c.b1) + 1, a: c.a1, b: c.b1, f: () => drawCrew(c, t) }); }
 });

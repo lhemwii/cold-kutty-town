@@ -231,7 +231,9 @@ export function saveSoon(){
 export function loadGame(d: SaveData | null){
   // version 8 : quatre directions pour tous les batiments ; version 9 : seize pour ceux qui ne sont pas sur la cote
   if (!d || (d.v !== 8 && d.v !== 9)) return false;
-  newWorld(d.seed | 0, d.size, d.conf);
+  // le monde se refait depuis la graine ; une partie d'avant les rivieres (etape 7) se refait sans elles
+  SH.LOAD_EXT = d.ext && typeof d.ext === 'object' ? d.ext : {};
+  try { newWorld(d.seed | 0, d.size, d.conf); } finally { SH.LOAD_EXT = null; }
   GAME.side = d.side === 'ccp' ? 'ccp' : 'usc'; GAME.rival = other(GAME.side); GAME.t = +d.t || 0; SH.CAL.m = clamp(d.cal | 0, 0, 11); CLOCK.h = +d.h || 10;
   SIDES.forEach((s, k) => { const r = d.res && d.res[k]; if (r){ SH.RES[s].croq = +r[0] || 0; SH.RES[s].laine = +r[1] || 0; SH.RES[s].ron = +r[2] || 0; } });
   for (const t of String(d.trees || '').split(',')){ const i = +t; if (t !== '' && TREES.list[i]) TREES.list[i].alive = false; }
@@ -337,6 +339,8 @@ export function chooseLanding(a: number, b: number){
     for (let k = 0; k < 3; k++){
       const d: Vec2 = [off[0] + (k - 1) * 26, off[1] + (k - 1) * 18];
       const b: Boat | null = SH.sendBarge(side, d, [p[0] + (k - 1) * 10, p[1] + (k - 1) * 6], k === 1 ? 'qg' : 'crew');
+      // pas de route en mer jusque-la : le QG se batit tout de suite
+      if (!b && k === 1) landHQ(side, p[0], p[1]);
       if (b && k !== 1) b.onArrive = (bb) => { bb.state = 'landed'; bb.landT = GAME.t; if (bb.shore) CREWS.push({ side: bb.side, a0: bb.a, b0: bb.b, a1: bb.shore[0], b1: bb.shore[1], t0: GAME.t }); };
       if (b && side === GAME.side && k === 1) cam.follow = Object.assign((t: number): Vec2 | null => b.state === 'go' ? [b.a, b.b] : null, { live: true });
     }

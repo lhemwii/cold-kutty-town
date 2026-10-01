@@ -83,6 +83,28 @@ export function treeSpr(r: number){
     }
   });
 }
+// les autres arbres (etape 7) : pin en etages, palmier a palmes, touffe de roseaux
+const KIND_SPR: Record<string, Sprite> = {};
+export function kindSpr(k: number, r: number): Sprite {
+  const key = k + ':' + r; if (KIND_SPR[key]) return KIND_SPR[key];
+  return KIND_SPR[key] = makeSprite(put => {
+    if (k === 1){
+      for (let y = -2; y <= 0; y++){ put(0, y, 1); put(1, y, 0); }
+      const hh = r * 3 + 3;
+      for (let y = 0; y < hh; y++){
+        const tier = y % Math.max(3, r), w = Math.round((y + 1) / hh * (r + 1.5)) - Math.floor(tier / 2);
+        for (let dx = -w; dx <= w; dx++) put(dx, -3 - hh + y, dx < 0 || tier === 0 ? 1 : (bay(dx + 8, y) < 5 ? 1 : 0));
+      }
+    } else if (k === 2){
+      const th = r * 2 + 4;
+      for (let y = 0; y < th; y++){ const x = Math.round(Math.sin(y / th * 1.6) * 2); put(x, -y, y & 1 ? 1 : 0); }
+      const tx = Math.round(Math.sin(1.6) * 2), ty = -th;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [1, .5], [-1, .5], [.6, -.6], [-.6, -.6]]) for (let k2 = 1; k2 <= r + 2; k2++) put(tx + Math.round(dx * k2), ty + Math.round(dy * k2 + (k2 * k2) * .12), k2 < 2 ? 1 : 0);
+    } else {
+      for (let s = -2; s <= 2; s++){ const h = 3 + ((s * 7 + 9) % 3); for (let y = 0; y < h; y++) put(s + (y > h - 2 ? Math.sign(s) : 0), -y, y === h - 1 ? 1 : 0); }
+    }
+  });
+}
 export const LAMP_SPR = makeSprite(put => {
   put(-1, 0, 1); put(0, 0, 1); put(1, 0, 1);
   for (let y = -13; y < 0; y++){ put(0, y, 1); put(1, y, 0); }

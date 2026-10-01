@@ -108,6 +108,8 @@ Proposition à valider, faite à partir de la vision du [PRD](PRD.md).
 | **Tunnel** [nouveau] P2<br>Coût : beaucoup de laine.<br>Traverse une montagne. | Entrée à fronton. | Entrée à étoile. |
 | **Gare et voie ferrée** [existe] P2<br>Coût : 40 laine et 10 ronrons la gare ; la voie, de la laine au pas (ponts et tunnels plus chers).<br>Deux gares sur un même réseau : un train fait la navette et relie leurs villes (une ville sans lien perd la moitié de sa production). | Gare de briques à horloge, marquise sur le quai. | Gare du Peuple en béton à étoile, enseigne VOKZAL. |
 | **Station de métro** [existe] P3<br>Coût : 35 laine, 15 ronrons. Entretien : électricité.<br>Reliée aux deux stations les plus proches (280 pas) : elle distrait le quartier, d’autant plus qu’elle a de lignes. | Bouche de métro à rambarde verte et globes, SUBWAY. | Pavillon de pierre à coupole et grand M rouge. |
+| **Barrage** [existe] P2<br>Coût : 70 laine, 20 ronrons.<br>Au bord d’une rivière : 16 d’électricité, sans charbon. | Barrage de béton, enseigne DAM. | Barrage du Plan, enseigne GES. |
+| **Ponton de pêche** [existe] P2<br>Coût : 20 laine.<br>Au bord d’une rivière ou d’un étang : 6 croquettes. | Ponton de bois et cabane. | Ponton du kolkhoze. |
 | **Dépôt de bus** [nouveau] P3<br>Coût : 40 laine.<br>Habitants plus mobiles. | Dépôt de bus jaunes. | Dépôt de trolleybus. |
 
 ## Recherche et espace

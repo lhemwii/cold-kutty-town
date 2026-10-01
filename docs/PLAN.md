@@ -275,12 +275,15 @@ Chaque étape laisse le jeu jouable. L’ordre proposé : d’abord ce qui exist
 - [x] Vue Lignes (L, ou le bouton du rail de droite), à la façon de Mini Metro : routes en gris (pointillé pour la terre), réseaux de trains d’une couleur chacun, lignes de métro en tirets, gares et stations en ronds blancs, trains en jaune, noms des villes.
 - [ ] À revoir ensemble : les voies seulement droites (pas encore de courbe), un seul train par paire de gares, pas d’aiguillage visible ; l’équilibre du coût des ponts, tunnels et du goudron.
 
-## Étape 7. Le monde
+## Étape 7. Le monde (fait)
 
-- [ ] Rivières, des montagnes à la mer : pêche, pompage, barrages, ponts, bateaux qui les remontent.
-- [ ] Biomes : feuillus, pins, plages, marais, prairies, montagnes ; des arbres différents par biome.
-- [ ] En hiver, la neige couvre vraiment le sol et ralentit unités et chantiers.
-- [ ] La mer : choisir sa destination sur la carte avec le trajet affiché, un chalutier sélectionnable, le phare qui éclaire la route des bateaux la nuit, des vagues autour des pontons et des coques.
+- [x] Rivières : elles naissent sur les pentes des montagnes et descendent en méandres jusqu’à la mer, de plus en plus larges ; berges étroites sans plage. Eau douce : la station de pompage s’y pose, le Ponton de pêche (nouveau) y pêche, le Barrage (nouveau) en tire de l’électricité sans charbon ; routes et voies les franchissent par des ponts ; les bateaux remontent les plus larges. Les unités à pied ne les traversent que par un pont.
+- [x] Biomes : pins au nord et sur les pentes des montagnes (toujours verts, nouvelle matière), feuillus ailleurs (qui changent avec les saisons), palmiers sur les plages du sud, marais aux étangs bordés de roseaux dans les basses terres.
+- [x] En hiver, la neige tombée reste au sol jusqu’au printemps ; elle ralentit les unités à pied et les chantiers.
+- [x] La mer : le trajet de la barge s’affiche avant de choisir la côte ; un clic sur un bateau ouvre sa fiche (chalutier, barge, cargo : à qui, ce qu’il fait, son port) ; le faisceau du phare balaie la mer la nuit ; de l’écume autour des pontons et des bateaux à l’arrêt.
+- [x] Les parties sauvegardées avant cette étape se rechargent sans rivières (leurs bâtiments y sont posés).
+- [x] Correction : les arbres de matière propre (pins, palmiers) n’avaient pas leur couleur par la carte graphique.
+- [ ] À revoir ensemble : le nombre et la largeur des rivières, l’emplacement des marais, la couleur des pins, des lacs en montagne, des gués.
 
 ## Étape 8. La recherche
 

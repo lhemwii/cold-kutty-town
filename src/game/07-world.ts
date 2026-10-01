@@ -3,19 +3,29 @@ import type { Side } from './00-shared.ts';
 import type { Vec2 } from './02-ground.ts';
 import type { Sprite } from './01-core.ts';
 import { COLOR, FONT, GAME, H, HOOKS, M, PC, PS, SC, SHADOW_V, TAU, UP, W, bay, blit, blitAt, boxS, bz, cam, clamp, dep, drawFace, fput, hash2, lb, line3, prj, state, textW, unprj, wallFace } from './01-core.ts';
-import { GA0, GB0, GH, GSC, GW, IS, ISEED, MOUNT_T, T_FOREST, T_GRASS, T_ROCK, baseAt, cellOf, clearForest, gBase, gLand, landDAt, mapScale, mountN } from './02-ground.ts';
-import { pennant, treeSpr, treeSprSc } from './03-buildings-base.ts';
+import { GA0, GB0, GH, GSC, GW, IS, ISEED, MOUNT_T, T_BEACH, T_FOREST, T_GRASS, T_ROCK, baseAt, gRiv, cellOf, clearForest, gBase, gLand, landDAt, mapScale, mountN } from './02-ground.ts';
+import { kindSpr, pennant, treeSpr, treeSprSc } from './03-buildings-base.ts';
 /* ================= forets : des milliers d'arbres, ranges par cases pour ne dessiner que ceux a l'ecran ================= */
 export const TB = 64;                     // taille d'une case d'arbres, en unites
 /** Un arbre : position, rayon du feuillage, et s'il est encore debout. */
-export interface Tree { a: number; b: number; r: number; alive: boolean }
+/** k : la sorte d'arbre selon le biome (0 feuillu, 1 pin, 2 palmier, 3 roseaux ; etape 7) */
+export interface Tree { a: number; b: number; r: number; alive: boolean; k?: number }
 export const TREES: { list: Tree[]; grid: Map<number, Tree[]>; ver: number } = { list: [], grid: new Map(), ver: 0 };
 export const treeKey = (i: number, j: number): number => i * 4096 + j;
 export function treeCell(a: number, b: number): number { return treeKey(Math.floor(a / TB), Math.floor(b / TB)); }
-export function addTree(a: number, b: number, r: number): void {
-  const t: Tree = { a, b, r, alive: true };
+export function addTree(a: number, b: number, r: number, kind?: number): void {
+  const t: Tree = { a, b, r, alive: true, k: kind == null ? treeKindAt(a, b) : kind };
   TREES.list.push(t);
   const k = treeCell(a, b); let L = TREES.grid.get(k); if (!L){ L = []; TREES.grid.set(k, L); } L.push(t);
+}
+// le biome d'un endroit : des pins au nord et sur les pentes des montagnes, des palmiers pres des plages du sud, des feuillus ailleurs
+export const TREE_MAT = [M.TREE, M.PINE, M.PALM, M.WHEAT];
+export function treeKindAt(a: number, b: number): number {
+  const north = (b - GB0) / (GH / GSC), mn = mountN(a, b), h = hash2(a * 1.3 + 7, b * .7 - 3);
+  if (mn > MOUNT_T - .07 || (north < .3 && h < .75) || (north < .45 && h < .3)) return 1;
+  const i = cellOf(a, b);
+  if (i >= 0 && north > .55 && gLand[i] < 34 && h < .7) return 2;
+  return 0;
 }
 export function buildForests(seed: number): void {
   TREES.list = []; TREES.grid = new Map(); TREES.ver++;
@@ -27,6 +37,15 @@ export function buildForests(seed: number): void {
       const t = gBase[i];
       if (t === T_FOREST){ if (hash2(ja + 11, jb - seed) < .82) addTree(Math.round(ja), Math.round(jb), 3 + Math.floor(hash2(ja, jb + 5) * 3)); }
       else if (t === T_GRASS && gLand[i] > 16 && hash2(ja - 7, jb + seed * 3) < .018) addTree(Math.round(ja), Math.round(jb), 3 + Math.floor(hash2(ja, jb + 9) * 2));
+    }
+  }
+  // etape 7 (mondes neufs) : des palmiers sur les plages du sud, des roseaux autour des etangs et le long des rivieres
+  if (SH.RIVERS_ON) for (let b = GB0 + 4; b < GB0 + GH / GSC - 4; b += 5){
+    for (let a = GA0 + 4; a < GA0 + GW / GSC - 4; a += 5){
+      const i = cellOf(a, b); if (i < 0) continue;
+      const t = gBase[i], h = hash2(a * 2.1 + seed, b * 1.7);
+      if (t === T_BEACH && gLand[i] > 5 && (b - GB0) / (GH / GSC) > .55 && h < .05) addTree(Math.round(a), Math.round(b), 3, 2);
+      else if (t === T_GRASS && gRiv[i] === 2 && gLand[i] < 5 && h < .22) addTree(Math.round(a + (h - .1) * 8), Math.round(b), 1, 3);
     }
   }
 }
@@ -134,11 +153,12 @@ export function treeDrawables(out: Drawable[], t: number, withShadows: boolean):
       // a sa vraie taille, un arbre peut faire moins d'un pixel : on n'en dessine qu'une part, selon la surface de son feuillage
       const rx = (tr.r + 1) * s; if (rx < 1.1 && hash2(tr.a * 1.7 + 3, tr.b * .9 - 5) > Math.PI * rx * tr.r * s) return;
       if (farShade && s > .3) treeShadow(tr, q, s);
-      const sp = treeSprSc(tr.r, s), x = Math.round(q[0]), y = Math.round(q[1]);
-      out.push({ d: dep(tr.a, tr.b), m: M.TREE, raw: true, spr: { s: sp, x, y }, f: () => { SH.CUR = M.TREE; blit(sp, x, y); } }); return; }
-    if (withShadows) treeShadow(tr, q);
-    const deco = xmas && hash2(tr.a, tr.b) < .3;
-    out.push({ d: dep(tr.a, tr.b), m: M.TREE, spr: deco ? undefined : { s: treeSpr(tr.r), x: Math.round(q[0]), y: Math.round(q[1]) }, f: (tt) => { SH.CUR = M.TREE; blitAt(treeSpr(tr.r), tr.a, tr.b, 0); if (deco) SH.drawTreeLights(tr.a, tr.b, tr.r, tt); } });
+      if (tr.k === 3) return;
+      const sp = treeSprSc(tr.r, s), x = Math.round(q[0]), y = Math.round(q[1]), mt = TREE_MAT[tr.k || 0];
+      out.push({ d: dep(tr.a, tr.b), m: mt, raw: true, spr: { s: sp, x, y }, f: () => { SH.CUR = mt; blit(sp, x, y); } }); return; }
+    if (withShadows && tr.k !== 3) treeShadow(tr, q);
+    const kd = tr.k || 0, mt = TREE_MAT[kd], deco = xmas && kd < 2 && hash2(tr.a, tr.b) < .3, spr = kd ? kindSpr(kd, tr.r) : treeSpr(tr.r);
+    out.push({ d: dep(tr.a, tr.b), m: mt, spr: deco ? undefined : { s: spr, x: Math.round(q[0]), y: Math.round(q[1]) }, f: (tt) => { SH.CUR = mt; blitAt(spr, tr.a, tr.b, 0); if (deco) SH.drawTreeLights(tr.a, tr.b, tr.r, tt); } });
 
   });
 }

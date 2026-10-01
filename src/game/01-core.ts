@@ -16,7 +16,7 @@ export const M = { SEA:0, GRASS:1, BEACH:2, ROAD:3, WALK:4, STRIP:5, ROCK:6, PIE
   USC2:40, USC3:41, USC4:42, USC5:43, CCP2:44, CCP3:45, BRICK:46, SANDSTONE:47, SEA_MID:48, SEA_SHALLOW:49, ROOF_USC2:50, ROOF_USC3:51, GRAVEL:52, CHROME:53,
   MILITARY:54, WHEAT:55, DOME_A:56, DOME_B:57, DOME_C:58, CONCRETE:59, KVAS:60, FIELD:61, DIRT:62,
   RAIL:63, RAIN:64, SNOW:65, GIRDER:66, TRAIN_CCP:67, FW_BLUE:68, FW_GREEN:69, BUBBLE:70, ICON_R:71, ICON_Y:72, REFLECT:73, HULL:74,
-  FOREST:75, WOOL:76, FISH:77 };
+  FOREST:75, WOOL:76, FISH:77, PINE:78, PALM:79 };
 // crochets : chaque module ajoute ses fonctions (pas de jeu, dessins dynamiques, dessus de l'image, retouche finale, apres rendu)
 export interface Hooks {
   step: ((dt: number, t: number) => void)[];

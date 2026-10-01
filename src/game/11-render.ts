@@ -28,7 +28,8 @@ export const PAL_HEX = [
   ['#b9b6ad', '#d9d6cd'], ['#d9a21e', '#fff0b3'], ['#3f8f3a', '#5fb152'], ['#b87a4b', '#d9a577'],
   ['#574d44', '#cfcac2'], ['#9db3c7', '#dbe8f3'], ['#dde5ee', '#ffffff'], ['#3d5a4b', '#8fb39d'], ['#9e2a2b', '#efe3c8'],
   ['#2a5cb8', '#8fb8ff'], ['#2e8b57', '#8dffa0'], ['#2a2622', '#fffaf0'], ['#8a1c1c', '#ff4a5a'], ['#8a6a10', '#ffd23f'], ['#1d3f66', '#ffcf6b'], ['#2b2d33', '#9aa0aa'],
-  ['#467f38', '#5e9a48'], ['#e2ddd0', '#ffffff'], ['#7f98a8', '#dfe8ee']
+  ['#467f38', '#5e9a48'], ['#e2ddd0', '#ffffff'], ['#7f98a8', '#dfe8ee'],
+  ['#24493a', '#3f6e4f'], ['#3f8a3a', '#7cc05a']
 ];
 // la nuit, les lumieres gardent leur eclat
 export const NIGHT_LIGHT: Record<number, string> = { [M.RAIN]: '#6f86a3', [M.SNOW]: '#c9d4e2', [M.WIN]: '#ffd46b', [M.SIGN]: '#ff6fae', [M.SIGN_CCP]: '#ffd23f', [M.GLOW]: '#ffbe55', [M.BEAM]: '#fff1a8', [M.LAMP]: '#ffe7a3', [M.REDLIGHT]: '#ff3b3b', [M.FW_BLUE]: '#8fb8ff', [M.FW_GREEN]: '#8dffa0', [M.BUBBLE]: '#fff3d9', [M.ICON_R]: '#ff5a64', [M.ICON_Y]: '#ffd23f', [M.REFLECT]: '#e9b35a' };
@@ -50,7 +51,7 @@ SH.palKey = '';
 SH.SEAS = {}; SH.SEAS_KEY = '';
 // meteo sur la palette : ciel couvert, brouillard, neige qui recouvre le sol et les toits
 export const WX = { over: 0, fog: 0, snow: 0 };
-export const SNOWY: Record<number, number> = {}; [[M.FOREST, .8], [M.GRASS, .9], [M.TREE, .55], [M.BEACH, .6], [M.FIELD, .85], [M.WHEAT, .8], [M.DIRT, .8], [M.GRAVEL, .7], [M.ROOF_USC, .85], [M.ROOF_CCP, .85], [M.ROOF_USC2, .85], [M.ROOF_USC3, .85], [M.ROCK, .5], [M.RAIL, .45], [M.ROAD, .22], [M.WALK, .6], [M.CONCRETE, .5], [M.STRIP, .6]].forEach(([m, k]) => { if (m != null) SNOWY[m] = k; });
+export const SNOWY: Record<number, number> = {}; [[M.FOREST, .8], [M.GRASS, .9], [M.TREE, .55], [M.PINE, .45], [M.PALM, .3], [M.BEACH, .6], [M.FIELD, .85], [M.WHEAT, .8], [M.DIRT, .8], [M.GRAVEL, .7], [M.ROOF_USC, .85], [M.ROOF_CCP, .85], [M.ROOF_USC2, .85], [M.ROOF_USC3, .85], [M.ROCK, .5], [M.RAIL, .45], [M.ROAD, .22], [M.WALK, .6], [M.CONCRETE, .5], [M.STRIP, .6]].forEach(([m, k]) => { if (m != null) SNOWY[m] = k; });
 export function makeColors(n: number, warmIn?: number){
   const warm = warmIn || 0;
   const key = Math.round(n * 64) + ':' + Math.round(warm * 32) + ':' + Math.round(WX.over * 20) + ':' + Math.round(WX.fog * 20) + ':' + Math.round(WX.snow * 20) + SH.SEAS_KEY;
@@ -132,7 +133,8 @@ export function stepWeather(dt: number, t: number){
   const k = WEATHER.k, sh = WEATHER.shown;
   WX.over = sh === 'pluie' ? k : sh === 'neige' ? k * .55 : sh === 'brouillard' ? k * .3 : 0;
   WX.fog = sh === 'brouillard' ? k : sh === 'neige' ? k * .15 : 0;
-  WX.snow = sh === 'neige' ? Math.min(1, WX.snow + dt * .04) : Math.max(0, WX.snow - dt * .025);
+  // l'hiver, la neige tombee reste au sol (SH.snowFloor, 28-monde) jusqu'au printemps
+  WX.snow = sh === 'neige' ? Math.min(1, WX.snow + dt * .04) : Math.max(SH.snowFloor || 0, WX.snow - dt * .025);
 }
 // gouttes et flocons en petits dessins (les memes pixels que fput ci-dessous), pour la carte graphique (etape 0.19, 3.4)
 export const RAIN_SPR = makeSprite(put => { put(0, 0, 1); put(0, 1, 1); put(-1, 2, 0); put(-1, 3, 1); });
@@ -632,6 +634,7 @@ export function gatherLights(t: number, stat?: boolean){
   LIGHTS = LIGHTS_STATIC.slice();
   if (!stat) for (const c of CARS) if (c.pos) LIGHTS.push(c.light);
   for (const tw of SH.WALL_TOWERS){ const sp = towerSpot(tw, t); LIGHTS.push({ kind: 'circle', a: sp[0], b: sp[1], r: 7, k: 1.6, att: .5, m: M.BEAM }); }
+  if (!stat && SH.dynLights) SH.dynLights(LIGHTS, t);
 }
 export function applyLights(){
   const I = state.intensity, pat = state.pattern;
@@ -973,9 +976,11 @@ function atlasAlloc(w: number, h: number): Slot | null {
   return s;
 }
 // un texel de l'atlas : matiere, puis forme | eclairage << 1 | 128 (plein) ; 0 : vide
-const SPR_SLOT = new WeakMap<Sprite, Slot>();
+// un meme dessin peut servir a plusieurs matieres (les arbres de loin : feuillus, pins, palmiers)
+const SPR_SLOT = new Map<number, WeakMap<Sprite, Slot>>();
 function spriteSlot(s: Sprite, mat: number): Slot | null {
-  const had = SPR_SLOT.get(s); if (had && had.gen === ATLAS.gen) return had;
+  let byMat = SPR_SLOT.get(mat); if (!byMat){ byMat = new WeakMap(); SPR_SLOT.set(mat, byMat); }
+  const had = byMat.get(s); if (had && had.gen === ATLAS.gen) return had;
   const sl = atlasAlloc(s.w, s.h); if (!sl) return null;
   const B = ATLAS.buf, src = s.buf, TR = mat, WN = M.WIN;
   for (let y = 0; y < s.h; y++) for (let x = 0, j = ((sl.y + y) * AW + sl.x) * 4, k = y * s.w; x < s.w; x++, j += 4, k++){
@@ -983,7 +988,7 @@ function spriteSlot(s: Sprite, mat: number): Slot | null {
     if (v === 2){ B[j] = 0; B[j + 1] = 0; } else if (v === 3){ B[j] = WN; B[j + 1] = 129; } else { B[j] = TR; B[j + 1] = v | 128; }
     B[j + 2] = 0; B[j + 3] = 0;
   }
-  SPR_SLOT.set(s, sl); return sl;
+  byMat.set(s, sl); return sl;
 }
 function farSlot(e: { spr: FarSprite | null; slot: Slot | null }): Slot | null {
   const S = e.spr; if (!S) return null;
@@ -1011,7 +1016,7 @@ const NEAR = new WeakMap<object, NearEntry>();
 let phiSeen = NaN, phiSince = 0, nearUntil = 0;
 // la carte graphique pose-t-elle cet objet ? (sinon le processeur le dessine)
 function gpuDraw(it: Drawable, r: number, far: boolean, t: number, still: boolean): boolean {
-  if (it.spr){ const s = it.spr.s, sl = spriteSlot(s, M.TREE); if (!sl) return false; pushQuad(it.spr.x + s.x0, it.spr.y + s.y0, s.w, s.h, 1, sl, r); return true; }
+  if (it.spr){ const s = it.spr.s, sl = spriteSlot(s, it.m == null ? M.TREE : it.m); if (!sl) return false; pushQuad(it.spr.x + s.x0, it.spr.y + s.y0, s.w, s.h, 1, sl, r); return true; }
   const a = it.a, b = it.b;
   if (!it.key || a == null || b == null || it.big) return false;
   if (far){

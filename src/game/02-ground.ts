@@ -28,6 +28,10 @@ export const isMapConf = (k: unknown): k is MapConf => typeof k === 'string' && 
 export let GSC: number = 2, GA0 = -800, GB0 = -540, GW = 1600 * GSC, GH = 1080 * GSC, GN = GW * GH, GQW = GW >> 2, GQH = GH >> 2;
 // basse resolution : nuances de l'herbe et phase de l'ecume
 const NONE = new Uint8Array(0);
+/** rivieres et etangs (28-monde) : 1 eau douce, 2 berge (sans plage) */
+export let gRiv: Uint8Array = NONE;
+/** appeles une fois la forme de l'ile posee, avant les distances a la cote : y creuser rivieres et etangs */
+export const GROUND_HOOKS: ((seed: number) => void)[] = [];
 export let gVar: Uint8Array = NONE, gPh: Uint8Array = NONE, gType: Uint8Array = NONE, gBase: Uint8Array = NONE, gTone: Uint8Array = NONE, gSea: Uint8Array = NONE, gLand: Uint8Array = NONE;
 // echelle de la carte par rapport a la moyenne (1 pour la carte d'origine)
 export const mapScale = () => Math.max(GW / GSC / 1600, GH / GSC / 1080);
@@ -37,9 +41,9 @@ export function setMapSize(key: string): void {
   GSC = m.gsc; GA0 = -m.w / 2; GB0 = -m.h / 2; GW = gw; GH = gh; GN = GW * GH; GQW = GW >> 2; GQH = GH >> 2;
   if (!same){
     // on lache les anciens tableaux avant d'en creer de nouveaux (les plus grandes cartes pesent lourd)
-    gType = gBase = gTone = gSea = gLand = gVar = gPh = NONE;
+    gType = gBase = gTone = gSea = gLand = gVar = gPh = gRiv = NONE;
     gVar = new Uint8Array(GQW * GQH); gPh = new Uint8Array(GQW * GQH);
-    gType = new Uint8Array(GN); gBase = new Uint8Array(GN); gTone = new Uint8Array(GN); gSea = new Uint8Array(GN); gLand = new Uint8Array(GN);
+    gType = new Uint8Array(GN); gBase = new Uint8Array(GN); gTone = new Uint8Array(GN); gSea = new Uint8Array(GN); gLand = new Uint8Array(GN); gRiv = new Uint8Array(GN);
   }
   IS.ra = m.w * .4125; IS.rb = m.h * .398;
 }
@@ -178,6 +182,8 @@ export function buildGround(seed: number, conf: string): void {
       }
     }
   }
+  gRiv.fill(0);
+  for (const f of GROUND_HOOKS) f(seed);
   // 2. distances a la cote, des deux cotes
   let d: Uint16Array | null = new Uint16Array(GN);
   for (let i = 0; i < GN; i++) d[i] = gBase[i] === T_SEA ? 60000 : 0;
@@ -196,7 +202,9 @@ export function buildGround(seed: number, conf: string): void {
     for (let ia = 0; ia < GW; ia++, i++){
       if (gBase[i] === T_SEA) continue;
       const ld = gLand[i];
-      if (ld < 12){ gBase[i] = T_BEACH; continue; }
+      // au bord d'une riviere : une berge etroite, pas une plage
+      if (ld < 12 && !(gRiv[i] === 2 && ld > 2)){ gBase[i] = T_BEACH; continue; }
+      if (gRiv[i] === 2 && ld < 12) continue;
       const k = ry * rw + Math.min(rw - 1, Math.round(ia / RS));
       if (RO[k] > MOUNT_T && ld > 34) gBase[i] = T_ROCK;
       else if (FO[k] > .56 && ld > 18) gBase[i] = T_FOREST;
@@ -258,7 +266,7 @@ export function nearestShore(a: number, b: number, maxR?: number): Vec2 | null {
   for (let r = 0; r <= (maxR || 80); r += 2) for (let k = 0; k < Math.max(1, r * 1.2); k++){
     const an = k / Math.max(1, r * 1.2) * TAU, pa = a + Math.cos(an) * r, pb = b + Math.sin(an) * r, i = cellOf(pa, pb);
     if (i < 0 || gBase[i] === T_SEA) continue;
-    if (gLand[i] > 4) continue;
+    if (gLand[i] > 4 || gRiv[i] === 2) continue;
     const dd = Math.hypot(pa - a, pb - b); if (dd < bd){ bd = dd; best = [pa, pb]; }
     if (best && r > bd + 4) return best;
   }
