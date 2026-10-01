@@ -1,6 +1,6 @@
 // Succes du joueur. Ils sont notes sur la machine du joueur (platform/store.ts) et, dans la version de bureau lancee par Steam,
 // envoyes a Steam (desktop/main.mjs, steamworks.js). Les identifiants sont les noms d'API a declarer dans Steamworks.
-// Liste provisoire, a redefinir avec le reste du jeu (docs/PLAN.md, etape 4.3).
+// Liste provisoire, a redefinir avec le reste du jeu (docs/PLAN.md, etape 12).
 import { store } from './store.ts';
 
 export type AchievementId = 'PREMIERE_PIERRE' | 'PORT_NIVEAU_3' | 'RIDEAU' | 'DECOLLAGE' | 'VICTOIRE';

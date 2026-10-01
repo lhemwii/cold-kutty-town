@@ -24,7 +24,7 @@ Les demandes qui arrivent en cours de route et ne rentrent dans aucune étape de
 - [x] Nouvel écran : barre du haut, dock par catégories, panneau du bâtiment, accueil avec choix du camp, choix de la plage, écran de victoire.
 - [x] Chats qui arrivent avec leur bâtiment, répliques toutes faites. Journal du matin en textes tout faits.
 - [x] Sauvegarde dans le navigateur (île, bâtiments, routes, murs, territoire).
-- [~] IA adverse : ébauche qui débarque et construit, mais se bloque (voir étape 9).
+- [~] IA adverse : ébauche qui débarque et construit, mais se bloque (voir étape 16).
 
 ## Étape 0.1. Premiers retours de jeu (fait)
 
@@ -86,7 +86,7 @@ Les demandes qui arrivent en cours de route et ne rentrent dans aucune étape de
 
 - [x] En construction, clic droit glissé (ou la touche T) fait tourner le bâtiment d’un quart de tour, au lieu de tourner la vue. Le fantôme montre le sens avant de poser.
 - [x] Tous les bâtiments se tournent : ils sont dessinés face à +b puis tournés autour de leur centre (projection, soleil, ombres et lumières suivent). Le port et la pêcherie gardent leur sens face à la mer.
-- [x] Question réglée : la vue de près en plus petit ne peut pas descendre sous 74 %. À 52 %, on tombe à 30 images par seconde ; en dessous, un pixel du jeu devient plus petit qu’un pixel de l’écran. Pour aller plus loin, il faudra le rendu par la carte graphique (étape 10).
+- [x] Question réglée : la vue de près en plus petit ne peut pas descendre sous 74 %. À 52 %, on tombe à 30 images par seconde ; en dessous, un pixel du jeu devient plus petit qu’un pixel de l’écran. Pour aller plus loin, il faudra le rendu par la carte graphique (étape 0.19).
 
 ## Étape 0.11. Arbres de loin comme de près (fait)
 
@@ -95,20 +95,20 @@ Les demandes qui arrivent en cours de route et ne rentrent dans aucune étape de
 ## Étape 0.12. Vrai menu d’accueil (fait)
 
 - [x] Écran d’accueil de jeu : une île vue de loin qui tourne en fond et change toutes les 40 s, les drapeaux des deux camps qui flottent.
-- [x] Nouvelle partie : camp, nom de la partie, numéro d’île (au hasard ou choisi, pour rejouer la même île). La difficulté viendra avec l’IA (étape 9).
+- [x] Nouvelle partie : camp, nom de la partie, numéro d’île (au hasard ou choisi, pour rejouer la même île). La difficulté viendra avec l’IA (étape 16).
 - [x] Charger une partie : plusieurs emplacements de sauvegarde gardés dans le navigateur, avec date, camp et aperçu.
 - [x] Profil du joueur : nom, camp préféré, statistiques (parties jouées, gagnées).
 - [x] Options : volume, musique, vitesse au départ, pluie et neige à l’écran, tout effacer. La langue viendra plus tard.
 - [x] Quitter la partie (depuis le bouton Menu en jeu) : sauvegarde et retour à l’accueil. L’ancienne sauvegarde unique est reprise comme première partie.
 - [x] Bug vu en passant : une partie sauvegardée pendant le débarquement revenait sans QG. Les plages choisies sont gardées et le QG se pose au chargement.
 
-## Étape 0.13. La planète (mise de côté pour le mode espace, voir l’étape 10.1)
+## Étape 0.13. La planète (mise de côté pour le mode espace, voir l’étape 17.1)
 
 - [x] Tout au bout du dézoom, trois paliers de planète (10 %, 6 %, 3,5 % de KMIN) : l’île sur son globe, l’espace et les étoiles derrière. Le globe garde la vraie carte de l’île (territoires, bâtiments), avec autour des océans, d’autres continents, la banquise et des nuages qui dérivent.
 - [x] Jour et nuit sur le globe selon l’heure de la partie, saisons selon le mois.
 - [x] L’accueil montre la planète qui tourne dans l’espace (fin du changement d’île toutes les 40 s, qui figeait l’écran une seconde). En lançant une partie, on descend de l’espace jusqu’à l’île.
 - [x] Faire tout le tour du globe en glissant (étape 0.14).
-- La suite (choisir sa planète, lumières des villes, satellites, lune) passe dans le mode espace, étape 10.1.
+- La suite (choisir sa planète, lumières des villes, satellites, lune) passe dans le mode espace, étape 17.1.
 
 ## Étape 0.14. Un vrai globe, sans transition (fait, puis éteint à l’étape 0.15)
 
@@ -121,7 +121,7 @@ Les demandes qui arrivent en cours de route et ne rentrent dans aucune étape de
 
 ## Étape 0.15. Retour à la vue plate, avec plus de recul (fait)
 
-- [x] Le globe est gardé dans le code mais éteint (`GLOBE_ON = false` dans 01-core.ts) : le jeu reste une île vue de dessus, sans planète. Il reviendra avec le mode espace (étape 10.1).
+- [x] Le globe est gardé dans le code mais éteint (`GLOBE_ON = false` dans 01-core.ts) : le jeu reste une île vue de dessus, sans planète. Il reviendra avec le mode espace (étape 17.1).
 - [x] Deux paliers de recul en plus sous l’île entière (10 % et 6 % de KMIN) : l’île au milieu de la mer.
 - [x] L’accueil montre de nouveau l’île qui tourne doucement sur elle-même, de loin.
 - [x] On garde des étapes 0.13 et 0.14 les arbres à leur vraie taille de très loin : l’herbe et les montagnes restent visibles.
@@ -149,12 +149,12 @@ Au lancement d’une partie, on choisit la taille de la carte et la forme du mon
 - [x] Police de texte : Bricolage Grotesque (au lieu d’Archivo). Les titres gardent la police pixel.
 - [x] Accueil épuré : plus de ligne « Île de Kutty · La guerre froide », plus de « Bienvenue sur l’île, camarade chat » (le mot d’accueil n’apparaît que quand on a un nom de profil).
 
-## Étape 0.20. Texte noir ou blanc, illustrations à la place des points, HUD (en cours)
+## Étape 0.20. Texte noir ou blanc, illustrations à la place des points, HUD (fait)
 
 - [x] Plus de texte gris nulle part : il est noir ou blanc. Un bouton indisponible garde son texte noir (bordure en pointillés, fond hachuré) ; un texte qui clignote passe du rouge à l’invisible, sans gris.
 - [x] Plus de point du milieu (« · ») : on illustre. Coûts et habitants en icônes de ressources, la date avec l’icône de la saison, la radio avec le drapeau du camp, le niveau d’un bâtiment en pastilles, un chantier en barre d’avancement ; dans un message en texte seul, « et ».
 - [x] Propositions pour un HUD plus ergonomique : trois dispositions (A, la barre d’outils au centre ; B, la colonne de commande ; C, tout au contexte). Choix : A, à améliorer ensuite.
-- [x] HUD en disposition A (retouches à venir selon les retours) :
+- [x] HUD en disposition A (à revoir à l’étape 13, une fois les nouveautés posées) :
   - en haut, trois blocs : ressources à gauche (la radio dessous), course au territoire au centre avec les deux drapeaux et l’objectif de 60 %, date, heure, vitesse, Journal et Menu à droite ;
   - une colonne fine à droite pour la vue (zoom, rotation, boussole, météo, son, photo), en icônes avec une bulle d’aide ;
   - en bas au centre, les outils en gros boutons avec leur touche, et Annuler à côté ; Construire ouvre un tiroir au-dessus, catégories en onglets illustrés ;
@@ -195,6 +195,16 @@ Le jeu passe à une base prête pour la haute définition et pour Steam, sans ri
   - [ ] 4.4. Plus tard, Gemma sur la machine du joueur avec node-llama-cpp.
 
 
+## Étape 0.21. La nouvelle vision du jeu (fait)
+
+- [x] Vision rangée dans le [PRD](PRD.md) : croisement de city builder, de Mini Metro, de jeu de civilisation et de stratégie en temps réel ; peu de ressources (nourriture et pâté, laine et tricot, ronrons, habitants, Catcoins, eau et électricité, gisements) ; bâtiments communs aux deux camps habillés par camp ; huit orientations ; villes et connexions ; brouillard et unités ; recherche, espace, espionnage, commerce ; plusieurs façons de gagner ; types de partie.
+- [x] Liste proposée des bâtiments et des unités : [BATIMENTS.md](BATIMENTS.md), à valider.
+- [x] Nouvelle feuille de route ci-dessous (étapes 1 à 17), qui reprend les points encore ouverts de l’ancienne.
+
+# Feuille de route de la nouvelle version
+
+Chaque étape laisse le jeu jouable. L’ordre proposé : d’abord ce qui existe et les bâtiments, puis l’économie et le territoire, puis la carte (brouillard, unités, transports, monde), puis les grands systèmes (recherche, armée, espace, renseignement, commerce), la victoire, l’écran, et l’IA adverse en dernier.
+
 ## Étape 1. Fiabiliser ce qui existe
 
 - [ ] Jouer une vraie partie à la souris et noter chaque bug d’interface.
@@ -205,84 +215,134 @@ Le jeu passe à une base prête pour la haute définition et pour Steam, sans ri
 - [ ] Les chats nommés : vérifier qu’ils apparaissent tous et ne se marchent pas dessus.
 - [ ] Nettoyer les restes de l’ancien code (réglages de lumière, motifs, inspecteur de pixels).
 
-## Étape 2. Construire et tracer
+## Étape 2. Les mêmes bâtiments pour les deux camps
 
-- [ ] Aperçu du prix et de l’effet au survol, en direct, dans le fantôme du bâtiment.
-- [~] Orientation des bâtiments : fait (clic droit glissé ou T, étape 0.10). Reste l’alignement automatique face à la route la plus proche.
-- [ ] Routes : tracé à main levée en plus de droite et courbe, accroche sur le milieu d’une route, pont court au-dessus d’une rivière ou d’une anse.
-- [ ] Routes à deux niveaux : chemin de terre (pas cher) puis route goudronnée (amélioration).
+- [ ] Un seul type par bâtiment, avec un habillage USC et un habillage CCR : fusionner ce qui existe en double (ferme et kolkhoze, les deux gratte-ciel, chapelle et musée à bulbes...).
+- [ ] Corriger l’immeuble : côté USC, il porte aujourd’hui les signes de la CCR.
+- [ ] Dessiner le style qui manque à chaque bâtiment (le diner devient la Cantine du Peuple côté CCR, le bowling un club ouvrier, etc.), d’après [BATIMENTS.md](BATIMENTS.md).
+- [ ] Huit orientations : tourner un bâtiment par pas de 45 degrés ; routes dans les huit directions. L’alignement automatique face à la route la plus proche.
+- [ ] Améliorer change le bâtiment à l’écran pour tous les bâtiments améliorables, avec un chantier visible (échafaudages, grue).
+- [ ] Aperçu du prix et de l’effet au survol, dans le fantôme du bâtiment ; ce que l’amélioration va rapporter, dans le panneau.
 - [ ] Défrichage visible : souches et chantier quand on coupe une forêt.
-- [ ] Zones (facultatif, à la Cities: Skylines) : peindre une zone d’habitation le long d’une route et laisser les maisons pousser.
 
-## Étape 3. Économie et améliorations
+## Étape 3. Les ressources de la nouvelle version
 
-- [ ] Équilibrage sur une partie de 40 à 60 minutes (coûts, production, vitesse de conquête, prix des avant-postes).
-- [ ] Rendre les croquettes utiles plus tard dans la partie (pour l’instant elles s’accumulent).
-- [ ] Des visuels par niveau pour plus de bâtiments (pêcherie, bergerie, usine, épicerie qui devient supermarché).
-- [ ] Afficher dans le panneau ce que l’amélioration va rapporter.
+- [ ] Nourriture : les croquettes, et le pâté en luxe, fait par une conserverie ; affichés ensemble en haut.
+- [ ] Laine, et le tricot en luxe, fait par un atelier.
+- [ ] Catcoins : impôts des habitants, banque, certains prix en Catcoins (le port).
+- [ ] Habitants et métiers : répartition réglable par grand métier (nourriture, laine, industrie, services, recherche, armée).
+- [ ] Eau et électricité en réseaux : production contre besoins ; un bâtiment non raccordé tourne mal.
+- [ ] Gisements de minerai et d’uranium sur la carte, et les mines.
+- [ ] Rendre chaque ressource utile du début à la fin (aujourd’hui les croquettes s’accumulent).
 - [ ] Bilan de fin de mois : ce qui a rapporté, ce qui a coûté.
 
-## Étape 4. La mer
+## Étape 4. Territoire et villes
 
-- [ ] Choisir sa destination de barge sur la carte stratégique, avec le trajet affiché.
-- [ ] Un chalutier sélectionnable, avec sa prise du jour.
-- [ ] Le phare qui éclaire vraiment la route des bateaux la nuit (bonus de pêche).
-- [ ] Des vagues et de l’écume autour des pontons et des coques.
-
-## Étape 5. Territoire et frontière
-
+- [ ] Retirer la victoire au premier camp à 60 % de l’île, et l’objectif de la barre du haut.
+- [ ] Chaque bâtiment agrandit un peu le territoire autour de lui, chaque amélioration un peu plus, dans une limite.
+- [ ] Construire hors de son territoire : plus cher, plus lent, et cela l’étend.
+- [ ] La première ville, portuaire, fondée au débarquement (hôtel de ville et port) ; fonder d’autres villes ; chaque ville a son nom.
 - [ ] Rendre la pression aux frontières lisible (flèches ou hachures là où ça bouge).
-- [ ] Rideau de Laine : tracé en plusieurs clics qui suit la frontière, portes, Checkpoint qui s’insère dans le mur.
-- [ ] Ce que rapporte la frontière figée (moins de tension, plus de laine ?) et ce qu’elle coûte (moins de ronrons ?).
-- [ ] Course à l’espace : l’afficher clairement dans l’interface.
+- [ ] Rideau de Laine : tracé en plusieurs clics qui suit la frontière, portes, checkpoint qui s’insère dans le mur ; ce qu’il rapporte et ce qu’il coûte.
 
-## Étape 6. Interface et style
+## Étape 5. Brouillard et premières unités
 
-- [ ] Tutoriel au premier lancement (poser une route, une maison, une pêcherie, un avant-poste).
-- [ ] Icônes pixel pour chaque catégorie du menu de construction.
-- [ ] Raccourcis clavier affichés dans les infobulles, et un écran d’aide.
+- [ ] Brouillard : jamais vu, déjà vu (figé tel qu’on l’a vu), vu ; sur la scène, la vue de loin et la mini-carte.
+- [ ] Unités : sélection (clic, cadre), ordre de déplacement, chemin à terre qui contourne les montagnes et l’eau.
+- [ ] Explorateurs (révèlent le brouillard, trouvent les gisements) et bâtisseurs (construisent loin, fondent une ville).
+- [ ] La caserne qui les produit.
+
+## Étape 6. Transports et connexions
+
+- [ ] Routes : tracé à main levée, accroche sur le milieu d’une route, ponts ; chemin de terre puis route goudronnée.
+- [ ] Chemin de fer : voies, gares, trains qu’on voit circuler ; il transporte les ressources entre villes.
+- [ ] Une ville sans lien ne profite pas de la production des autres.
+- [ ] Métro entre quartiers.
+- [ ] Tunnels sous les montagnes.
+- [ ] Lignes lisibles à la façon de Mini Metro (une couleur par ligne).
+
+## Étape 7. Le monde
+
+- [ ] Biomes : feuillus, pins, plages, marais, prairies, montagnes ; des arbres différents par biome.
+- [ ] En hiver, la neige couvre vraiment le sol et ralentit unités et chantiers.
+- [ ] La mer : choisir sa destination sur la carte avec le trajet affiché, un chalutier sélectionnable, le phare qui éclaire la route des bateaux la nuit, des vagues autour des pontons et des coques.
+
+## Étape 8. La recherche
+
+- [ ] Université, puis laboratoires.
+- [ ] Arbre de recherche en branches (industrie et énergie, société, transports, armée, espace, atome, renseignement), avec un écran pour le parcourir.
+- [ ] Ce que chaque recherche débloque : bâtiments, améliorations, unités.
+
+## Étape 9. L’armée
+
+- [ ] Usine de chars, chantier naval, aérodrome ; soldats, véhicules, navires, avions.
+- [ ] Combat : points de vie, portée, prise d’un bâtiment ; défenses (canon côtier, DCA, bunker, radar).
+- [ ] Le navire de transport remplace la barge pour emmener des unités sur une autre côte.
+- [ ] La bombe atomique : uranium, centre atomique, silo, au bout de la branche de l’atome.
+
+## Étape 10. L’espace et le renseignement
+
+- [ ] Programme spatial : lancements, satellites qui révèlent une zone ennemie ; la course à l’espace lisible à l’écran.
+- [ ] Agence de renseignement et espions : observer, voler une recherche, saboter ; contre-espionnage ; station d’écoute.
+
+## Étape 11. Le commerce et la diplomatie
+
+- [ ] Échanges entre l’USC et la CCR en Catcoins, au checkpoint.
+- [ ] Port à acheter puis agrandir ; nations alliées au large ; importer des biens et des habitants, exporter les surplus.
+- [ ] Relations entre les camps : tension, accords commerciaux, trêve, capitulation.
+
+## Étape 12. Gagner, et les types de partie
+
+- [ ] Victoires : annihilation, capitulation, et à la fin du temps un score sur plusieurs dimensions (territoire, science et technologie, société, économie). Victoires de dimension à trancher (scientifique, sociale, économique).
+- [ ] Types de partie dans « Nouvelle partie » : Blitz, Normale, Longue (durée, taille de carte, vitesse de la recherche et des chantiers).
+- [ ] Succès redéfinis avec le jeu (`src/platform/achievements.ts`).
+- [ ] Équilibrage d’une partie Blitz et d’une partie Normale.
+
+## Étape 13. L’écran, deuxième version
+
+- [ ] Revoir le HUD une fois les étapes 2 à 12 posées : moins de boutons, plus d’informations. Retirer l’outil Observer (sans outil choisi, on sélectionne). Faire une place aux ressources de luxe, aux réseaux, à la recherche, aux unités sélectionnées.
+- [ ] Tutoriel au premier lancement.
+- [x] Icônes pixel pour chaque catégorie du menu de construction (étape 0.20).
+- [~] Raccourcis clavier : écrits sur les outils (étape 0.20) ; reste un écran d’aide.
 - [ ] Vraie version téléphone (dock repliable, gestes).
 - [ ] Logo en SVG avec la tête de chat.
 
-## Étape 7. Vie et contenu
+## Étape 14. Vie et contenu
 
-- [ ] Plus de répliques pour les chats, liées à la situation (pénurie, frontière qui recule, victoire).
-- [ ] Radio et journal qui parlent des vraies actions de la partie (barge, mur, avant-poste).
-- [ ] Événements plus nombreux, certains liés à la frontière et à la mer.
-- [ ] Bâtiments de retour, à construire : gare et train, métro, aéroport.
-- [ ] Claude en option pour les chats et le journal (plus tard).
+- [ ] Plus de répliques pour les chats, liées à la situation (pénurie, frontière qui recule, guerre, victoire).
+- [ ] Radio et journal qui parlent des vraies actions de la partie (ville fondée, recherche, espion pris, bataille).
+- [ ] Événements plus nombreux, liés à la frontière, à la mer, au commerce.
+- [ ] Un modèle de langue en option pour les chats et le journal (plus tard).
 
-## Étape 8. Technique
+## Étape 15. Technique
 
 - [ ] Tests automatiques : règles (économie, territoire, routes) avec Vitest, démarrage et partie rapide avec Playwright.
 - [ ] Intégration continue : build et tests à chaque push.
-- [ ] Passer aux modules ES, puis TypeScript module par module.
-- [ ] Séparer l’état, les règles et le dessin (un seul objet d’état).
-- [ ] Mesurer la performance sur mobile ; rendu des forêts en tuiles si besoin.
+- [x] Modules ES, puis TypeScript module par module (étape 0.19).
+- [ ] Séparer l’état, les règles et le dessin (un seul objet d’état) : nécessaire pour les unités et pour le jeu en ligne.
+- [ ] Mesurer la performance sur mobile et sur une vraie carte graphique.
 
-## Étape 9. L’IA adverse (en dernier)
+## Étape 16. L’IA adverse (en dernier)
 
-L’ébauche actuelle débarque loin du joueur, construit par ordre de besoins, trace des routes, pose des avant-postes, arme des barges et un Rideau. Ce qui ne va pas encore, vu en faisant jouer deux IA l’une contre l’autre :
+Elle doit savoir faire tout ce que fait le joueur : construire, répartir ses habitants, explorer, rechercher, commercer, espionner, faire la guerre et négocier. Ce qui ne va pas déjà dans l’ébauche actuelle, vu en faisant jouer deux IA l’une contre l’autre :
 
-- [ ] Elle trace ses routes au hasard ; elles se croisent et bouchent les parcelles. Piste : un plan de rues en grille autour de son QG.
+- [ ] Elle trace ses routes au hasard ; elles se croisent et bouchent les parcelles. Piste : un plan de rues en grille autour de son hôtel de ville.
 - [ ] Elle manque de laine (une seule bergerie) et accumule des ronrons sans les dépenser.
 - [ ] Elle ne s’améliore presque pas et ne construit pas de prestige.
 - [ ] Niveaux de difficulté (facile, normal, difficile).
 - [ ] Un outil de test qui fait jouer deux IA en accéléré et sort un bilan minute par minute (existe en brouillon, à ranger dans `scripts/`).
 
-## Étape 10. Plus tard
+## Étape 17. Plus tard
 
-- [ ] Multijoueur hors de claude.ai (service temps réel).
-- [ ] Rendu HD (atlas de bâtiments ou WebGL).
-- [ ] Version Steam : empaquetage, succès, sauvegardes en fichiers.
+- [ ] Parties en ligne (contre un joueur ou contre l’IA), avec un service temps réel.
 
-## Étape 10.1. Mode espace (extension, plus tard)
+## Étape 17.1. Mode espace (extension, plus tard)
 
 Le globe existe déjà dans le code (23-planet.ts), éteint. L’idée : prendre de la hauteur jusqu’à l’espace, puis jouer à l’échelle de la carte du monde.
 
 - [ ] Rallumer le globe (`GLOBE_ON`) : dézoom continu de l’île jusqu’à la planète, tour du globe en glissant.
 - [ ] Lumières des villes sur la face de nuit (bâtiments et lampadaires de l’île, villes des autres continents).
-- [ ] Satellites et fusées de la course à l’espace visibles en orbite ; ce qu’ils apportent au jeu.
+- [ ] Satellites et fusées visibles en orbite.
 - [ ] Jouer la carte du monde : plusieurs îles, les autres continents.
 - [ ] Choisir sa planète dans le menu (taille, climat, nombre d’îles).
 - [ ] L’espace autour (lune, autres planètes) et passer de l’une à l’autre.

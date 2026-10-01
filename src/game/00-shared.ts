@@ -79,7 +79,7 @@ export interface Shared {
   /** rang de dessin de ce qu'on dessine en ce moment (01-core, db) */
   RANK: number;
 
-  /** vrai quand le sol de l'image en cours est calcule par la carte graphique (11-render, etape 3.2) */
+  /** vrai quand le sol de l'image en cours est calcule par la carte graphique (11-render, etape 0.19, 3.2) */
   GPU_GROUND: boolean;
   /** pour comparer : force le calcul du sol par le processeur */
   CPU_GROUND?: boolean;

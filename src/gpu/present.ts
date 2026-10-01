@@ -33,7 +33,7 @@ export interface GroundView {
 /** objets poses par la carte graphique : n quadrilateres de QUAD nombres (x0, y0 a l'image ; w, h du dessin ; echelle ; u, v dans l'atlas ; rang) */
 export interface Objects { q: Float32Array; n: number }
 export const QUAD = 8;
-/** ombres et lumieres de l'image en cours (etape 3.4).
+/** ombres et lumieres de l'image en cours (etape 0.19, 3.4).
  *  tri : triangles des ombres, 6 nombres chacun (trois points a l'image) ;
  *  lights : LIGHT nombres par lumiere (cadre x0, y0, x1, y1 ; cone ou disque, a, b, matiere ; rayon, intensite, attenuation,
  *  longueur ; da, db, tangente, largeur), dans l'ordre du jeu ; o, d, tx, ty, pat : passage des pixels au sol et trame */
@@ -111,7 +111,7 @@ export async function createPresenter(canvas: HTMLCanvasElement, w: number, h: n
   let atlas: { buf: Uint8Array; w: number; h: number } = { buf: new Uint8Array(4 * 4), w: 2, h: 2 };
   const atlasSrc = byteSource(atlas.buf, 2, 2, 'rgba8unorm');
   const objRT = RenderTexture.create({ width: W, height: H, scaleMode: 'nearest', antialias: false });
-  // ombres et lumieres de l'image en cours (etape 3.4)
+  // ombres et lumieres de l'image en cours (etape 0.19, 3.4)
   const shadowRT = RenderTexture.create({ width: W, height: H, scaleMode: 'nearest', antialias: false });
   const lightRT = RenderTexture.create({ width: W, height: H, scaleMode: 'nearest', antialias: false });
 

@@ -64,6 +64,7 @@ docs/                   architecture, règles du jeu, développement, feuille de
 
 - [Document produit (PRD)](docs/PRD.md)
 - [Plan d’implémentation et choses à faire](docs/PLAN.md)
+- [Bâtiments et unités proposés](docs/BATIMENTS.md)
 - [Architecture du moteur](docs/ARCHITECTURE.md)
 - [Règles du jeu](docs/GAMEPLAY.md)
 - [Développer au quotidien](docs/DEVELOPPEMENT.md)

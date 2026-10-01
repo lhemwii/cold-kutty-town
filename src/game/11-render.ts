@@ -134,7 +134,7 @@ export function stepWeather(dt: number, t: number){
   WX.fog = sh === 'brouillard' ? k : sh === 'neige' ? k * .15 : 0;
   WX.snow = sh === 'neige' ? Math.min(1, WX.snow + dt * .04) : Math.max(0, WX.snow - dt * .025);
 }
-// gouttes et flocons en petits dessins (les memes pixels que fput ci-dessous), pour la carte graphique (etape 3.4)
+// gouttes et flocons en petits dessins (les memes pixels que fput ci-dessous), pour la carte graphique (etape 0.19, 3.4)
 export const RAIN_SPR = makeSprite(put => { put(0, 0, 1); put(0, 1, 1); put(-1, 2, 0); put(-1, 3, 1); });
 export const SNOW_SPR = makeSprite(put => { put(0, 0, 1); });
 export const SNOW_BIG = makeSprite(put => { put(0, 0, 1); put(1, 0, 1); put(0, 1, 0); });
@@ -508,7 +508,7 @@ export function renderGround(t: number){
     }
   }
 }
-/* ================= le sol sur la carte graphique (etape 3.2) ================= */
+/* ================= le sol sur la carte graphique (etape 0.19, 3.2) ================= */
 // Quand c'est possible, renderGround n'est plus appele : le shader (gpu/ground-glsl.ts) calcule le sol au pixel.
 // Le processeur part alors de tampons vides (matiere 255 : rien) et ne dessine que ce qui est pose sur le sol ;
 // pour un pixel vide, les ombres mettent l'eclairage a 4 et les lumieres de nuit laissent leur matiere dans la forme.
@@ -715,7 +715,7 @@ export function render(t: number){
   const dyn = dynamicDrawables(t);
   SH.siteDrawables(t, dyn);
   const shadowsOn = COLOR && SH.NIGHT < .6 && !far;
-  // avec le sol sur la carte graphique, elle fait aussi les ombres, les lumieres de nuit et la meteo (etape 3.4)
+  // avec le sol sur la carte graphique, elle fait aussi les ombres, les lumieres de nuit et la meteo (etape 0.19, 3.4)
   const gpuFx = gg && !SH.CPU_FX;
   FX_TRI_N = 0; FX_L_N = 0;
   if (shadowsOn){ if (gpuFx) shadowTris(); else drawShadows(); }
@@ -939,7 +939,7 @@ export function farDraw(it: Omit<Drawable, 'd'>, t: number){
 Object.assign(SH, { centerOf, mapDirtyRect, mapDirtyCell, shadowHull, circ, presentImage });
 
 
-/* ================= objets poses par la carte graphique (etape 3.3) ================= */
+/* ================= objets poses par la carte graphique (etape 0.19, 3.3) ================= */
 // Avec le sol sur la carte graphique, ce qui est immobile est pose par elle a partir d'un atlas de dessins :
 // - les arbres (leur petit dessin, le meme sous tous les angles) ;
 // - de loin, les batiments et les montagnes, avec le dessin que la vue de loin garde deja (FAR.cache), recopie en petit ;
@@ -1063,7 +1063,7 @@ export function sortByDepth(list: Drawable[]): Drawable[] {
   return out;
 }
 
-/* ================= ombres et lumieres sur la carte graphique (etape 3.4) ================= */
+/* ================= ombres et lumieres sur la carte graphique (etape 0.19, 3.4) ================= */
 // Les memes ombres et lumieres que drawShadows et applyLights, preparees pour les shaders : triangles d'ombre a l'image,
 // et pour chaque lumiere son cadre a l'image et ses reglages. Le shader de l'image les applique dans le meme ordre.
 let FX_TRI = new Float32Array(6 * 256), FX_TRI_N = 0, FX_L = new Float32Array(LIGHT * 64), FX_L_N = 0;

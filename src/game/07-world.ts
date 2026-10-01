@@ -103,7 +103,7 @@ export function cutTreesAlong(pts: Vec2[], w: number): number {
 // arbres visibles, ajoutes a la liste de dessin ; leurs ombres sont posees directement au sol
 /** Un objet a dessiner, trie par profondeur (d) : voir render() dans 11-render. */
 /** un objet a dessiner, trie par profondeur d. spr : l'objet n'est que ce petit dessin pose au pixel (x, y) de l'image,
- *  en matiere m (un arbre) : la carte graphique peut le poser elle-meme (11-render, etape 3.3) */
+ *  en matiere m (un arbre) : la carte graphique peut le poser elle-meme (11-render, etape 0.19, 3.3) */
 export interface Drawable { d: number; a?: number; b?: number; f: (t: number) => void; m?: number; key?: object; still?: boolean; raw?: boolean; side?: Side; big?: boolean; spr?: { s: Sprite; x: number; y: number } }
 export function treeDrawables(out: Drawable[], t: number, withShadows: boolean): void {
   const cs = [unprj(-20, -20), unprj(W + 20, -20), unprj(-20, H + 60), unprj(W + 20, H + 60)];

@@ -35,7 +35,7 @@ uniform sampler2D uCells;    // grille du sol : r = type | classe de mer << 4, g
 uniform sampler2D uQuarter;  // grille au quart : r = variante de l'herbe, g = phase de l'ecume
 uniform sampler2D uTer;      // territoire : r = camp (+ 2 juste conquis)
 uniform sampler2D uLut;      // ligne 0 : matiere de chaque type de sol ; ligne 1 : g lumineux, b eau, a garde sa teinte
-uniform sampler2D uObj;      // objets poses par la carte graphique (etape 3.3) : r matiere, g forme | eclairage << 1, b + a * 256 rang (0 : rien)
+uniform sampler2D uObj;      // objets poses par la carte graphique (etape 0.19, 3.3) : r matiere, g forme | eclairage << 1, b + a * 256 rang (0 : rien)
 uniform sampler2D uShadow;   // ombres portees (etape 3.4) : r > 0 dans l'ombre
 uniform sampler2D uLight;    // lumieres de nuit (etape 3.4) : r = matiere de la lumiere (0 : aucune)
 uniform float uStride;
