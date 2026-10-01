@@ -201,7 +201,8 @@ Le jeu passe à une base prête pour la haute définition et pour Steam, sans ri
 - [x] Liste proposée des bâtiments et des unités : [BATIMENTS.md](BATIMENTS.md), à valider.
 - [x] Nouvelle feuille de route ci-dessous (étapes 1 à 17), qui reprend les points encore ouverts de l’ancienne.
 - [x] Précisions du deuxième message : Catcoins et tricot confirmés ; seize orientations ; seules les croquettes, la laine et les ronrons paient les bâtiments et décident des victoires, le reste va dans un onglet Ressources ; charbon et centrale à charbon à la place du minerai et des éoliennes ; parties Blitz et Sans fin, victoires à cocher ; victoires scientifique, sociale, économique et de circonstance ; Rideau de Laine comme lieu de traités ; un camp amélioré devient un chef-lieu ; bâtiments qui s’équilibrent ajoutés à la liste.
-- [x] Troisième message : la liste des bâtiments devient un tableau à double entrée (règles communes, version USC, version CCR) ; rivières ; unités transportées par bateau ; pêche ; Blitz à durée choisie et Sans fin ; cinq jalons pour la victoire scientifique ; habitants qui s’enfuient à travers le Rideau et points de passage ; ressources proposées (herbe à chat, pétrole, influence).
+- [x] Troisième message : la liste des bâtiments devient un tableau à double entrée (règles communes, version USC, version CCR) ; rivières ; unités transportées par bateau ; pêche ; Blitz à durée choisie et Sans fin ; cinq jalons pour la victoire scientifique ; habitants qui s’enfuient à travers le Rideau et points de passage ; ressources proposées.
+- [x] Retenus : herbe à chat, pétrole, influence. Ni acier ni bois ; mines dans les montagnes et exploitations forestières qui rapportent de la laine.
 
 # Feuille de route de la nouvelle version
 
@@ -236,7 +237,8 @@ Chaque étape laisse le jeu jouable. L’ordre proposé : d’abord ce qui exist
 - [ ] Habitants et métiers : répartition réglable par grand métier (nourriture, laine, industrie, services, recherche, armée).
 - [ ] Eau et électricité en réseaux : production contre besoins ; un bâtiment non raccordé tourne mal.
 - [ ] Gisements de charbon et d’uranium sur la carte, mines de charbon et centrale à charbon.
-- [ ] Selon la décision : herbe à chat (luxe des ronrons, serres) et pétrole (derricks, plateformes).
+- [ ] Herbe à chat (luxe des ronrons, serres), pétrole (derricks, plateformes), influence.
+- [ ] Mines dans les montagnes ; exploitations forestières qui abattent la forêt et rapportent de la laine.
 - [ ] Un onglet Ressources : habitants, Catcoins, électricité, eau, charbon, uranium, ce qui les fait varier et ce qu’ils changent sur les trois indicateurs.
 - [ ] Les bâtiments qui s’équilibrent (entrepôt, marché, propagande...), d’après [BATIMENTS.md](BATIMENTS.md).
 - [ ] Rendre chaque ressource utile du début à la fin (aujourd’hui les croquettes s’accumulent).

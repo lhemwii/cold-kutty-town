@@ -51,9 +51,12 @@ Proposition à valider, faite à partir de la vision du [PRD](PRD.md).
 
 | Bâtiment et ses règles | USC | CCR |
 |---|---|---|
-| **Mine de charbon** [nouveau] P1<br>Coût : 40 laine. Sur un gisement découvert.<br>Produit 4 charbon, 6 emplois. | Chevalement en bois et wagonnets. | Puits du Plan à chevalement d’acier. |
+| **Mine de charbon** [nouveau] P1<br>Coût : 40 laine. Dans les montagnes, sur un gisement découvert.<br>Produit 4 charbon, 6 emplois. | Chevalement en bois et wagonnets. | Puits du Plan à chevalement d’acier. |
 | **Mine d’uranium** [nouveau] P3<br>Coût : 80 laine. Sur un gisement découvert. Recherche de l’atome.<br>Produit 1 uranium, 6 emplois. | Mine clôturée à panneaux jaunes. | Combinat atomique gardé. |
-| **Derrick** [nouveau, si le pétrole est retenu] P2<br>Coût : 50 laine. Sur un gisement de pétrole.<br>Produit 3 pétrole, 3 emplois. | Derrick en bois. | Derrick du Plan. |
+| **Derrick** [nouveau] P2<br>Coût : 50 laine. Sur un gisement de pétrole.<br>Produit 3 pétrole, 3 emplois. | Derrick en bois. | Derrick du Plan. |
+| **Plateforme pétrolière** [nouveau] P3<br>Coût : 120 laine. En mer, sur un gisement.<br>Produit 6 pétrole, 5 emplois. | Plateforme à torchère. | Plateforme du Plan. |
+| **Exploitation forestière** [nouveau] P1<br>Coût : 25 laine. En forêt.<br>Abat les arbres autour d’elle et en tire 8 laine (le bois devient fibre), 4 emplois. La forêt recule. | Camp de bûcherons à chemises à carreaux. | Brigade forestière du Peuple. |
+| **Serre à herbe à chat** [nouveau] P2<br>Coût : 45 laine. Électricité, eau.<br>Produit 2 herbe à chat, 3 emplois. | Serre de verre à jardinier. | Serre du kolkhoze. |
 
 ## Ville, économie, commerce
 
@@ -66,7 +69,7 @@ Proposition à valider, faite à partir de la vision du [PRD](PRD.md).
 | **Marché** [nouveau] P2<br>Coût : 40 laine.<br>Échange une ressource contre une autre entre ses villes, avec une perte. | Halle couverte. | Kolkhoze-marché. |
 | **Bureau d’immigration** [nouveau] P2<br>Coût : 40 laine. Près du port.<br>Fait venir des habitants contre des Catcoins. | Guichet d’accueil à drapeaux. | Bureau d’accueil des camarades. |
 | **Bureau de l’emploi** [nouveau] P2<br>Coût : 30 laine.<br>Répartition des métiers plus fine dans sa ville. | Agence pour l’emploi. | Bureau du Plan. |
-| **Station-service** [existe, rôle à revoir] P2<br>Coût : 30 laine.<br>Les véhicules vont plus loin (avec le pétrole, s’il est retenu). | Pompes et grande enseigne. | Station du Peuple. |
+| **Station-service** [existe, rôle à revoir] P2<br>Coût : 30 laine.<br>Distribue le pétrole : les véhicules vont plus loin. | Pompes et grande enseigne. | Station du Peuple. |
 
 ## Services et société
 

@@ -67,15 +67,15 @@ Le haut de l’écran montre les trois indicateurs ; l’onglet Ressources, le r
 
 **Pas d’éoliennes** : elles n’existent pas vraiment à l’époque. L’électricité vient du charbon, de l’eau (barrages) et de l’atome.
 
-**Autres ressources proposées (à valider)**, toujours dans l’onglet Ressources :
+**Ressources retenues en plus**, toujours dans l’onglet Ressources :
 
-| Proposition | Rôle | Avis |
+| Ressource | Rôle | D’où elle vient |
 |---|---|---|
-| **Herbe à chat**, le luxe des ronrons | Comme le pâté pour les croquettes et le tricot pour la laine : cultivée dans des serres, elle fait grimper les ronrons et compte pour la victoire sociale. Les trois indicateurs ont alors chacun leur luxe. | Recommandée |
-| **Pétrole** | Fait rouler, naviguer et voler les unités ; sans pétrole, l’armée reste à quai. Derricks sur des gisements, plateformes en mer. Donne une raison de se battre pour un coin de carte. | Recommandée |
-| **Influence** | Ce que pense l’autre camp de nous : la radio, les loisirs et la propagande la font monter ; elle attire les habitants de l’autre côté du Rideau. | À discuter : peut se calculer sans être une ressource |
-| **Acier** | Fait de charbon par une aciérie ; sert aux chars, aux navires, aux gratte-ciel. | Déconseillée : le charbon suffit, une ressource de plus alourdit |
-| **Bois** | Les forêts coupées donnent du bois pour les premiers bâtiments. | Déconseillée : la laine joue déjà ce rôle |
+| **Herbe à chat**, le luxe des ronrons | Comme le pâté pour les croquettes et le tricot pour la laine : elle fait grimper les ronrons et compte pour la victoire sociale. Les trois indicateurs ont chacun leur luxe. | Serres. |
+| **Pétrole** | Fait rouler, naviguer et voler les unités ; sans pétrole, l’armée reste à quai. Donne une raison de se battre pour un coin de carte. | Derricks sur des gisements, plateformes en mer. |
+| **Influence** | Ce que pense l’autre camp de nous : la radio, les loisirs et la propagande la font monter ; elle attire les habitants de l’autre côté du Rideau. | Radio, loisirs, prestige, propagande. |
+
+**Pas d’acier ni de bois** : le charbon suffit. Mais le terrain se travaille : des **mines dans les montagnes** (charbon, uranium) et des **exploitations forestières** qui abattent les forêts et rapportent de la laine (le bois devient fibre).
 
 ## 7. Les habitants et les métiers
 
