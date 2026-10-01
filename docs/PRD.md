@@ -38,7 +38,7 @@ Un jeu de chats pendant la guerre froide où l’on débarque sur une île, fond
 
 ## 5. Les types de partie
 
-- **Blitz** : une partie courte, au temps (de l’ordre de 20 minutes), carte petite, tout va plus vite. À la fin du temps, le meilleur score gagne.
+- **Blitz** : une partie au temps. **On choisit la durée** en créant la partie (de 10 minutes à plusieurs heures). À la fin du temps, le meilleur score gagne, sauf si un camp a gagné avant par une victoire active.
 - **Sans fin** : la partie ne s’arrête pas à une heure donnée ; elle continue tant qu’aucun camp n’a gagné par l’une des victoires actives. Elle peut durer autant qu’on veut, sauvegardée.
 - **Victoires au choix** : en créant la partie, on coche les victoires actives (toutes, ou seulement certaines : militaire, scientifique, sociale, économique...).
 - Contre l’IA, sur sa machine. **En ligne** contre un autre joueur ou contre l’IA : plus tard.
@@ -64,6 +64,18 @@ Un jeu de chats pendant la guerre froide où l’on débarque sur une île, fond
 | **Charbon** et **uranium** | Gisements de la carte. Le charbon fait tourner les centrales et l’industrie ; l’uranium la centrale nucléaire et la bombe. | Mines posées sur les gisements découverts par l’exploration. |
 
 Le haut de l’écran montre les trois indicateurs ; l’onglet Ressources, le reste. Sa place dans le HUD reste à dessiner (étape 13 du plan).
+
+**Pas d’éoliennes** : elles n’existent pas vraiment à l’époque. L’électricité vient du charbon, de l’eau (barrages) et de l’atome.
+
+**Autres ressources proposées (à valider)**, toujours dans l’onglet Ressources :
+
+| Proposition | Rôle | Avis |
+|---|---|---|
+| **Herbe à chat**, le luxe des ronrons | Comme le pâté pour les croquettes et le tricot pour la laine : cultivée dans des serres, elle fait grimper les ronrons et compte pour la victoire sociale. Les trois indicateurs ont alors chacun leur luxe. | Recommandée |
+| **Pétrole** | Fait rouler, naviguer et voler les unités ; sans pétrole, l’armée reste à quai. Derricks sur des gisements, plateformes en mer. Donne une raison de se battre pour un coin de carte. | Recommandée |
+| **Influence** | Ce que pense l’autre camp de nous : la radio, les loisirs et la propagande la font monter ; elle attire les habitants de l’autre côté du Rideau. | À discuter : peut se calculer sans être une ressource |
+| **Acier** | Fait de charbon par une aciérie ; sert aux chars, aux navires, aux gratte-ciel. | Déconseillée : le charbon suffit, une ressource de plus alourdit |
+| **Bois** | Les forêts coupées donnent du bois pour les premiers bâtiments. | Déconseillée : la laine joue déjà ce rôle |
 
 ## 7. Les habitants et les métiers
 
@@ -91,7 +103,8 @@ Le haut de l’écran montre les trois indicateurs ; l’onglet Ressources, le r
 - **Brouillard** : on ne voit que ce que voient ses bâtiments et ses unités. Ce qui a été vu reste affiché tel qu’on l’a vu en dernier.
 - **Biomes** : forêts de feuillus, forêts de pins, plages, marais, prairies, montagnes ; des arbres différents par biome.
 - **Saisons** : en hiver, la neige couvre vraiment le sol, ralentit les unités et les chantiers ; l’été est plus rapide.
-- **Gisements** de charbon et d’uranium à découvrir.
+- **Rivières** : elles descendent des montagnes jusqu’à la mer. On y pêche, on y pompe l’eau, on y bâtit un barrage, on les franchit par des ponts, et les bateaux peuvent les remonter.
+- **Gisements** de charbon et d’uranium (et de pétrole, s’il est retenu) à découvrir.
 - **La mer** : les bateaux naviguent vraiment (chemin calculé, sillage, accostage).
 
 ## 11. Les unités
@@ -104,6 +117,8 @@ Le haut de l’écran montre les trois indicateurs ; l’onglet Ressources, le r
   - **spatiales** : satellites (voir le chapitre 13) ;
   - **renseignement** : espions (voir le chapitre 14).
 - Les unités peuvent **entrer en territoire ennemi** : y voler des ressources, y prendre du terrain, y détruire.
+- **Par bateau** : les unités terrestres montent dans un navire de transport pour traverser la mer ou remonter une rivière, et débarquent sur une autre côte. Les navires se construisent au port militaire.
+- **La pêche** : les chalutiers des pêcheries et des ports vont pêcher du poisson, qui augmente les croquettes.
 - La liste proposée est dans [BATIMENTS.md](BATIMENTS.md).
 
 ## 12. La recherche
@@ -128,6 +143,8 @@ Le haut de l’écran montre les trois indicateurs ; l’onglet Ressources, le r
 - **Échanges entre l’USC et la CCR**, en Catcoins, au checkpoint : acheter ce qui manque, vendre ce qu’on a en trop.
 - **Traités** : accords commerciaux, trêve, échanges d’habitants ou de territoire. Un traité proposé n’est pas accepté tout de suite : il y a **un temps d’acceptation**, pendant lequel l’autre camp réfléchit (et l’IA dit pourquoi elle refuse, quand elle refuse).
 - **Nations alliées au large** : par le port, on importe des biens et des habitants, on exporte ses surplus.
+- **Les habitants peuvent s’enfuir** de l’autre côté du Rideau s’ils y trouvent mieux (plus de ronrons, du pâté, du tricot, des emplois). Les miradors et la police freinent les départs ; les haut-parleurs et la radio de l’autre camp les encouragent ; un tunnel d’évasion les fait passer en cachette.
+- **Points de passage** sur le Rideau : checkpoint, ambassade, mirador, haut-parleurs, pont des échanges, tunnel d’évasion (voir [BATIMENTS.md](BATIMENTS.md)).
 - **La capitulation** : un camp à bout peut se rendre.
 
 ## 16. Gagner
@@ -136,7 +153,14 @@ L’ancienne règle (le premier à 60 % de l’île) disparaît : le territoire 
 
 - **Militaire, par annihilation** : l’autre camp n’existe plus (plus de ville, plus d’unité).
 - **Militaire, par capitulation** : l’autre camp se rend.
-- **Scientifique** : mener la recherche à son terme (la course à l’espace jusqu’au bout), ce qui demande de tenir longtemps les trois indicateurs à un haut niveau.
+- **Scientifique** : être le premier à franchir **les cinq jalons de la science**, qui vont au-delà de la course à l’espace. Proposition :
+  1. le premier satellite en orbite ;
+  2. un réseau de satellites qui voit tout le territoire ennemi ;
+  3. le premier chat dans l’espace ;
+  4. une station en orbite ;
+  5. le premier chat sur la Lune.
+
+  Chaque jalon demande de la recherche, une base spatiale améliorée et de grandes quantités des trois indicateurs ; chacun rapporte déjà un avantage (voir sous le brouillard, ronrons, prestige).
 - **Sociale** : des ronrons au sommet, tenus un certain temps, avec une grande population.
 - **Économique** : une production de croquettes et de laine, et un commerce, au-dessus de l’autre camp pendant un certain temps.
 - **Victoires de circonstance** : des objectifs propres à une carte ou à une situation (un îlot à tenir, un blocus à briser, une trêve à obtenir...), à imaginer avec les cartes.

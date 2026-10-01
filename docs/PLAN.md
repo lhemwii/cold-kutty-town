@@ -201,6 +201,7 @@ Le jeu passe à une base prête pour la haute définition et pour Steam, sans ri
 - [x] Liste proposée des bâtiments et des unités : [BATIMENTS.md](BATIMENTS.md), à valider.
 - [x] Nouvelle feuille de route ci-dessous (étapes 1 à 17), qui reprend les points encore ouverts de l’ancienne.
 - [x] Précisions du deuxième message : Catcoins et tricot confirmés ; seize orientations ; seules les croquettes, la laine et les ronrons paient les bâtiments et décident des victoires, le reste va dans un onglet Ressources ; charbon et centrale à charbon à la place du minerai et des éoliennes ; parties Blitz et Sans fin, victoires à cocher ; victoires scientifique, sociale, économique et de circonstance ; Rideau de Laine comme lieu de traités ; un camp amélioré devient un chef-lieu ; bâtiments qui s’équilibrent ajoutés à la liste.
+- [x] Troisième message : la liste des bâtiments devient un tableau à double entrée (règles communes, version USC, version CCR) ; rivières ; unités transportées par bateau ; pêche ; Blitz à durée choisie et Sans fin ; cinq jalons pour la victoire scientifique ; habitants qui s’enfuient à travers le Rideau et points de passage ; ressources proposées (herbe à chat, pétrole, influence).
 
 # Feuille de route de la nouvelle version
 
@@ -235,6 +236,7 @@ Chaque étape laisse le jeu jouable. L’ordre proposé : d’abord ce qui exist
 - [ ] Habitants et métiers : répartition réglable par grand métier (nourriture, laine, industrie, services, recherche, armée).
 - [ ] Eau et électricité en réseaux : production contre besoins ; un bâtiment non raccordé tourne mal.
 - [ ] Gisements de charbon et d’uranium sur la carte, mines de charbon et centrale à charbon.
+- [ ] Selon la décision : herbe à chat (luxe des ronrons, serres) et pétrole (derricks, plateformes).
 - [ ] Un onglet Ressources : habitants, Catcoins, électricité, eau, charbon, uranium, ce qui les fait varier et ce qu’ils changent sur les trois indicateurs.
 - [ ] Les bâtiments qui s’équilibrent (entrepôt, marché, propagande...), d’après [BATIMENTS.md](BATIMENTS.md).
 - [ ] Rendre chaque ressource utile du début à la fin (aujourd’hui les croquettes s’accumulent).
@@ -268,6 +270,7 @@ Chaque étape laisse le jeu jouable. L’ordre proposé : d’abord ce qui exist
 
 ## Étape 7. Le monde
 
+- [ ] Rivières, des montagnes à la mer : pêche, pompage, barrages, ponts, bateaux qui les remontent.
 - [ ] Biomes : feuillus, pins, plages, marais, prairies, montagnes ; des arbres différents par biome.
 - [ ] En hiver, la neige couvre vraiment le sol et ralentit unités et chantiers.
 - [ ] La mer : choisir sa destination sur la carte avec le trajet affiché, un chalutier sélectionnable, le phare qui éclaire la route des bateaux la nuit, des vagues autour des pontons et des coques.
@@ -283,12 +286,12 @@ Chaque étape laisse le jeu jouable. L’ordre proposé : d’abord ce qui exist
 - [ ] Usine de chars, chantier naval, aérodrome ; soldats, véhicules, navires, avions (dont des bombardiers qui détruisent des bâtiments).
 - [ ] Entrer en territoire ennemi : y voler des ressources, y prendre du terrain.
 - [ ] Combat : points de vie, portée, prise d’un bâtiment ; défenses (canon côtier, DCA, bunker, radar).
-- [ ] Le navire de transport remplace la barge pour emmener des unités sur une autre côte.
+- [ ] Le navire de transport remplace la barge : les unités y montent, traversent la mer ou remontent une rivière, et débarquent ailleurs. Port militaire.
 - [ ] La bombe atomique : uranium, centre atomique, silo, au bout de la branche de l’atome.
 
 ## Étape 10. L’espace et le renseignement
 
-- [ ] Programme spatial : lancements, satellites qui révèlent une zone ennemie ; la course à l’espace lisible à l’écran.
+- [ ] Programme spatial : lancements, satellites qui révèlent une zone ennemie ; les cinq jalons de la science (satellite, réseau de satellites, chat dans l’espace, station en orbite, chat sur la Lune), lisibles à l’écran.
 - [ ] Agence de renseignement et espions : observer, voler une recherche, saboter ; contre-espionnage ; station d’écoute.
 
 ## Étape 11. Le commerce et la diplomatie
@@ -297,12 +300,13 @@ Chaque étape laisse le jeu jouable. L’ordre proposé : d’abord ce qui exist
 - [ ] Échanges entre l’USC et la CCR en Catcoins, au checkpoint.
 - [ ] Nations alliées au large, par le port : importer des biens et des habitants, exporter les surplus.
 - [ ] Traités (accords commerciaux, trêve, échanges) avec un temps d’acceptation ; l’IA dit pourquoi elle refuse.
+- [ ] Les habitants s’enfuient vers le camp où ils vivent mieux ; points de passage du Rideau (mirador, haut-parleurs, pont des échanges, tunnel d’évasion).
 - [ ] Capitulation.
 
 ## Étape 12. Gagner, et les types de partie
 
 - [ ] Victoires, chacune activable ou non à la création de la partie : militaire (annihilation, capitulation), scientifique, sociale, économique, de circonstance. Elles reposent sur la guerre et sur les trois indicateurs.
-- [ ] Types de partie dans « Nouvelle partie » : Blitz (au temps, le meilleur score gagne) et Sans fin (jusqu’à une victoire).
+- [ ] Types de partie dans « Nouvelle partie » : Blitz (on choisit la durée ; à la fin, le meilleur score gagne) et Sans fin (jusqu’à une victoire).
 - [ ] Succès redéfinis avec le jeu (`src/platform/achievements.ts`).
 - [ ] Équilibrage d’une partie Blitz et d’une partie Sans fin.
 

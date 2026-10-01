@@ -1,167 +1,165 @@
-# Bâtiments et unités : proposition
+# Bâtiments et unités : tableau à double entrée
 
-Proposition à valider, faite à partir de la vision du [PRD](PRD.md). Règle : **un même bâtiment pour les deux camps**, avec un habillage USC et un habillage CCR. Les bâtiments qui n’existaient que d’un côté sont regroupés en un seul type.
+Proposition à valider, faite à partir de la vision du [PRD](PRD.md).
 
-Tous les bâtiments se paient uniquement en croquettes, laine et ronrons (voir le [PRD](PRD.md), chapitre 6).
+**Comment lire ce tableau.** Chaque ligne est un bâtiment. À gauche, son nom et **ses règles, les mêmes pour les deux camps** : ce qu’il coûte, ce qu’il produit, ce qu’il consomme, ses emplois, son effet, ses trois niveaux. À droite, **la version USC et la version CCR** : le même bâtiment, chacun dessiné à la manière de son camp, niveau par niveau.
 
-Statut : **existe** (déjà dans le jeu, à garder), **à habiller** (existe pour un camp, il manque l’autre style ou le style est faux), **nouveau** (à créer).
-Priorité : **1** pour la première partie jouable de la nouvelle version, **2** ensuite, **3** plus tard.
+- **Les coûts** se paient uniquement en croquettes, laine et ronrons. Les débits sont par minute de jeu.
+- **Les chiffres** des bâtiments qui existent déjà sont ceux du jeu ; ceux des nouveaux sont des chiffres de départ, à équilibrer en jouant.
+- **Améliorer** coûte, sauf mention contraire, 1,5 fois le prix en laine et 15 ronrons pour le niveau 2, puis 2,6 fois et 40 ronrons pour le niveau 3. Chaque niveau multiplie la production par 1,7 puis 2,5, et agrandit un peu le territoire.
+- **Statut** entre crochets : [existe], [à habiller] (existe, mais un style manque ou est faux), [nouveau].
+- **Priorité** : P1 pour la première version jouable du nouveau jeu, P2 ensuite, P3 plus tard.
 
 ## Logement
 
-| Bâtiment | Style USC | Style CCR | Rôle | Statut | Priorité |
-|---|---|---|---|---|---|
-| Maison | Pavillon, puis villa | Isba, puis datcha | Habitants | existe | 1 |
-| Immeuble | Briques et escalier de secours | Barre de béton, étoile rouge | Beaucoup d’habitants | à habiller (le style CCR apparaît côté USC) | 1 |
-| Gratte-ciel | Tour art déco | Tour monumentale à flèche | Habitants et bureaux, demande du tricot | à habiller (deux types à fusionner) | 2 |
+| Bâtiment et ses règles | USC | CCR |
+|---|---|---|
+| **Maison** [existe] P1<br>Coût : 20 laine.<br>Loge 5 habitants, puis 8, puis 12.<br>Niveau 3 : demande du pâté. | Maison de bois à porche, puis pavillon à garage, puis villa à piscine. | Isba en rondins, puis datcha à véranda, puis datcha de ministre. |
+| **Immeuble** [à habiller] P1<br>Coût : 45 laine. Entretien : 1 laine.<br>Loge 14 habitants, puis 22, puis 34.<br>Niveau 3 : demande du tricot et de l’électricité. | Immeuble de briques à escaliers de secours, puis immeuble à corniche et château d’eau sur le toit, puis gratte-ciel de bureaux et d’appartements. | Barre de béton de cinq étages, puis barre de neuf étages, puis tour du Peuple à étoile rouge. |
+| **Gratte-ciel** [à habiller] P2<br>Coût : 120 laine, 20 tricot. Entretien : 2 croquettes.<br>Loge 16 habitants, 12 emplois, produit 6 laine et 3 ronrons.<br>Grande influence. | Tour art déco à flèche d’acier. | Tour monumentale à étages en gradins et étoile au sommet. |
 
 ## Nourriture
 
-| Bâtiment | Style USC | Style CCR | Rôle | Statut | Priorité |
-|---|---|---|---|---|---|
-| Pêcherie | Cabane de pêche | Coopérative de pêche | Croquettes, sur la côte | existe | 1 |
-| Ferme | Ferme et silo | Kolkhoze et tracteur | Croquettes | à habiller (deux noms, un seul dessin) | 1 |
-| Épicerie | Épicerie du coin | Gastronom | Croquettes, un peu de ronrons | existe | 1 |
-| Supermarché | Supermarché à néons | Univermag | Beaucoup de croquettes | existe | 2 |
-| Conserverie | Pâtés en boîte à étiquette | Combinat du pâté | Transforme les croquettes en pâté | nouveau | 1 |
-| Restaurant | Diner | Cantine du Peuple | Croquettes et ronrons | à habiller (le diner n’a que le style USC) | 2 |
+| Bâtiment et ses règles | USC | CCR |
+|---|---|---|
+| **Pêcherie** [existe] P1<br>Coût : 25 laine. Entretien : 0,5 laine.<br>Produit 12 croquettes, 4 emplois. Sur la côte ou au bord d’une rivière.<br>Arme un chalutier par niveau. | Cabane de pêche et ponton en bois, puis criée, puis conserverie de poisson. | Coopérative de pêche, puis combinat de pêche, puis flottille du Peuple. |
+| **Ferme** [à habiller] P1<br>Coût : 35 laine. Entretien : 1 laine.<br>Produit 16 croquettes, 6 emplois. Meilleure en prairie. | Ferme rouge et silo, puis ferme à tracteur, puis grande exploitation. | Kolkhoze et son tracteur, puis kolkhoze modèle, puis sovkhoze géant. |
+| **Épicerie** [existe] P1<br>Coût : 25 laine.<br>Produit 5 croquettes et 1 ronron, 3 emplois. | Épicerie du coin à auvent rayé. | Gastronom à vitrine. |
+| **Supermarché** [existe] P2<br>Coût : 70 laine. Entretien : 2 laine.<br>Produit 14 croquettes et 2 ronrons, 8 emplois. Demande de l’électricité. | Supermarché à néons et parking. | Univermag. |
+| **Conserverie** [nouveau] P1<br>Coût : 50 laine. Électricité.<br>Transforme 6 croquettes en 2 pâtés, 6 emplois. | Usine à pâté à grande étiquette peinte. | Combinat du pâté à cheminée. |
+| **Restaurant** [à habiller] P2<br>Coût : 35 laine. Entretien : 0,5 laine.<br>Produit 3 croquettes et 3 ronrons, 3 emplois, loisirs. | Diner chromé à néon. | Cantine du Peuple à grandes tablées. |
 
 ## Laine
 
-| Bâtiment | Style USC | Style CCR | Rôle | Statut | Priorité |
-|---|---|---|---|---|---|
-| Bergerie | Grange rouge | Bergerie du Peuple | Laine | existe | 1 |
-| Filature | Usine à cheminées | Combinat textile | Beaucoup de laine, fâche les voisins | existe (l’usine actuelle) | 1 |
-| Atelier de tricot | Boutique de pulls | Atelier du Plan | Transforme la laine en tricot (pelote et deux aiguilles) | nouveau | 1 |
+| Bâtiment et ses règles | USC | CCR |
+|---|---|---|
+| **Bergerie** [existe] P1<br>Coût : 25 laine.<br>Produit 12 laine, 4 emplois. Meilleure en prairie. | Grange rouge et enclos. | Bergerie du Peuple en briques. |
+| **Filature** [existe, l’usine actuelle] P1<br>Coût : 60 laine. Entretien : 1 croquette.<br>Produit 24 laine, 10 emplois. Électricité.<br>Fait baisser les ronrons autour (2). | Usine à cheminées et sheds. | Combinat textile à slogan sur le toit. |
+| **Atelier de tricot** [nouveau] P1<br>Coût : 50 laine. Électricité.<br>Transforme 6 laine en 2 tricots, 5 emplois. Icône : une pelote et deux aiguilles. | Boutique de pulls avec atelier derrière. | Atelier du Plan, rangées de tricoteuses. |
 
 ## Eau et électricité
 
-| Bâtiment | Style USC | Style CCR | Rôle | Statut | Priorité |
-|---|---|---|---|---|---|
-| Château d’eau | Cuve sur pieds | Tour d’eau en béton | Eau pour le quartier | existe (décor aujourd’hui) | 1 |
-| Station de pompage | Pompe au bord de l’eau | Station du Peuple | Beaucoup d’eau | nouveau | 2 |
-| Centrale à charbon | Centrale à cheminées | Centrale du Plan | Électricité, brûle du charbon, fait baisser les ronrons autour | nouveau | 1 |
-| Barrage | Barrage en voûte | Barrage géant | Beaucoup d’électricité, sur une rivière | nouveau | 3 |
-| Centrale nucléaire | Tours de refroidissement | Tours de refroidissement à étoile | Énormément d’électricité, demande de l’uranium et une recherche | nouveau | 3 |
+| Bâtiment et ses règles | USC | CCR |
+|---|---|---|
+| **Château d’eau** [existe, décor aujourd’hui] P1<br>Coût : 30 laine.<br>Eau pour environ 40 habitants autour de lui. | Cuve ronde sur pieds, peinte au nom de la ville. | Tour d’eau en béton. |
+| **Station de pompage** [nouveau] P2<br>Coût : 50 laine. Électricité.<br>Beaucoup d’eau, au bord d’une rivière ou d’un lac. | Station de briques à grosses vannes. | Station du Peuple. |
+| **Centrale à charbon** [nouveau] P1<br>Coût : 80 laine.<br>Brûle 2 charbon, électricité pour une quinzaine de bâtiments, 8 emplois.<br>Fumée : fait baisser les ronrons autour (3). | Centrale à quatre cheminées. | Centrale du Plan à cheminées rayées. |
+| **Barrage** [nouveau] P3<br>Coût : 150 laine, 30 ronrons.<br>Beaucoup d’électricité, sans charbon. Sur une rivière ; il crée un lac. | Barrage en voûte. | Barrage géant à inscription. |
+| **Centrale nucléaire** [nouveau] P3<br>Coût : 250 laine, 60 ronrons. Recherche de l’atome.<br>Brûle 1 uranium, énormément d’électricité, 12 emplois. | Tours de refroidissement. | Tours de refroidissement à étoile. |
 
-## Économie, commerce, population
+## Gisements
 
-| Bâtiment | Style USC | Style CCR | Rôle | Statut | Priorité |
-|---|---|---|---|---|---|
-| Hôtel de ville | Mairie | Palais du Peuple | Cœur d’une ville ; un camp amélioré devient un chef-lieu avec son hôtel de ville | existe (le QG) | 1 |
-| Port | Ponton, quai, grand port | Idem, grues rouges | Commerce et immigration avec les nations alliées | existe | 1 |
-| Banque | Banque à colonnes | Caisse d’épargne du Peuple | Catcoins (impôts), prêts | nouveau | 1 |
-| Bureau d’immigration | Guichet au port | Bureau d’accueil des camarades | Fait venir des habitants contre des Catcoins | nouveau | 2 |
-| Bureau de l’emploi | Agence pour l’emploi | Bureau du Plan | Répartition des métiers, plus fine | nouveau | 2 |
-| Checkpoint | Checkpoint Minou | Poste-frontière | Commerce avec l’autre camp | existe | 2 |
+| Bâtiment et ses règles | USC | CCR |
+|---|---|---|
+| **Mine de charbon** [nouveau] P1<br>Coût : 40 laine. Sur un gisement découvert.<br>Produit 4 charbon, 6 emplois. | Chevalement en bois et wagonnets. | Puits du Plan à chevalement d’acier. |
+| **Mine d’uranium** [nouveau] P3<br>Coût : 80 laine. Sur un gisement découvert. Recherche de l’atome.<br>Produit 1 uranium, 6 emplois. | Mine clôturée à panneaux jaunes. | Combinat atomique gardé. |
+| **Derrick** [nouveau, si le pétrole est retenu] P2<br>Coût : 50 laine. Sur un gisement de pétrole.<br>Produit 3 pétrole, 3 emplois. | Derrick en bois. | Derrick du Plan. |
 
-## Gisements et industrie
+## Ville, économie, commerce
 
-| Bâtiment | Style USC | Style CCR | Rôle | Statut | Priorité |
-|---|---|---|---|---|---|
-| Mine de charbon | Chevalement en bois | Puits du Plan | Charbon, sur un gisement | nouveau | 1 |
-| Mine d’uranium | Mine clôturée | Combinat atomique | Uranium, sur un gisement | nouveau | 3 |
-| Station-service | Pompes et enseigne | Station du Peuple | Fait rouler les véhicules plus loin (à la place de la laine synthétique) | existe, rôle à revoir | 2 |
+| Bâtiment et ses règles | USC | CCR |
+|---|---|---|
+| **Hôtel de ville** [existe, le QG] P1<br>Coût : un camp amélioré (voir Frontière).<br>Cœur d’une ville : produit 10 croquettes, 12 laine, 6 ronrons, loge 6 habitants, forme explorateurs et bâtisseurs. | Mairie à colonnes et drapeau. | Palais du Peuple à flèche. |
+| **Port** [existe] P1<br>Coût : 40 laine.<br>Produit 6 croquettes, 5 emplois. Commerce et immigration avec les nations alliées ; niveau 3 : un cargo. | Ponton en bois, puis quai de béton, puis grand port à grues. | Les mêmes, grues rouges et slogans. |
+| **Banque** [nouveau] P1<br>Coût : 60 laine.<br>Impôts : des Catcoins selon le nombre d’habitants ; prêts. | Banque à colonnes. | Caisse d’épargne du Peuple. |
+| **Entrepôt** [nouveau] P1<br>Coût : 30 laine.<br>Plus de stock de croquettes et de laine (sinon le surplus se perd), 2 emplois. | Hangar à portes roulantes. | Dépôt du Plan. |
+| **Marché** [nouveau] P2<br>Coût : 40 laine.<br>Échange une ressource contre une autre entre ses villes, avec une perte. | Halle couverte. | Kolkhoze-marché. |
+| **Bureau d’immigration** [nouveau] P2<br>Coût : 40 laine. Près du port.<br>Fait venir des habitants contre des Catcoins. | Guichet d’accueil à drapeaux. | Bureau d’accueil des camarades. |
+| **Bureau de l’emploi** [nouveau] P2<br>Coût : 30 laine.<br>Répartition des métiers plus fine dans sa ville. | Agence pour l’emploi. | Bureau du Plan. |
+| **Station-service** [existe, rôle à revoir] P2<br>Coût : 30 laine.<br>Les véhicules vont plus loin (avec le pétrole, s’il est retenu). | Pompes et grande enseigne. | Station du Peuple. |
 
 ## Services et société
 
-| Bâtiment | Style USC | Style CCR | Rôle | Statut | Priorité |
-|---|---|---|---|---|---|
-| École | École à cloche | École du Peuple | Habitants mieux formés, prépare la recherche | nouveau | 2 |
-| Dispensaire puis hôpital | Hôpital à croix | Polyclinique | Santé, plus d’habitants | nouveau | 2 |
-| Pompiers | Caserne rouge | Caserne du Peuple | Contre les incendies | nouveau | 3 |
-| Police | Commissariat | Milice | Ordre, contre-espionnage léger | nouveau | 3 |
+| Bâtiment et ses règles | USC | CCR |
+|---|---|---|
+| **École** [nouveau] P2<br>Coût : 40 laine.<br>Habitants mieux formés, prépare la recherche. | École à cloche. | École du Peuple. |
+| **Dispensaire, puis hôpital** [nouveau] P2<br>Coût : 50 laine. Électricité, eau.<br>Plus d’habitants par logement, moins de malades. | Hôpital à croix. | Polyclinique. |
+| **Pompiers** [nouveau] P3<br>Coût : 40 laine.<br>Éteignent les incendies. | Caserne rouge. | Caserne du Peuple. |
+| **Police** [nouveau] P3<br>Coût : 40 laine.<br>Ordre, contre-espionnage léger, moins de départs à travers le Rideau. | Commissariat. | Milice. |
+| **Bureau de propagande** [nouveau] P2<br>Coût : 50 laine.<br>Des ronrons d’un coup dans toute la ville ; moins ensuite si on en abuse. | Agence de publicité. | Bureau de l’agitation. |
+| **Prison** [nouveau] P3<br>Coût : 50 laine.<br>Contre-espionnage fort, travailleurs gratuits ; les ronrons baissent dans toute la ville. | Pénitencier. | Pénitencier du Peuple. |
+| **Usine de recyclage** [nouveau] P3<br>Coût : 40 laine.<br>Rend de la laine quand on démolit ; fait baisser les ronrons autour. | Ferrailleur. | Combinat de récupération. |
 
 ## Loisirs et prestige
 
-| Bâtiment | Style USC | Style CCR | Rôle | Statut | Priorité |
-|---|---|---|---|---|---|
-| Parc, fontaine, statue, panneau, kiosque | | | Ronrons | existent | 1 |
-| Cinéma | Cinéma à marquise | Cinéma du Peuple | Ronrons | à habiller | 2 |
-| Cinéma en plein air | Drive-in | Ciné plein air | Ronrons | existe | 2 |
-| Salle de jeux | Bowling | Club ouvrier (échecs) | Ronrons | à habiller | 2 |
-| Cirque | Cirque | Cirque du Peuple | Ronrons | existe | 2 |
-| Hôtel | Motel | Hôtel du Peuple | Ronrons, visiteurs | existe | 2 |
-| Monument | Chapelle | Musée à bulbes | Ronrons, influence | existe | 2 |
-| Tour radio | Antenne et néons | Antenne à étoile | Grande influence, propagande | existe | 1 |
-| Stade | Stade de baseball | Stade du Peuple | Beaucoup de ronrons | existe | 2 |
-| Grand magasin | Grand magasin | Grand Magasin du Peuple | Croquettes et ronrons | existe | 2 |
-| Tribune | Tribune de parade | Tribune du Défilé | Ronrons, défilés militaires | existe | 3 |
+| Bâtiment et ses règles | USC | CCR |
+|---|---|---|
+| **Parc, fontaine, statue, panneau, kiosque** [existent] P1<br>Coût : 10 à 25 laine.<br>2 à 3 ronrons, loisirs. | Parc à pelouse, fontaine, héros de bronze, panneau publicitaire, kiosque à musique. | Parc de la culture, fontaine, héros du Peuple, panneau à slogan, kiosque. |
+| **Cinéma** [à habiller] P2<br>Coût : 50 laine. Entretien : 1 laine.<br>5 ronrons, loisirs, 3 emplois. | Cinéma à marquise lumineuse. | Cinéma du Peuple. |
+| **Cinéma en plein air** [existe] P2<br>Coût : 45 laine.<br>5 ronrons, loisirs. | Drive-in. | Ciné plein air. |
+| **Salle de jeux** [à habiller] P2<br>Coût : 45 laine.<br>5 ronrons, loisirs. | Bowling à néons. | Club ouvrier, tables d’échecs. |
+| **Cirque** [existe] P2<br>Coût : 55 laine. Entretien : 1 croquette.<br>6 ronrons, beaucoup de loisirs. | Cirque. | Cirque du Peuple. |
+| **Hôtel** [existe] P2<br>Coût : 35 laine. Entretien : 1 croquette.<br>4 ronrons, visiteurs. | Motel. | Hôtel du Peuple. |
+| **Monument** [existe] P2<br>Coût : 60 laine.<br>5 ronrons, influence. | Chapelle blanche. | Musée à bulbes. |
+| **Tour radio** [existe] P1<br>Coût : 55 laine. Entretien : 1 laine.<br>6 ronrons, très grande influence ; sa radio s’entend de l’autre côté du Rideau. | Antenne et néons. | Antenne à étoile. |
+| **Stade** [existe] P2<br>Coût : 110 laine. Entretien : 2 laine.<br>9 ronrons, beaucoup de loisirs. | Stade de baseball. | Stade du Peuple. |
+| **Grand magasin** [existe] P2<br>Coût : 90 laine. Entretien : 2 laine.<br>6 croquettes, 4 ronrons. | Grand magasin à escalators. | Grand Magasin du Peuple. |
+| **Tribune** [existe] P3<br>Coût : 60 laine.<br>6 ronrons ; défilés militaires. | Tribune de parade. | Tribune du Défilé. |
 
 ## Transports
 
-| Bâtiment | Style USC | Style CCR | Rôle | Statut | Priorité |
-|---|---|---|---|---|---|
-| Route, puis route goudronnée | | | Relie, transporte | existe | 1 |
-| Gare et voie ferrée | Gare centrale | Gare du Peuple | Transporte les ressources entre villes | existe (dessin seul) | 2 |
-| Métro | Bouche de métro | Métro du Peuple | Habitants entre quartiers | existe (dessin seul) | 3 |
-| Tunnel et pont | | | Passer une montagne, une rivière | nouveau | 2 |
-| Dépôt de bus | Dépôt jaune | Dépôt de trolleybus | Habitants plus mobiles | nouveau | 3 |
+| Bâtiment et ses règles | USC | CCR |
+|---|---|---|
+| **Route** [existe] P1<br>Coût : de la laine au mètre.<br>Relie les bâtiments ; chemin de terre, puis route goudronnée. | Route à lignes jaunes. | Route à bordures blanches. |
+| **Pont** [nouveau] P2<br>Coût : de la laine au mètre, plus cher qu’une route.<br>Franchit une rivière ou une anse. | Pont métallique. | Pont de béton. |
+| **Tunnel** [nouveau] P2<br>Coût : beaucoup de laine.<br>Traverse une montagne. | Entrée à fronton. | Entrée à étoile. |
+| **Gare et voie ferrée** [existe en dessin] P2<br>Coût : 80 laine la gare, de la laine au mètre.<br>Transporte les ressources entre villes. | Gare centrale. | Gare du Peuple. |
+| **Métro** [existe en dessin] P3<br>Coût : 100 laine.<br>Habitants entre quartiers. | Bouche de métro. | Métro du Peuple à lustres. |
+| **Dépôt de bus** [nouveau] P3<br>Coût : 40 laine.<br>Habitants plus mobiles. | Dépôt de bus jaunes. | Dépôt de trolleybus. |
 
 ## Recherche et espace
 
-| Bâtiment | Style USC | Style CCR | Rôle | Statut | Priorité |
-|---|---|---|---|---|---|
-| Université | Campus à pelouse | Académie des sciences | Recherche | nouveau | 1 |
-| Laboratoire | Laboratoire | Institut du Plan | Plus de recherche, une branche | nouveau | 2 |
-| Centre atomique | Centre de recherche | Ville fermée | Branche de l’atome, la bombe | nouveau | 3 |
-| Base spatiale | Base spatiale | Cosmodrome | Fusées, satellites | existe | 2 |
-| Observatoire | Coupole | Coupole à étoile | Recherche spatiale, voir loin la nuit | nouveau | 3 |
+| Bâtiment et ses règles | USC | CCR |
+|---|---|---|
+| **Université** [nouveau] P1<br>Coût : 90 laine. Électricité.<br>Produit de la recherche, 8 emplois. | Campus à pelouse et clocher. | Académie des sciences. |
+| **Laboratoire** [nouveau] P2<br>Coût : 70 laine. Électricité.<br>Plus de recherche dans une branche. | Laboratoire. | Institut du Plan. |
+| **Centre atomique** [nouveau] P3<br>Coût : 150 laine, 40 ronrons.<br>Branche de l’atome, la bombe. | Centre de recherche clôturé. | Ville fermée. |
+| **Base spatiale** [existe] P2<br>Coût : 150 laine, 60 ronrons.<br>Lancements, satellites, jalons de la science. | Base spatiale. | Cosmodrome. |
+| **Observatoire** [nouveau] P3<br>Coût : 60 laine.<br>Recherche spatiale, voit loin la nuit. | Coupole. | Coupole à étoile. |
 
 ## Armée et renseignement
 
-| Bâtiment | Style USC | Style CCR | Rôle | Statut | Priorité |
-|---|---|---|---|---|---|
-| Caserne | Base militaire | Caserne du Peuple | Explorateurs, bâtisseurs, soldats | nouveau | 1 |
-| Usine de chars | Arsenal | Usine de tracteurs (qui fait des chars) | Véhicules | nouveau | 2 |
-| Chantier naval | Chantier naval | Chantier naval du Peuple | Navires | nouveau | 2 |
-| Aérodrome | Base aérienne | Aérodrome du Peuple | Avions | nouveau | 2 |
-| Défenses | Canon côtier, DCA, bunker | Idem en béton | Défendre une côte, une ville | existe en vestige, nouveau en bâtiment | 2 |
-| Radar | Radar tournant | Radar du Peuple | Voit loin sous le brouillard | nouveau | 2 |
-| Silo | Silo à missiles | Silo du Peuple | La bombe atomique | nouveau | 3 |
-| Agence de renseignement | L’Agence | Le Comité | Espions, contre-espionnage | nouveau | 2 |
-| Station d’écoute | Antennes paraboliques | Antennes du Comité | Révèle les plans de l’ennemi | nouveau | 3 |
+| Bâtiment et ses règles | USC | CCR |
+|---|---|---|
+| **Caserne** [nouveau] P1<br>Coût : 50 laine. Entretien : 2 croquettes.<br>Forme explorateurs, bâtisseurs, soldats. | Base militaire à mât. | Caserne du Peuple. |
+| **Usine de chars** [nouveau] P2<br>Coût : 90 laine. Électricité.<br>Construit jeeps, chars, artillerie. | Arsenal. | Usine de tracteurs (qui fait des chars). |
+| **Port militaire** [nouveau] P2<br>Coût : 90 laine. Sur la côte.<br>Construit navires de transport et de combat. | Chantier naval à cale sèche. | Chantier naval du Peuple. |
+| **Aérodrome** [nouveau] P2<br>Coût : 100 laine. Électricité.<br>Construit avions. | Base aérienne. | Aérodrome du Peuple. |
+| **Défenses** [vestiges, nouveau en bâtiment] P2<br>Coût : 30 à 60 laine.<br>Canon côtier, DCA, bunker. | Canon et bunker gris. | Canon et bunker à étoile. |
+| **Radar** [nouveau] P2<br>Coût : 60 laine. Électricité.<br>Voit loin sous le brouillard. | Radar tournant. | Radar du Peuple. |
+| **Silo** [nouveau] P3<br>Coût : 200 laine, 80 ronrons. Uranium, recherche de l’atome.<br>La bombe atomique. | Silo à missiles. | Silo du Peuple. |
+| **Agence de renseignement** [nouveau] P2<br>Coût : 70 laine.<br>Forme les espions, contre-espionnage. | L’Agence. | Le Comité. |
+| **Station d’écoute** [nouveau] P3<br>Coût : 60 laine.<br>Révèle les plans de l’ennemi. | Antennes paraboliques. | Antennes du Comité. |
 
-## Frontière
+## Frontière et Rideau de Laine : les points de passage
 
-| Bâtiment | Rôle | Statut | Priorité |
-|---|---|---|---|
-| Camp (l’avant-poste actuel) | Posé par des unités, même hors du territoire ; s’améliore en chef-lieu (nouvelle ville) | existe, à faire évoluer | 1 |
-| Rideau de Laine | Une construction : fige une frontière, et sert à parler à l’ennemi (échanges, traités) par ses portes et son checkpoint | existe, à faire évoluer | 2 |
-
-## Bâtiments qui s’équilibrent (nouveaux, à valider)
-
-Chaque bâtiment utile a un revers, pour que les choix comptent.
-
-| Bâtiment | Style USC | Style CCR | Ce qu’il apporte | Ce qu’il coûte | Priorité |
-|---|---|---|---|---|---|
-| Entrepôt | Hangar à portes roulantes | Dépôt du Plan | Plus de stock de croquettes et de laine (sinon les surplus se perdent) | De la place, des travailleurs | 1 |
-| Marché | Halle couverte | Kolkhoze-marché | Échange une ressource contre une autre entre ses villes | Une perte à chaque échange | 2 |
-| Bureau de propagande | Agence de publicité | Bureau de l’agitation | Des ronrons d’un coup, dans toute la ville | Beaucoup de laine, et moins de ronrons ensuite si on en abuse | 2 |
-| Ambassade | Ambassade à drapeau | Ambassade à étoile | Traités plus rapides à accepter avec l’autre camp | Elle laisse aussi passer ses espions | 2 |
-| Prison | Pénitencier | Pénitencier du Peuple | Contre-espionnage fort, travailleurs gratuits | Les ronrons baissent dans toute la ville | 3 |
-| Usine de recyclage | Ferrailleur | Combinat de récupération | Rend de la laine quand on démolit | Fait baisser les ronrons autour | 3 |
+| Bâtiment et ses règles | USC | CCR |
+|---|---|---|
+| **Camp** [existe, l’avant-poste actuel] P1<br>Coût : 30 croquettes, 20 ronrons, plus cher à chaque camp.<br>Posé par des bâtisseurs, même hors du territoire. Amélioré, il devient un chef-lieu avec son hôtel de ville : une nouvelle ville. | Tentes et drapeau, puis baraquements, puis mairie. | Tentes et drapeau rouge, puis baraquements, puis Palais du Peuple. |
+| **Rideau de Laine** [existe, à faire évoluer] P2<br>Coût : 3 laine tous les 10 pas.<br>Fige la frontière ; ses portes et ses points de passage servent à parler à l’ennemi. | Grillage tricoté et barbelés. | Mur de laine à miradors. |
+| **Checkpoint** [existe] P2<br>Coût : 40 laine.<br>Commerce en Catcoins avec l’autre camp ; laisse passer des habitants dans les deux sens. | Checkpoint Minou, cabane et sacs de sable. | Poste-frontière à barrière rayée. |
+| **Ambassade** [nouveau] P2<br>Coût : 60 laine.<br>Traités plus rapides à accepter ; laisse aussi passer les espions. | Ambassade à drapeau. | Ambassade à étoile. |
+| **Mirador** [nouveau] P2<br>Coût : 20 laine.<br>Moins d’habitants qui s’enfuient de l’autre côté, voit au-delà du Rideau. | Tour de guet en bois. | Mirador de béton à projecteur. |
+| **Haut-parleurs** [nouveau] P3<br>Coût : 25 laine.<br>Propagande vers l’autre camp : ses ronrons baissent près du Rideau, ses habitants sont tentés de passer. | Haut-parleurs à musique. | Haut-parleurs à slogans. |
+| **Pont des échanges** [nouveau] P3<br>Coût : 50 laine.<br>Échange d’espions capturés et de prisonniers ; adoucit la tension. | Pont à lampadaires. | Pont à barrière. |
+| **Tunnel d’évasion** [nouveau] P3<br>Creusé par des espions ou par des habitants.<br>Fait passer des habitants, ou un espion, sous le Rideau, en cachette. | Creusé sous une cave. | Creusé sous une boulangerie. |
 
 ## Unités
 
-| Unité | Produite par | Rôle | Priorité |
-|---|---|---|---|
-| Explorateur | Hôtel de ville, caserne | Révèle le brouillard, trouve les gisements | 1 |
-| Bâtisseurs | Hôtel de ville | Posent un camp loin, même hors du territoire, et construisent autour | 1 |
-| Soldats | Caserne | Défendre, prendre un bâtiment, voler des ressources en territoire ennemi | 1 |
-| Jeep | Usine de chars | Éclaireur rapide | 2 |
-| Char | Usine de chars | Attaque | 2 |
-| Artillerie | Usine de chars | Attaque à distance | 3 |
-| Navire de transport | Chantier naval, port | Emmène des unités sur une autre côte (remplace la barge) | 2 |
-| Patrouilleur, destroyer | Chantier naval | Combat en mer | 2 |
-| Sous-marin | Chantier naval | Discret, attaque les navires | 3 |
-| Avion de reconnaissance | Aérodrome | Voit loin | 2 |
-| Chasseur | Aérodrome | Combat aérien | 2 |
-| Bombardier | Aérodrome | Détruit des bâtiments, même loin dans le territoire ennemi | 2 |
-| Satellite | Base spatiale | Révèle une zone ennemie | 3 |
-| Espion | Agence de renseignement | Observe, vole, sabote | 2 |
-
-## Ressources de luxe : ce qu’elles débloquent
-
-- **Pâté** : logements améliorés (villa, datcha de ministre, gratte-ciel), habitants plus heureux.
-- **Tricot** : grands bâtiments (gratte-ciel, stade, université améliorée), uniformes des unités.
+| Unité et ses règles | USC | CCR |
+|---|---|---|
+| **Explorateur** P1<br>Hôtel de ville, caserne. Rapide, voit loin, trouve les gisements. | Éclaireur à chapeau. | Éclaireur à chapka. |
+| **Bâtisseurs** P1<br>Hôtel de ville. Posent un camp loin, même hors du territoire, et construisent autour. | Ouvriers à casque jaune. | Brigade de travailleurs. |
+| **Soldats** P1<br>Caserne. Défendent, prennent un bâtiment, volent des ressources en territoire ennemi. | Soldats à casque rond. | Soldats à casque à étoile. |
+| **Jeep** P2<br>Usine de chars. Éclaireur rapide. | Jeep. | Jeep du Peuple. |
+| **Char** P2<br>Usine de chars. Attaque. | Char à étoile blanche. | Char à étoile rouge. |
+| **Artillerie** P3<br>Usine de chars. Attaque à distance. | Canon tracté. | Lance-roquettes. |
+| **Navire de transport** P2<br>Port militaire, port. Emmène des unités sur l’eau, d’une côte à l’autre ou le long d’une rivière (remplace la barge). | Barge de débarquement. | Barge du Peuple. |
+| **Patrouilleur, destroyer** P2<br>Port militaire. Combat en mer. | Destroyer gris. | Destroyer à étoile. |
+| **Sous-marin** P3<br>Port militaire. Discret, attaque les navires. | Sous-marin. | Sous-marin du Peuple. |
+| **Chalutier** [existe] P1<br>Pêcherie, port. Pêche du poisson : plus de croquettes. | Chalutier blanc. | Chalutier rouge. |
+| **Avion de reconnaissance** P2<br>Aérodrome. Voit loin. | Avion espion à longues ailes. | Avion de reconnaissance. |
+| **Chasseur** P2<br>Aérodrome. Combat aérien. | Chasseur argenté. | Chasseur à étoile. |
+| **Bombardier** P2<br>Aérodrome. Détruit des bâtiments, même loin dans le territoire ennemi. | Bombardier à huit moteurs. | Bombardier lourd. |
+| **Satellite** P3<br>Base spatiale. Révèle une zone ennemie. | Satellite à panneaux. | Satellite à antennes. |
+| **Espion** P2<br>Agence de renseignement. Observe, vole une recherche, sabote, passe le Rideau par un tunnel. | Espion à imperméable. | Espion à chapeau mou. |
