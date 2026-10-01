@@ -117,6 +117,8 @@ Proposition à valider, faite à partir de la vision du [PRD](PRD.md).
 | **Aérodrome** [existe] P2<br>Coût : 120 laine, 40 ronrons. Recherche : Aviation.<br>Chasseurs, puis bombardiers. | Piste, hangar en arc, tour de contrôle. | Les mêmes, en béton. |
 | **Bunker, canon côtier, DCA, radar** [existe] P2<br>Défenses : unités à terre (portée 50), navires (95), avions (85) ; le radar voit loin. | Béton et kaki. | Casemate et batterie du Peuple. |
 | **Centre atomique et silo** [existe] P3<br>Recherche : Bombe atomique. Une bombe pour 20 uranium ; le silo la lance. | Bâtiment secret, trèfle jaune. | Combinat atomique secret. |
+| **Agence de renseignement** [existe] P2<br>Coût : 80 laine, 40 ronrons. Recherche : Espionnage.<br>Forme les espions. | Immeuble de pierre à antennes, AGENCE. | Bureau du Peuple, étoile rouge. |
+| **Station d’écoute** [existe] P3<br>Coût : 70 laine, 30 ronrons. Recherche : Écoute.<br>Voit les unités ennemies dans un grand rayon. | Bâtiment bas et grands dômes blancs. | Les mêmes. |
 | **Ponton de pêche** [existe] P2<br>Coût : 20 laine.<br>Au bord d’une rivière ou d’un étang : 6 croquettes. | Ponton de bois et cabane. | Ponton du kolkhoze. |
 | **Dépôt de bus** [nouveau] P3<br>Coût : 40 laine.<br>Habitants plus mobiles. | Dépôt de bus jaunes. | Dépôt de trolleybus. |
 
@@ -163,6 +165,7 @@ Proposition à valider, faite à partir de la vision du [PRD](PRD.md).
 |---|---|---|
 | **Explorateur** P1<br>Hôtel de ville, caserne. Rapide, voit loin, trouve les gisements. | Éclaireur à chapeau. | Éclaireur à chapka. |
 | **Bâtisseurs** P1<br>Hôtel de ville. Posent un camp loin, même hors du territoire, et construisent autour. | Ouvriers à casque jaune. | Brigade de travailleurs. |
+| **Espion** P2<br>Agence. Invisible de loin ; observer, voler une recherche, saboter. | Imperméable et chapeau. | Imperméable gris. |
 | **Soldats** P1<br>Caserne. Défendent, prennent un bâtiment, volent des ressources en territoire ennemi. | Soldats à casque rond. | Soldats à casque à étoile. |
 | **Jeep** P2<br>Usine de chars. Éclaireur rapide. | Jeep. | Jeep du Peuple. |
 | **Char** P2<br>Usine de chars. Attaque. | Char à étoile blanche. | Char à étoile rouge. |

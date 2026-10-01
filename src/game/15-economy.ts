@@ -444,7 +444,8 @@ $('evB').addEventListener('click', () => { if (EV.cur) resolveEvent(EV.cur.b); }
 /** Course a l'espace d'un camp : palier atteint, et date du lancement en cours. */
 export interface SpaceState { stage: number; launchT: number | null }
 export const SPACE: Record<Side, SpaceState> = { usc: { stage: 0, launchT: null }, ccp: { stage: 0, launchT: null } };
-export const SPACE_STEPS: [number, string, number][] = [[.18, 'le premier satellite', 90], [.30, 'le premier chat en orbite', 160], [.42, 'le premier chat sur la Lune', 260]];
+// les cinq jalons de la science (etape 10) : un lancement par jalon, quand la recherche est faite et le lancement commande (31-espace)
+export const SPACE_STEPS: [number, string, number][] = [[.18, 'le premier satellite', 90], [.24, 'un réseau de satellites', 120], [.30, 'le premier chat dans l’espace', 160], [.36, 'une station en orbite', 200], [.42, 'le premier chat sur la Lune', 260]];
 export let spaceCount: { side: Side; t0: number; what: string; first: boolean; gain: number } | null = null;
 export function stepSpace(t: number): void {
   if (GAME.mode !== 'play') return;
@@ -453,7 +454,7 @@ export function stepSpace(t: number): void {
     const S = SPACE[side];
     if (S.launchT && gt > S.launchT + 70) S.launchT = null;
     if (S.launchT || spaceCount) continue;
-    const step = SPACE_STEPS[S.stage]; if (!step || terPct(side) < step[0]) continue;
+    const step = SPACE_STEPS[S.stage]; if (!step || (SH.spaceReady ? !SH.spaceReady(side, S.stage) : terPct(side) < step[0])) continue;
     const pad = SH.BLD.find(l => l.side === side && l.type === 'fusee' && l.done && l.active);
     if (!pad) continue;
     S.launchT = gt + 10; S.stage++;

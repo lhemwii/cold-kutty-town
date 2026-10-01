@@ -268,7 +268,7 @@ export function drawUnit(u: Unit, t: number){
 HOOKS.dyn.push((t: number, out: Drawable[]) => {
   if (GAME.mode !== 'play') return;
   for (const u of UNITS){
-    if (u.aboard) continue;
+    if (u.aboard || (SH.hiddenUnit && SH.hiddenUnit(u))) continue;
     const q = prj(u.a, u.b, 0); if (q[0] < -30 || q[0] > W + 30 || q[1] < -30 || q[1] > H + 30) continue;
     const d = UNIT_DEF[u.kind], air = d && d.domain === 'air';
     out.push({ d: dep(u.a, u.b) + (air ? 60 : .3), a: u.a, b: u.b, side: u.side, f: (tt: number) => drawUnit(u, tt) });
@@ -367,6 +367,7 @@ export function renderUnitPanel(){
   for (const [k, us] of kinds){ const d = UNIT_DEF[k], hp = us.reduce((s, u) => s + u.hp, 0), mx = us.length * d.hp; h += '<div class="un-row"><span>' + unitName(k, GAME.side) + (us.length > 1 ? ' × ' + us.length : '') + '</span><span class="xr-bar"><i style="width:' + Math.round(hp / mx * 100) + '%"></i></span></div>'; }
   h += '</div><p class="sel-note">' + (sel.length === 1 ? UNIT_DEF[sel[0].kind].desc + ' ' : '') + 'Clic droit pour les envoyer, sur un ennemi pour l’attaquer. Ctrl glissé : un cadre. G : toutes tes unités à l’écran.</p><div class="un-act">';
   if (kinds.has('batisseurs')) h += '<button class="btn" type="button" data-un="camp">Poser un camp<i>' + costHTML(priceOf('drapeau', GAME.side)) + '</i></button>';
+  if (SH.unitActions) h += SH.unitActions(sel);
   h += '<button class="btn" type="button" data-un="stop">Halte</button><button class="btn danger" type="button" data-un="dissoudre">Dissoudre</button></div>';
   el.innerHTML = h;
   $('unClose').addEventListener('click', () => { SEL.clear(); renderUnitPanel(); });
@@ -374,6 +375,7 @@ export function renderUnitPanel(){
     const k = b.dataset.un;
     if (k === 'camp'){ aim = { kind: 'camp' }; document.body.classList.add('aiming'); $('modeHint').textContent = 'Clique où poser le camp : les bâtisseurs y vont, même hors de ton territoire.'; }
     else if (k === 'stop'){ for (const u of sel){ u.path = []; u.pi = 0; u.order = null; } }
+    else if (k && SH.unitAct && SH.unitAct(k, sel)) { /* action d'un autre module (espions...) */ }
     else if (k === 'dissoudre'){ for (const u of sel) u.dead = true; SEL.clear(); renderUnitPanel(); toast('Unités dissoutes.'); }
     SH.sfx('click');
   });

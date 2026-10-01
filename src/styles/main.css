@@ -515,3 +515,12 @@ body.playing .home{background:rgba(12,26,48,.55)}
 .tech .tbar i{display:block;height:100%;background:#2e7d45}
 .bbtn.locked{opacity:.55}
 .bb-lock{font:600 11px/1.2 var(--text)}
+
+/* la course a l'espace dans le bloc du territoire (etape 10) */
+.space-race{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:6px;margin-top:2px}
+.space-race:empty{display:none}
+.sr-row{display:flex;gap:3px}
+.sr-row i{display:block;width:9px;height:9px;border:2px solid currentColor;background:transparent;box-sizing:border-box}
+.sr-row[data-side="usc"] i.on{background:var(--usc)}
+.sr-row[data-side="ccp"] i.on{background:var(--ccp)}
+.sr-lab{font:700 11px/1 var(--text)}

@@ -305,10 +305,15 @@ Chaque étape laisse le jeu jouable. L’ordre proposé : d’abord ce qui exist
 - [x] La bombe atomique : le centre atomique en fabrique une avec 20 d’uranium, le silo la lance (clic sur la cible, impact dix secondes plus tard) ; elle rase tout dans un grand rayon, des deux camps (les hôtels de ville résistent à peine).
 - [ ] À revoir ensemble : la barge de débarquement reste en début de partie (avant la Marine) ; l’équilibre des unités ; des avions qui patrouillent ; des formations ; un vrai écran de bataille.
 
-## Étape 10. L’espace et le renseignement
+## Étape 10. L’espace et le renseignement (fait)
 
-- [ ] Programme spatial : lancements, satellites qui révèlent une zone ennemie ; les cinq jalons de la science (satellite, réseau de satellites, chat dans l’espace, station en orbite, chat sur la Lune), lisibles à l’écran.
-- [ ] Agence de renseignement et espions : observer, voler une recherche, saboter ; contre-espionnage ; station d’écoute.
+- [x] Programme spatial : la base spatiale (reliée par la route) lance les cinq jalons de la science, chacun après sa recherche et contre laine, croquettes, ronrons et pétrole : le premier satellite, un réseau de satellites, le premier chat dans l’espace, une station en orbite, le premier chat sur la Lune. Compte à rebours, feu d’artifice, radio, ronrons (plus pour le premier camp). L’autre camp lance dès qu’il peut.
+- [x] Le satellite balaie l’île de son regard ; le réseau garde en vue les villes ennemies.
+- [x] La course à l’espace se lit dans le bloc du territoire : cinq cases par camp.
+- [x] Agence de renseignement et espions : invisibles tant qu’ils restent loin de l’ennemi ; près d’un bâtiment ennemi, observer les environs, voler une recherche (université, laboratoire), saboter (à l’arrêt une minute, solidité au tiers). Un sur trois se fait prendre, un sur deux face au contre-espionnage.
+- [x] Station d’écoute : voit les unités ennemies dans un grand rayon. Contre-espionnage : on voit les espions ennemis de plus loin, ils se font prendre plus souvent.
+- [x] Les espions de l’autre camp agissent de temps en temps (vol de recherche, sabotage), quand il a une agence.
+- [ ] À revoir ensemble : voir la fusée et les satellites dans le ciel à chaque jalon, des missions d’espion plus variées (retourner un habitant, faux renseignements), l’IA qui forme de vrais espions.
 
 ## Étape 11. Le commerce et la diplomatie
 
