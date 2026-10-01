@@ -5,6 +5,7 @@ import { M, SIDES, clamp, hash2 } from './01-core.ts';
 import { GA0, GB0, GH, GSC, GW, T_DIRT, T_ROAD, T_ROCK, T_SEA, T_WALK, cellOf, gBase, gLand, groundDirty, gTone, gType, resetArea, typeAt } from './02-ground.ts';
 import { LAMP_POS, cutTreesAlong } from './07-world.ts';
 import { sideAt } from './08-territory.ts';
+import { segDist, segInter } from '../rules/geom.ts';
 /* ================= routes : droites ou courbes, raccordees entre elles, parcourues par les voitures ================= */
 export const RW = 6, SW = 3, RWS = RW + SW;
 /** Une route : ses points tous les ~4 unites, la longueur cumulee a chaque point, sa longueur et sa boite (a0, a1, b0, b1). */
@@ -34,12 +35,7 @@ export function sampleCurve(p: Vec2, c: Vec2, q: Vec2): Vec2[] {
   for (let k = 0; k <= n; k++){ const t = k / n, u = 1 - t; out.push([u * u * p[0] + 2 * u * t * c[0] + t * t * q[0], u * u * p[1] + 2 * u * t * c[1] + t * t * q[1]]); }
   return out;
 }
-// point d'un segment le plus proche : [distance, s entre 0 et 1]
-export function segDist(pa: number, pb: number, qa: number, qb: number, a: number, b: number): [number, number] {
-  const da = qa - pa, db = qb - pb, L2 = da * da + db * db || 1;
-  const s = clamp(((a - pa) * da + (b - pb) * db) / L2, 0, 1);
-  return [Math.hypot(pa + da * s - a, pb + db * s - b), s];
-}
+export { segDist, segInter };
 // point d'une route le plus proche : distance, position le long, coordonnees
 export function roadNearest(r: Road, a: number, b: number): [number, number, number, number] {
   let best: [number, number, number, number] = [1e9, 0, 0, 0];
@@ -124,11 +120,6 @@ export function nodeIn(g: Graph, a: number, b: number, side: Side): number {
   g.nodes.push({ a, b, side, comp: -1 }); g.nodeEdges.push([]); return g.nodes.length - 1;
 }
 export function nodeAt(a: number, b: number, side: Side): number { return nodeIn({ nodes: NODES, edges: EDGES, nodeEdges: NODE_EDGES }, a, b, side); }
-export function segInter(p: number[], q: number[], r: number[], s: number[]): number | null {
-  const d = (q[0] - p[0]) * (s[1] - r[1]) - (q[1] - p[1]) * (s[0] - r[0]); if (Math.abs(d) < 1e-9) return null;
-  const t = ((r[0] - p[0]) * (s[1] - r[1]) - (r[1] - p[1]) * (s[0] - r[0])) / d, u = ((r[0] - p[0]) * (q[1] - p[1]) - (r[1] - p[1]) * (q[0] - p[0])) / d;
-  return (t >= -1e-6 && t <= 1 + 1e-6 && u >= -1e-6 && u <= 1 + 1e-6) ? t : null;
-}
 // stops : des points ou couper les voies qui passent a moins de stopR (les gares)
 export function graphOf(list: Road[], stops: Vec2[] = [], stopR = 0): Graph {
   const g: Graph = { nodes: [], edges: [], nodeEdges: [] };

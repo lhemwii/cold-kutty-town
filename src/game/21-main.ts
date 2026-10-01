@@ -16,6 +16,7 @@ import { DEMOS, EV, buildTime, newRes, stepEco, stepEvents, stepSpace } from './
 import { CREWS, buildNav, offshoreFrom, stepBoats, type Boat } from './16-boats.ts';
 import { PAPER, applySeason, deliverPaper, memGreeting, memRemember, updateCalUI, type ChatTurn } from './17-calendar.ts';
 import { RIVAL, newBrain, rivalLanding, stepRival } from './20-rival.ts';
+import { rleDecode, rleEncode } from '../rules/rle.ts';
 declare global { interface Window { __okt?: Record<string, unknown> } }
 /* ================= radio ================= */
 // une annonce : camp (ou neutre), station, message, et de quoi y aller (un point de la carte, ou rien)
@@ -209,8 +210,7 @@ export interface SaveData {
 // ce qui sort du stockage n'est qu'une valeur JSON : on ne garde que ce qui porte le bon numero de version
 export function asSave(d: unknown): SaveData | null { return typeof d === 'object' && d !== null && 'v' in d && (d.v === 8 || d.v === 9) ? d as SaveData : null; }
 // territoire compresse : longueurs des suites de cases identiques
-export function rleEncode(a: ArrayLike<number>){ const out: number[] = []; let v = a[0], n = 0; for (let i = 0; i < a.length; i++){ if (a[i] === v) n++; else { out.push(v, n); v = a[i]; n = 1; } } out.push(v, n); return out.join(','); }
-export function rleDecode(s: string, into: Uint8Array){ const p = s.split(',').map(Number); let i = 0; for (let k = 0; k + 1 < p.length; k += 2){ into.fill(p[k], i, i + p[k + 1]); i += p[k + 1]; } }
+export { rleDecode, rleEncode };
 export function snapshot(): SaveData {
   return { v: 9, seed: GAME.seed, size: GAME.size, conf: GAME.conf, side: GAME.side, t: Math.round(GAME.t), speed: GAME.speed, cal: SH.CAL.m, h: +CLOCK.h.toFixed(2),
     res: SIDES.map(s => [Math.round(SH.RES[s].croq), Math.round(SH.RES[s].laine), Math.round(SH.RES[s].ron)]),

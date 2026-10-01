@@ -8,6 +8,7 @@ import { $, ICONS, ico, toast } from './13-ui.ts';
 import { ECO, RES, TALLY, bdef, type XRes } from './15-economy.ts';
 import { launchBoat, offshoreFrom, pierEnd } from './16-boats.ts';
 import { UNITS, UNIT_DEF } from './26-unites.ts';
+import { tradeCoins } from '../rules/trade.ts';
 import { isCity } from './25-villes.ts';
 /* ================= etape 11 : le commerce et la diplomatie ================= */
 // Le Rideau de Laine est aussi l'endroit ou l'on parle a l'ennemi : checkpoint, ambassade, points de passage.
@@ -165,9 +166,7 @@ const PRICE: Record<string, number> = { croq: 4, laine: 5, ron: 8, pate: 12, tri
 const stock = (side: Side, g: Good): number => { const R = RES[side]; return g === 'croq' ? R.croq : g === 'laine' ? R.laine : g === 'ron' ? R.ron : R.x[g as XRes]; };
 const addGood = (side: Side, g: Good, v: number) => { const R = RES[side]; if (g === 'croq') R.croq += v; else if (g === 'laine') R.laine += v; else if (g === 'ron') R.ron += v; else R.x[g as XRes] += v; };
 export function trade(side: Side, g: Good, buy: boolean, where: 'checkpoint' | 'large'): string {
-  const R = RES[side], n = 10, bridge = hasNear(side, 'pontech') ? .85 : 1;
-  const unit = where === 'checkpoint' ? PRICE[g] * (buy ? 1.3 * bridge : 1 / bridge) : PRICE[g] * (buy ? 1.6 : .7);
-  const coins = Math.round(unit);
+  const R = RES[side], n = 10, coins = tradeCoins(PRICE[g], buy, where, hasNear(side, 'pontech'));
   if (buy){ if (R.x.coins < coins) return 'Il faut ' + coins + ' Catcoins.'; R.x.coins -= coins; addGood(side, g, n); if (where === 'checkpoint') addGood(other(side), g, -Math.min(n, stock(other(side), g))); }
   else { if (stock(side, g) < n) return 'Il faut ' + n + ' ' + GOOD_NAME[g] + '.'; addGood(side, g, -n); R.x.coins += coins; }
   if (where === 'checkpoint') RES[other(side)].x.coins += Math.round(coins * .2);
@@ -295,8 +294,7 @@ export function renderDip(){
   for (const b of el.querySelectorAll('[data-dip]')) if (b instanceof HTMLElement) b.addEventListener('click', () => { const o = DIP.offer; DIP.offer = null; if (!o || o.kind === 'capitulation') return; if (b.dataset.dip === 'oui'){ apply(o.kind); toast('Accepté : ' + TREATY_NAME[o.kind].toLowerCase() + '.'); } else { DIP.mood = clamp(DIP.mood - 8, -100, 100); toast('Refusé.'); } renderDip(); });
 }
 function goodRow(g: Good, where: 'checkpoint' | 'large'): string {
-  const me = GAME.side, bridge = hasNear(me, 'pontech') ? .85 : 1;
-  const sell = Math.round(where === 'checkpoint' ? PRICE[g] / bridge : PRICE[g] * .7), buy = Math.round(where === 'checkpoint' ? PRICE[g] * 1.3 * bridge : PRICE[g] * 1.6);
+  const me = GAME.side, br = hasNear(me, 'pontech'), sell = tradeCoins(PRICE[g], false, where, br), buy = tradeCoins(PRICE[g], true, where, br);
   return '<div class="dip-good"><span>' + ico(GOOD_ICO[g] || 'coins', GOOD_NAME[g]) + ' 10 ' + GOOD_NAME[g] + '</span><button class="btn" type="button" data-tr="' + g + ':' + where + ':sell">Vendre ' + sell + '</button><button class="btn" type="button" data-tr="' + g + ':' + where + ':buy">Acheter ' + buy + '</button></div>';
 }
 export function toggleDip(on?: boolean){ const el = $('dip'), show = on == null ? el.hidden : on; el.hidden = !show; btnDip.setAttribute('aria-pressed', String(show)); if (show){ $('sci').hidden = true; renderDip(); } }

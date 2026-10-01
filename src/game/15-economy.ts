@@ -10,6 +10,7 @@ import { SID, TER, lockCells, rebuildLocks, terPct } from './08-territory.ts';
 import { reseatCars, roadAccess } from './09-roads.ts';
 import { rebuildTown } from './10-town.ts';
 import { $, achieve, andList, toast } from './13-ui.ts';
+import { METIERS, shareJobs, type Metier } from '../rules/jobs.ts';
 /* ================= economie : croquettes, laine et ronrons ================= */
 // Par batiment, au niveau 1 et par minute : c croquettes, l laine, r ronrons (negatif = fonctionnement),
 // pop habitants, jobs emplois, fun loisirs, rad rayon d'influence, cost laine a la construction, costR ronrons,
@@ -129,26 +130,12 @@ export interface Resources {
   demand: Record<Metier, number>; effM: Record<Metier, number>;
 }
 /* ---- habitants et metiers (etape 3) ---- */
-export type Metier = 'nourriture' | 'laine' | 'industrie' | 'services' | 'recherche' | 'armee';
-export const METIERS: Metier[] = ['nourriture', 'laine', 'industrie', 'services', 'recherche', 'armee'];
+export { METIERS, shareJobs, type Metier };
 export const METIER_NAME: Record<Metier, string> = { nourriture: 'Nourriture', laine: 'Laine', industrie: 'Industrie', services: 'Services', recherche: 'Recherche', armee: 'Armée' };
 export const metierOf = (cat: Cat): Metier => cat === 'nourriture' || cat === 'mer' ? 'nourriture' : cat === 'laine' ? 'laine' : cat === 'industrie' ? 'industrie' : cat === 'recherche' ? 'recherche' : cat === 'armee' ? 'armee' : 'services';
 /** priorite de chaque metier (0 a 3), reglee par le joueur ; l'IA garde 2 partout */
 export const PRIO: Record<Side, Record<Metier, number>> = { usc: { nourriture: 2, laine: 2, industrie: 2, services: 2, recherche: 2, armee: 2 }, ccp: { nourriture: 2, laine: 2, industrie: 2, services: 2, recherche: 2, armee: 2 } };
 // les habitants vont d'abord aux metiers prioritaires ; chaque metier ne prend pas plus que ce qu'il demande
-export function shareJobs(pop: number, demand: Record<Metier, number>, prio: Record<Metier, number>): Record<Metier, number> {
-  const got: Record<Metier, number> = { nourriture: 0, laine: 0, industrie: 0, services: 0, recherche: 0, armee: 0 };
-  let left = pop;
-  for (let round = 0; round < 4 && left > .01; round++){
-    let wsum = 0; for (const m of METIERS) if (got[m] < demand[m] && prio[m] > 0) wsum += prio[m] * demand[m];
-    if (!wsum) break;
-    let used = 0;
-    for (const m of METIERS){ if (got[m] >= demand[m] || prio[m] <= 0) continue; const give = Math.min(demand[m] - got[m], left * prio[m] * demand[m] / wsum); got[m] += give; used += give; }
-    left -= used;
-  }
-  const eff = { ...got }; for (const m of METIERS) eff[m] = demand[m] ? clamp(got[m] / demand[m], 0, 1) : 1;
-  return eff;
-}
 const xZero = (): Record<XRes, number> => ({ pate: 0, tricot: 0, herbe: 0, coins: 0, charbon: 0, uranium: 0, petrole: 0 });
 const xSplit = (): Record<XRes, [string, number][]> => ({ pate: [], tricot: [], herbe: [], coins: [], charbon: [], uranium: [], petrole: [] });
 export const BASE_CAP = 1500;

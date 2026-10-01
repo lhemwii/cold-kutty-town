@@ -4,6 +4,7 @@ import { terPct } from './08-territory.ts';
 import { $, achieve } from './13-ui.ts';
 import { RES, SPACE } from './15-economy.ts';
 import { store } from './22-home.ts';
+import { scoreOf } from '../rules/score.ts';
 import { isCity } from './25-villes.ts';
 import { TRAINS } from './27-transports.ts';
 import { SCI } from './29-recherche.ts';
@@ -47,7 +48,7 @@ document.querySelectorAll('.hm[data-page="new"]').forEach(b => b.addEventListene
 export function score(side: Side): number {
   const R = RES[side];
   const cities = (SH.BLD as Building[]).filter(l => l.side === side && l.done && isCity(l)).length;
-  return Math.round(terPct(side) * 1000 + R.pop * 3 + SCI[side].done.size * 30 + SPACE[side].stage * 150 + R.x.coins / 10 + (R.rc + R.rl + R.rr) * 2 + cities * 80 + strength(side) * .3);
+  return scoreOf({ ter: terPct(side), pop: R.pop, techs: SCI[side].done.size, space: SPACE[side].stage, coins: R.x.coins, prod: R.rc + R.rl + R.rr, cities, strength: strength(side) });
 }
 SH.score = score;
 

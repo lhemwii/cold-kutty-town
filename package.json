@@ -12,14 +12,18 @@
     "check": "tsc -p . && vite build",
     "app:install": "npm --prefix desktop install",
     "app": "npm run build && npm --prefix desktop start",
-    "app:dist": "npm run build && npm --prefix desktop run dist"
+    "app:dist": "npm run build && npm --prefix desktop run dist",
+    "test": "vitest run",
+    "smoke": "node scripts/smoke.mjs"
   },
   "engines": {
     "node": ">=20.19"
   },
   "devDependencies": {
+    "playwright": "^1.56.1",
     "typescript": "^7.0.2",
-    "vite": "^8.3.1"
+    "vite": "^8.3.1",
+    "vitest": "^5.0.3"
   },
   "dependencies": {
     "pixi.js": "^8.21.0"

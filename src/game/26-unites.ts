@@ -10,6 +10,7 @@ import { $, costHTML, toast } from './13-ui.ts';
 import { lackText } from './14-hud.ts';
 import { CATS_MENU, ECO, bdef, canAfford, payPrice, priceOf, type Price } from './15-economy.ts';
 import { rleDecode, rleEncode } from './21-main.ts';
+import { gridPath, nearestOpen } from '../rules/astar.ts';
 /* ================= etape 5 : brouillard et unites ================= */
 // Le brouillard : chaque case de territoire est jamais vue (0), deja vue (1) ou en vue (2) pour le joueur ; ses batiments,
 // ses unites et son territoire voient autour d'eux. Les unites : formees par des batiments, on les choisit d'un clic (Maj pour
@@ -88,44 +89,18 @@ export function passable(domain: Domain, a: number, b: number): boolean {
   passGrid(); const [x, y] = cellXY(a, b); if (x < 0 || y < 0 || x >= PW || y >= PH) return false;
   return (domain === 'mer' ? PSEA : PLAND)[y * PW + x] === 1;
 }
-// chemin le plus court (A*, huit voisins) ; null si on ne peut pas y aller. La neige ralentit, pas le chemin.
-let HEAP = new Int32Array(0), GSC_ = new Float32Array(0), FROM = new Int32Array(0), STAMP = new Int32Array(0), stampN = 0;
+// chemin le plus court (A*, huit voisins : src/rules/astar.ts) ; null si on ne peut pas y aller. La neige ralentit, pas le chemin.
 export function findPath(domain: Domain, a0: number, b0: number, a1: number, b1: number): Vec2[] | null {
   if (domain === 'air') return [[a1, b1]];
   passGrid();
-  const G = domain === 'mer' ? PSEA : PLAND, N = PW * PH;
-  if (STAMP.length !== N){ HEAP = new Int32Array(N + 8); GSC_ = new Float32Array(N); FROM = new Int32Array(N); STAMP = new Int32Array(N); stampN = 0; }
-  let [sx, sy] = cellXY(a0, b0), [tx, ty] = cellXY(a1, b1);
-  const inside = (x: number, y: number) => x >= 0 && y >= 0 && x < PW && y < PH;
-  if (!inside(sx, sy) || !inside(tx, ty)) return null;
-  // arrivee sur une case interdite : la case permise la plus proche
-  if (!G[ty * PW + tx]){ let best = -1, bd = 1e9; for (let r = 1; r < 6 && best < 0; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++){ const x = tx + dx, y = ty + dy; if (inside(x, y) && G[y * PW + x] && dx * dx + dy * dy < bd){ bd = dx * dx + dy * dy; best = y * PW + x; } } if (best < 0) return null; tx = best % PW; ty = (best / PW) | 0; }
-  if (!G[sy * PW + sx]){ let best = -1, bd = 1e9; for (let r = 1; r < 4 && best < 0; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++){ const x = sx + dx, y = sy + dy; if (inside(x, y) && G[y * PW + x] && dx * dx + dy * dy < bd){ bd = dx * dx + dy * dy; best = y * PW + x; } } if (best < 0) return null; sx = best % PW; sy = (best / PW) | 0; }
-  stampN++;
-  const st = sy * PW + sx, goal = ty * PW + tx, hx = (i: number) => { const x = i % PW, y = (i / PW) | 0, dx = Math.abs(x - tx), dy = Math.abs(y - ty); return Math.max(dx, dy) + .414 * Math.min(dx, dy); };
-  const FS = new Map<number, number>();
-  let hn = 0;
-  const push = (i: number, f: number) => { FS.set(i, f); let k = hn++; HEAP[k] = i; while (k > 0){ const pk = (k - 1) >> 1; if ((FS.get(HEAP[pk]) || 0) <= f) break; HEAP[k] = HEAP[pk]; HEAP[pk] = i; k = pk; } };
-  const pop = (): number => { const top = HEAP[0]; const last = HEAP[--hn]; let k = 0; const f = FS.get(last) || 0; for (;;){ const l = 2 * k + 1, r = l + 1; let m = k, mf = f; if (l < hn && (FS.get(HEAP[l]) || 0) < mf){ m = l; mf = FS.get(HEAP[l]) || 0; } if (r < hn && (FS.get(HEAP[r]) || 0) < mf){ m = r; } if (m === k) break; HEAP[k] = HEAP[m]; k = m; } HEAP[k] = last; return top; };
-  STAMP[st] = stampN; GSC_[st] = 0; FROM[st] = -1; push(st, hx(st));
-  let found = false, iter = 0;
-  while (hn > 0 && iter++ < 90000){
-    const cur = pop(); if (cur === goal){ found = true; break; }
-    const cx = cur % PW, cy = (cur / PW) | 0, g0 = GSC_[cur];
-    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++){
-      if (!dx && !dy) continue;
-      const x = cx + dx, y = cy + dy; if (!inside(x, y)) continue;
-      const ni = y * PW + x; if (!G[ni]) continue;
-      if (dx && dy && (!G[cy * PW + x] || !G[y * PW + cx])) continue;
-      const g = g0 + (dx && dy ? 1.414 : 1);
-      if (STAMP[ni] === stampN && GSC_[ni] <= g) continue;
-      STAMP[ni] = stampN; GSC_[ni] = g; FROM[ni] = cur; push(ni, g + hx(ni));
-    }
-  }
-  if (!found) return null;
-  const out: Vec2[] = []; let k = goal;
-  while (k !== st && k >= 0){ out.push([GA0 + (k % PW + .5) * GS8, GB0 + (((k / PW) | 0) + .5) * GS8]); k = FROM[k]; }
-  out.reverse();
+  const G = domain === 'mer' ? PSEA : PLAND;
+  const [sx, sy] = cellXY(a0, b0), [tx, ty] = cellXY(a1, b1);
+  if (sx < 0 || sy < 0 || sx >= PW || sy >= PH || tx < 0 || ty < 0 || tx >= PW || ty >= PH) return null;
+  // arrivee ou depart sur une case interdite : la case permise la plus proche
+  const goal = nearestOpen(G, PW, PH, tx, ty, 6), st = nearestOpen(G, PW, PH, sx, sy, 4);
+  if (goal < 0 || st < 0) return null;
+  const cells = gridPath(G, PW, PH, st, goal); if (!cells) return null;
+  const out: Vec2[] = cells.map(k => [GA0 + (k % PW + .5) * GS8, GB0 + (((k / PW) | 0) + .5) * GS8]);
   if (out.length) out[out.length - 1] = [a1, b1];
   // lisser : on saute les points intermediaires d'une ligne droite praticable
   const sm: Vec2[] = []; let from: Vec2 = [a0, b0], i = 0;
