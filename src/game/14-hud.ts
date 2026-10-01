@@ -189,8 +189,8 @@ export function effLine(e: EcoDef){
 /** ce qui manque pour payer un prix, en texte (« 12 laine et 5 ronrons ») ; vide si on peut payer */
 export function lackText(p: Price): string {
   const R: Resources = SH.RES[GAME.side], m = (need: number, have: number) => Math.max(0, Math.ceil(need - have));
-  const l = m(p.l, R.laine), c = m(p.c, R.croq), r = m(p.r, R.ron);
-  return andList([l ? l + ' laine' : '', c ? c + ' croquettes' : '', r ? r + ' ronrons' : '']);
+  const l = m(p.l, R.laine), c = m(p.c, R.croq), r = m(p.r, R.ron), t = m(p.t || 0, R.x.tricot), pa = m(p.p || 0, R.x.pate);
+  return andList([l ? l + ' laine' : '', c ? c + ' croquettes' : '', r ? r + ' ronrons' : '', t ? t + ' tricot' : '', pa ? pa + ' pâté' : '']);
 }
 export function refreshPalette(){
   for (const b of $('palette').children){
@@ -288,8 +288,8 @@ export function renderSel(){
   if (!mine) return;
   // why : ce qui empeche l'action, dit au survol du bouton grise
   const btn = (label: string, sub: string, fn: () => void, why?: string) => { const b = document.createElement('button'); b.className = 'btn'; b.type = 'button'; b.innerHTML = '<span>' + label + '</span>' + (sub ? '<i>' + sub + '</i>' : ''); b.disabled = !!why; if (why) b.title = why; b.addEventListener('click', fn); act.append(b); return b; };
-  const uc: { l: number; r: number } | null = SH.upCost(l);
-  if (uc && l.done) btn('Améliorer', costHTML({ l: uc.l, c: 0, r: uc.r }), () => { const why = SH.upgradeBuilding(l); if (why) toast(why); else { pushHistory({ kind: 'upgrade', id: l.id, l: uc.l, r: uc.r }); toast('Amélioration lancée.'); SH.sfx('click'); } renderHUD(); $('sel').dataset.key = ''; renderSel(); }, l.upT ? 'Amélioration déjà en cours.' : lackText({ l: uc.l, c: 0, r: uc.r }) ? 'Il manque ' + lackText({ l: uc.l, c: 0, r: uc.r }) + '.' : '');
+  const uc: Price | null = SH.upCost(l);
+  if (uc && l.done) btn('Améliorer', costHTML(uc), () => { const why = SH.upgradeBuilding(l); if (why) toast(why); else { pushHistory({ kind: 'upgrade', id: l.id, l: uc.l, r: uc.r }); toast('Amélioration lancée.'); SH.sfx('click'); } renderHUD(); $('sel').dataset.key = ''; renderSel(); }, l.upT ? 'Amélioration déjà en cours.' : lackText(uc) ? 'Il manque ' + lackText(uc) + '.' : '');
   if (uc && l.done && !l.upT){
     // ce que l'amelioration va rapporter
     const nl = (l.lvl || 1) + 1, bits: string[] = [];

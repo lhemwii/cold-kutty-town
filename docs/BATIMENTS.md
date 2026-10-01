@@ -26,7 +26,7 @@ Proposition à valider, faite à partir de la vision du [PRD](PRD.md).
 | **Ferme** [existe, habillée par camp] P1<br>Coût : 35 laine. Entretien : 1 laine.<br>Produit 16 croquettes, 6 emplois. Meilleure en prairie. | Grange rouge à planches blanches, silo et tracteur vert ; puis ferme à tracteur, puis grande exploitation. | Étable blanchie à la chaux, étoile rouge au pignon, tracteur rouge ; puis kolkhoze modèle, puis sovkhoze géant. |
 | **Épicerie** [existe] P1<br>Coût : 25 laine.<br>Produit 5 croquettes et 1 ronron, 3 emplois. | Épicerie du coin à auvent rayé. | Gastronom à vitrine. |
 | **Supermarché** [existe] P2<br>Coût : 70 laine. Entretien : 2 laine.<br>Produit 14 croquettes et 2 ronrons, 8 emplois. Demande de l’électricité. | Supermarché à néons et parking. | Univermag. |
-| **Conserverie** [nouveau] P1<br>Coût : 50 laine. Électricité.<br>Transforme 6 croquettes en 2 pâtés, 6 emplois. | Usine à pâté à grande étiquette peinte. | Combinat du pâté à cheminée. |
+| **Conserverie** [existe] P1<br>Coût : 50 laine. Électricité.<br>Transforme 6 croquettes en 2 pâtés, 6 emplois. | Usine à pâté à grande étiquette peinte. | Combinat du pâté à cheminée. |
 | **Restaurant** [à habiller] P2<br>Coût : 35 laine. Entretien : 0,5 laine.<br>Produit 3 croquettes et 3 ronrons, 3 emplois, loisirs. | Diner chromé à néon. | Cantine du Peuple à grandes tablées. |
 
 ## Laine
@@ -35,15 +35,15 @@ Proposition à valider, faite à partir de la vision du [PRD](PRD.md).
 |---|---|---|
 | **Bergerie** [existe] P1<br>Coût : 25 laine.<br>Produit 12 laine, 4 emplois. Meilleure en prairie. | Grange rouge et enclos. | Bergerie du Peuple en briques. |
 | **Filature** [existe, l’usine actuelle] P1<br>Coût : 60 laine. Entretien : 1 croquette.<br>Produit 24 laine, 10 emplois. Électricité.<br>Fait baisser les ronrons autour (2). | Usine à cheminées et sheds. | Combinat textile à slogan sur le toit. |
-| **Atelier de tricot** [nouveau] P1<br>Coût : 50 laine. Électricité.<br>Transforme 6 laine en 2 tricots, 5 emplois. Icône : une pelote et deux aiguilles. | Boutique de pulls avec atelier derrière. | Atelier du Plan, rangées de tricoteuses. |
+| **Atelier de tricot** [existe] P1<br>Coût : 50 laine. Électricité.<br>Transforme 6 laine en 2 tricots, 5 emplois. Icône : une pelote et deux aiguilles. | Boutique de pulls avec atelier derrière. | Atelier du Plan, rangées de tricoteuses. |
 
 ## Eau et électricité
 
 | Bâtiment et ses règles | USC | CCR |
 |---|---|---|
 | **Château d’eau** [existe, décor aujourd’hui] P1<br>Coût : 30 laine.<br>Eau pour environ 40 habitants autour de lui. | Cuve ronde sur pieds, peinte au nom de la ville. | Tour d’eau en béton. |
-| **Station de pompage** [nouveau] P2<br>Coût : 50 laine. Électricité.<br>Beaucoup d’eau, au bord d’une rivière ou d’un lac. | Station de briques à grosses vannes. | Station du Peuple. |
-| **Centrale à charbon** [nouveau] P1<br>Coût : 80 laine.<br>Brûle 2 charbon, électricité pour une quinzaine de bâtiments, 8 emplois.<br>Fumée : fait baisser les ronrons autour (3). | Centrale à quatre cheminées. | Centrale du Plan à cheminées rayées. |
+| **Station de pompage** [existe] P2<br>Coût : 50 laine. Électricité.<br>Beaucoup d’eau, au bord d’une rivière ou d’un lac. | Station de briques à grosses vannes. | Station du Peuple. |
+| **Centrale à charbon** [existe] P1<br>Coût : 80 laine.<br>Brûle 2 charbon, électricité pour une quinzaine de bâtiments, 8 emplois.<br>Fumée : fait baisser les ronrons autour (3). | Centrale à quatre cheminées. | Centrale du Plan à cheminées rayées. |
 | **Barrage** [nouveau] P3<br>Coût : 150 laine, 30 ronrons.<br>Beaucoup d’électricité, sans charbon. Sur une rivière ; il crée un lac. | Barrage en voûte. | Barrage géant à inscription. |
 | **Centrale nucléaire** [nouveau] P3<br>Coût : 250 laine, 60 ronrons. Recherche de l’atome.<br>Brûle 1 uranium, énormément d’électricité, 12 emplois. | Tours de refroidissement. | Tours de refroidissement à étoile. |
 
@@ -51,12 +51,12 @@ Proposition à valider, faite à partir de la vision du [PRD](PRD.md).
 
 | Bâtiment et ses règles | USC | CCR |
 |---|---|---|
-| **Mine de charbon** [nouveau] P1<br>Coût : 40 laine. Dans les montagnes, sur un gisement découvert.<br>Produit 4 charbon, 6 emplois. | Chevalement en bois et wagonnets. | Puits du Plan à chevalement d’acier. |
-| **Mine d’uranium** [nouveau] P3<br>Coût : 80 laine. Sur un gisement découvert. Recherche de l’atome.<br>Produit 1 uranium, 6 emplois. | Mine clôturée à panneaux jaunes. | Combinat atomique gardé. |
-| **Derrick** [nouveau] P2<br>Coût : 50 laine. Sur un gisement de pétrole.<br>Produit 3 pétrole, 3 emplois. | Derrick en bois. | Derrick du Plan. |
+| **Mine de charbon** [existe] P1<br>Coût : 40 laine. Dans les montagnes, sur un gisement découvert.<br>Produit 4 charbon, 6 emplois. | Chevalement en bois et wagonnets. | Puits du Plan à chevalement d’acier. |
+| **Mine d’uranium** [existe] P3<br>Coût : 80 laine. Sur un gisement découvert. Recherche de l’atome.<br>Produit 1 uranium, 6 emplois. | Mine clôturée à panneaux jaunes. | Combinat atomique gardé. |
+| **Derrick** [existe] P2<br>Coût : 50 laine. Sur un gisement de pétrole.<br>Produit 3 pétrole, 3 emplois. | Derrick en bois. | Derrick du Plan. |
 | **Plateforme pétrolière** [nouveau] P3<br>Coût : 120 laine. En mer, sur un gisement.<br>Produit 6 pétrole, 5 emplois. | Plateforme à torchère. | Plateforme du Plan. |
-| **Exploitation forestière** [nouveau] P1<br>Coût : 25 laine. En forêt.<br>Abat les arbres autour d’elle et en tire 8 laine (le bois devient fibre), 4 emplois. La forêt recule. | Camp de bûcherons à chemises à carreaux. | Brigade forestière du Peuple. |
-| **Serre à herbe à chat** [nouveau] P2<br>Coût : 45 laine. Électricité, eau.<br>Produit 2 herbe à chat, 3 emplois. | Serre de verre à jardinier. | Serre du kolkhoze. |
+| **Exploitation forestière** [existe] P1<br>Coût : 25 laine. En forêt.<br>Abat les arbres autour d’elle et en tire 8 laine (le bois devient fibre), 4 emplois. La forêt recule. | Camp de bûcherons à chemises à carreaux. | Brigade forestière du Peuple. |
+| **Serre à herbe à chat** [existe] P2<br>Coût : 45 laine. Électricité, eau.<br>Produit 2 herbe à chat, 3 emplois. | Serre de verre à jardinier. | Serre du kolkhoze. |
 
 ## Ville, économie, commerce
 
@@ -64,8 +64,8 @@ Proposition à valider, faite à partir de la vision du [PRD](PRD.md).
 |---|---|---|
 | **Hôtel de ville** [existe, le QG] P1<br>Coût : un camp amélioré (voir Frontière).<br>Cœur d’une ville : produit 10 croquettes, 12 laine, 6 ronrons, loge 6 habitants, forme explorateurs et bâtisseurs. | Mairie à colonnes et drapeau. | Palais du Peuple à flèche. |
 | **Port** [existe] P1<br>Coût : 40 laine.<br>Produit 6 croquettes, 5 emplois. Commerce et immigration avec les nations alliées ; niveau 3 : un cargo. | Ponton en bois, puis quai de béton, puis grand port à grues. | Les mêmes, grues rouges et slogans. |
-| **Banque** [nouveau] P1<br>Coût : 60 laine.<br>Impôts : des Catcoins selon le nombre d’habitants ; prêts. | Banque à colonnes. | Caisse d’épargne du Peuple. |
-| **Entrepôt** [nouveau] P1<br>Coût : 30 laine.<br>Plus de stock de croquettes et de laine (sinon le surplus se perd), 2 emplois. | Hangar à portes roulantes. | Dépôt du Plan. |
+| **Banque** [existe] P1<br>Coût : 60 laine.<br>Impôts : des Catcoins selon le nombre d’habitants ; prêts. | Banque à colonnes. | Caisse d’épargne du Peuple. |
+| **Entrepôt** [existe] P1<br>Coût : 30 laine.<br>Plus de stock de croquettes et de laine (sinon le surplus se perd), 2 emplois. | Hangar à portes roulantes. | Dépôt du Plan. |
 | **Marché** [nouveau] P2<br>Coût : 40 laine.<br>Échange une ressource contre une autre entre ses villes, avec une perte. | Halle couverte. | Kolkhoze-marché. |
 | **Bureau d’immigration** [nouveau] P2<br>Coût : 40 laine. Près du port.<br>Fait venir des habitants contre des Catcoins. | Guichet d’accueil à drapeaux. | Bureau d’accueil des camarades. |
 | **Bureau de l’emploi** [nouveau] P2<br>Coût : 30 laine.<br>Répartition des métiers plus fine dans sa ville. | Agence pour l’emploi. | Bureau du Plan. |

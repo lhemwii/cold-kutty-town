@@ -100,6 +100,29 @@ body.paused #clockPlay{background:var(--gold);color:var(--paper)}
 .rp-row.neg b{color:var(--ccp)}
 .rp-foot{border-top:1.5px solid var(--faint);padding-top:5px;margin-top:3px}
 
+/* l'onglet Ressources (etape 3), sous le bloc des ressources */
+.res-more{margin-left:4px;align-self:center}
+.res-more svg{width:18px;height:18px}
+.xres{left:10px;top:calc(var(--hud-top) + 10px);z-index:12;width:min(330px,calc(100vw - 20px));padding:10px 12px 12px;display:grid;gap:8px;font-size:12.5px}
+.xr-head{display:flex;justify-content:space-between;align-items:center}
+.xr-head b{font:700 12px/1 var(--display);letter-spacing:.06em;text-transform:uppercase}
+.xr-grid,.xr-net{display:grid;gap:5px}
+.xr-net{border-top:2px solid var(--paper);padding-top:8px}
+.xr-row{display:grid;grid-template-columns:18px 1fr auto auto;align-items:center;gap:8px}
+.xr-row .i{width:16px;height:16px}
+.xr-row b{font:600 12px/1 var(--mono);text-align:right}
+.xr-row i{font:600 11px/1 var(--mono);font-style:normal;color:#2e7d45;min-width:64px;text-align:right}
+.xr-row i.neg{color:var(--ccp)}
+.xr-bar{display:block;height:10px;border:2px solid var(--paper);box-sizing:border-box;background:var(--ink);min-width:70px}
+.xr-bar i{display:block;height:100%;background:var(--paper);min-width:0}
+.xr-sub{display:flex;justify-content:space-between;font:700 11px/1 var(--text);text-transform:uppercase;letter-spacing:.05em}
+.xr-sub span{text-transform:none;letter-spacing:0;font-weight:600}
+.xr-job{display:grid;grid-template-columns:82px 1fr auto auto auto;align-items:center;gap:6px}
+.xr-job .k{width:22px;height:22px;font:700 13px/1 var(--mono)}
+.xr-job .pips{margin:0}
+.bilan{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;padding:7px 12px;font-size:12.5px}
+.bilan > b{font:700 11px/1 var(--display);letter-spacing:.06em;text-transform:uppercase}
+
 /* radio, sous les ressources */
 .radio{grid-area:radio;justify-self:stretch;max-width:460px;display:grid;grid-template-columns:auto minmax(0,1fr);align-items:stretch;overflow:hidden;box-shadow:none}
 .radio-tag{font:700 11px/1 var(--text);letter-spacing:.06em;padding:0 9px;display:flex;align-items:center;gap:7px;background:var(--paper);color:var(--ink);white-space:nowrap}

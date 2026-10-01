@@ -89,7 +89,7 @@ Object.assign(ICONS, {
     { k: '#2a2622', w: '#fbf7ee', r: '#c8283a' }],
 });
 /** icone de chaque categorie du tiroir de construction */
-export const CAT_ICON: Record<string, string> = { logement: 'pop', nourriture: 'croq', laine: 'laine', loisirs: 'fun', prestige: 'prestige', mer: 'mer', frontiere: 'frontiere' };
+export const CAT_ICON: Record<string, string> = { logement: 'pop', nourriture: 'croq', laine: 'laine', industrie: 'charbon', services: 'coins', loisirs: 'fun', prestige: 'prestige', mer: 'mer', frontiere: 'frontiere', recherche: 'science', armee: 'armee' };
 /** une petite illustration dans le texte (title : ce qu'elle veut dire, lu par les lecteurs d'ecran) */
 export function ico(name: string, title?: string): string {
   const ic = ICONS[name]; if (!ic) return '';
@@ -101,7 +101,7 @@ export function andList(xs: string[]): string { const a = xs.filter(Boolean); re
 /** un prix en illustrations : laine, croquettes, ronrons */
 export function costHTML(p: Price): string {
   const it = (n: number, k: string, nm: string) => n ? '<span class="ci">' + ico(k, nm) + '<b>' + n + '</b></span>' : '';
-  return '<span class="cost">' + it(p.l, 'laine', 'laine') + it(p.c, 'croq', 'croquettes') + it(p.r, 'ron', 'ronrons') + '</span>';
+  return '<span class="cost">' + it(p.l, 'laine', 'laine') + it(p.c, 'croq', 'croquettes') + it(p.r, 'ron', 'ronrons') + it(p.t || 0, 'tricot', 'tricot') + it(p.p || 0, 'pate', 'pâté') + '</span>';
 }
 /** niveau en pastilles (lv sur max) */
 export function pips(lv: number, max = 3): string {

@@ -26,8 +26,17 @@ export interface Hooks {
   post: ((t: number) => void)[];
   after: ((t: number) => void)[];
   town: ((parts: Part[], lights: Light[]) => void)[];
+  /** creation d'un monde (gisements...), apres le sol, les forets et les montagnes */
+  world: ((seed: number) => void)[];
+  /** regle de pose en plus : renvoie la raison du refus, ou '' */
+  place: ((type: string, side: Side, ca: number, cb: number, dir: number) => string)[];
+  /** nouvelle partie : remise a zero de l'etat d'un module */
+  reset: (() => void)[];
+  /** sauvegarde : chaque module range son etat sous sa cle ; reprise : il le relit */
+  save: ((ext: Record<string, unknown>) => void)[];
+  load: ((ext: Record<string, unknown>) => void)[];
 }
-export const HOOKS: Hooks = { step: [], dyn: [], top: [], post: [], after: [], town: [] };
+export const HOOKS: Hooks = { step: [], dyn: [], top: [], post: [], after: [], town: [], world: [], place: [], reset: [], save: [], load: [] };
 // couleur d'accent : un shader peut rendre 4 (accent clair) ou 5 (accent sombre)
 SH.ACC = 24;
 // version couleur : niveau d'eclairage par pixel (0 plein soleil ... 3 face a l'ombre, 4 ombre portee au sol)

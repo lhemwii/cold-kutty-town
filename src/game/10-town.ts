@@ -54,7 +54,7 @@ export function placeProblem(type: string, side: Side, ca: number, cb: number, d
     const t = baseAt(a, b);
     if (t === T_SEA) continue;
     land++;
-    if (t === T_ROCK) bad = 'Des rochers : choisis un terrain plat.';
+    if (t === T_ROCK && !e.deposit) bad = 'Des rochers : choisis un terrain plat.';
     else if (t === T_BEACH && !e.coast && landDAt(a, b) < 5) bad = 'Trop près de l’eau : le sable ne tient pas.';
     if (!free && sideAt(a, b) !== side) return sideAt(a, b) ? 'Ce terrain appartient à l’autre camp.' : 'Ce terrain n’est pas encore à toi : étends ton territoire.';
   }
@@ -66,12 +66,13 @@ export function placeProblem(type: string, side: Side, ca: number, cb: number, d
   for (const o of SH.BLD) if (l.a0 < o.a1 + 1 && l.a1 > o.a0 - 1 && l.b0 < o.b1 + 1 && l.b1 > o.b0 - 1) return 'Il y a déjà un bâtiment ici.';
   // les montagnes debordent de la roche : on ne bati pas sous leurs pentes
   let peak = false; peaksIn(l.a0 - 70, l.a1 + 70, l.b0 - 70, l.b1 + 70, (pk) => { const da = Math.max(l.a0 - pk.a, 0, pk.a - l.a1), db = Math.max(l.b0 - pk.b, 0, pk.b - l.b1); if (Math.hypot(da, db) < pk.R * .85) peak = true; });
-  if (peak) return 'Une montagne se dresse ici.';
+  if (peak && !e.deposit) return 'Une montagne se dresse ici.';
   for (const v of VEST) if (!v.looted && v.a > l.a0 - (v.kind === 'statue' ? 32 : 14) && v.a < l.a1 + 14 && v.b > l.b0 - (v.kind === 'statue' ? 16 : 14) && v.b < l.b1 + 14) return 'Des vestiges catzi sont ici : fouille-les d’abord.';
   for (const r of SH.ROADS) if (rectRoadDist(l, r) < RW + .5) return 'Une route passe ici.';
   for (const w of SH.WALLS){ const m = [(w.pa + w.qa) / 2, (w.pb + w.qb) / 2]; if (m[0] > l.a0 - 6 && m[0] < l.a1 + 6 && m[1] > l.b0 - 6 && m[1] < l.b1 + 6) return 'Le Rideau de Laine passe ici.'; }
   if (type === 'checkpoint' && !SH.WALLS.some(w => Math.hypot((w.pa + w.qa) / 2 - ca, (w.pb + w.qb) / 2 - cb) < 45)) return 'Le Checkpoint se pose à côté d’un Rideau de Laine.';
   if (type === 'qg' && SH.BLD.some(o => o.type === 'qg' && o.side === side)) return 'Un seul QG par camp.';
+  for (const f of HOOKS.place){ const why = f(type, side, ca, cb, dir); if (why) return why; }
   return '';
 }
 // cherche un emplacement libre pres d'un point (pour les debarquements et l'IA)

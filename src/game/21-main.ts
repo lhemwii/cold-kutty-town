@@ -201,6 +201,8 @@ export interface SaveData {
   ter: string; space: number[]; ev: number; rival: number[]; won: Side | ''; land: Vec2 | null; rland: Vec2 | null;
   /** nom de la partie, ajoute par 22-home */
   name?: string;
+  /** etat des modules ajoutes depuis la version 9 (voir HOOKS.save) */
+  ext?: Record<string, unknown>;
 }
 // ce qui sort du stockage n'est qu'une valeur JSON : on ne garde que ce qui porte le bon numero de version
 export function asSave(d: unknown): SaveData | null { return typeof d === 'object' && d !== null && 'v' in d && (d.v === 8 || d.v === 9) ? d as SaveData : null; }
@@ -217,8 +219,10 @@ export function snapshot(): SaveData {
     trees: TREES.list.map((t, i) => t.alive ? '' : i).filter(x => x !== '').join(','),
     vest: VEST.filter(v => v.looted).map(v => v.id),
     ter: rleEncode(TER.own), space: [SH.SPACE.usc.stage, SH.SPACE.ccp.stage], ev: Math.round(EV.next), rival: [RIVAL[GAME.rival].lastBarge, RIVAL[GAME.rival].lastWall], won: GAME.winner || '',
-    land: GAME.landing ? [Math.round(GAME.landing[0]), Math.round(GAME.landing[1])] : null, rland: GAME.rivalLanding ? [Math.round(GAME.rivalLanding[0]), Math.round(GAME.rivalLanding[1])] : null };
+    land: GAME.landing ? [Math.round(GAME.landing[0]), Math.round(GAME.landing[1])] : null, rland: GAME.rivalLanding ? [Math.round(GAME.rivalLanding[0]), Math.round(GAME.rivalLanding[1])] : null, ext: extSave() };
 }
+// ce que les modules ajoutes depuis (ressources, unites, recherche...) rangent dans la sauvegarde
+export function extSave(): Record<string, unknown> { const ext: Record<string, unknown> = {}; for (const f of HOOKS.save) f(ext); return ext; }
 export function saveSoon(){
   if (GAME.mode !== 'play' && GAME.mode !== 'over') return;
   clearTimeout(saveTimer);
@@ -251,6 +255,7 @@ export function loadGame(d: SaveData | null){
   EV.next = +d.ev || 150; if (Array.isArray(d.rival)){ RIVAL[GAME.rival].lastBarge = +d.rival[0] || 0; RIVAL[GAME.rival].lastWall = +d.rival[1] || 0; }
   RIVAL.auto = { usc: GAME.rival === 'usc', ccp: GAME.rival === 'ccp' };
   GAME.winner = d.won || null;
+  for (const f of HOOKS.load) f(d.ext && typeof d.ext === 'object' ? d.ext : {});
   TREES.ver++;
   repaintAllRoads(); buildGraph(); rebuildLocks(); rebuildTown(); SH.refreshAccess(); reseatCars();
   for (const l of SH.BLD) if (l.done) SH.boatsForBuilding(l);
@@ -277,10 +282,12 @@ export function newWorld(seed: number, size: string, conf: string){
   buildForests(seed);
   buildMountains(seed);
   buildVestiges(seed);
+  for (const f of HOOKS.world) f(seed);
   initTerritory();
   buildNav();
   SH.BLD = []; SH.ROADS = []; SH.WALLS = []; SH.WALL_TOWERS = []; SH.BOATS = []; SH.CATS = []; CARS.length = 0; LAMP_POS.length = 0; DEMOS.length = 0; CREWS.length = 0; HISTORY.length = 0; updateUndo();
   for (const s of SIDES){ Object.assign(SH.RES[s], newRes()); SH.SPACE[s].stage = 0; SH.SPACE[s].launchT = null; }
+  for (const f of HOOKS.reset) f();
   GAME.t = 0; GAME.winner = null; EV.next = 150; EV.cur = null; $('eventCard').hidden = true;
   RIVAL.usc = newBrain(); RIVAL.ccp = newBrain();
   SH.CAL.m = 8; CLOCK.h = 9.5; applySeason(); updateCalUI();

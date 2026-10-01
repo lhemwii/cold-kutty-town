@@ -230,21 +230,22 @@ Chaque étape laisse le jeu jouable. L’ordre proposé : d’abord ce qui exist
 - [x] Au survol, l’aide montre le prix et l’effet du bâtiment ; dans le panneau, ce que l’amélioration va rapporter (habitants, production, territoire).
 - [x] Défrichage visible : des souches restent deux minutes là où la forêt a été coupée (bâtiment, route, Rideau).
 
-## Étape 3. Les ressources de la nouvelle version
+## Étape 3. Les ressources de la nouvelle version (fait, à équilibrer)
 
-- [ ] Nourriture : les croquettes, et le pâté en luxe, fait par une conserverie ; affichés ensemble en haut.
-- [ ] Laine, et le tricot en luxe, fait par un atelier.
-- [ ] Les bâtiments se paient uniquement en croquettes, laine et ronrons.
-- [ ] Catcoins : impôts des habitants, banque ; ils servent aux échanges et aux importations, pas aux bâtiments.
-- [ ] Habitants et métiers : répartition réglable par grand métier (nourriture, laine, industrie, services, recherche, armée).
-- [ ] Eau et électricité en réseaux : production contre besoins ; un bâtiment non raccordé tourne mal.
-- [ ] Gisements de charbon et d’uranium sur la carte, mines de charbon et centrale à charbon.
-- [ ] Herbe à chat (luxe des ronrons, serres), pétrole (derricks, plateformes), influence.
-- [ ] Mines dans les montagnes ; exploitations forestières qui abattent la forêt et rapportent de la laine.
-- [ ] Un onglet Ressources : habitants, Catcoins, électricité, eau, charbon, uranium, ce qui les fait varier et ce qu’ils changent sur les trois indicateurs.
-- [ ] Les bâtiments qui s’équilibrent (entrepôt, marché, propagande...), d’après [BATIMENTS.md](BATIMENTS.md).
-- [ ] Rendre chaque ressource utile du début à la fin (aujourd’hui les croquettes s’accumulent).
-- [ ] Bilan de fin de mois : ce qui a rapporté, ce qui a coûté.
+- [x] Nourriture : les croquettes, et le pâté en luxe, fait par la conserverie avec des croquettes. Les habitants en mangent : ils ronronnent plus.
+- [x] Laine, et le tricot en luxe, fait par l’atelier de tricot avec de la laine. Le niveau 3 de tout bâtiment demande 10 tricot (et 10 pâté pour les logements).
+- [x] Les bâtiments se paient uniquement en croquettes, laine et ronrons (le niveau 3 ajoute tricot et pâté).
+- [x] Catcoins : impôts des habitants et banque ; ils serviront aux échanges et aux importations (étape 11).
+- [x] Habitants et métiers : six métiers (nourriture, laine, industrie, services, recherche, armée), chacun avec ses emplois et une priorité de 0 à 3 réglable dans l’onglet Ressources ; les habitants vont d’abord aux métiers prioritaires.
+- [x] Eau et électricité en réseaux : capacité contre besoin. Sans électricité, un bâtiment qui en demande tourne à moitié ; sans eau, les habitants ronronnent moins. Le QG fournit un peu des deux, le château d’eau et la station de pompage l’eau, la centrale à charbon l’électricité (si elle a du charbon).
+- [x] Gisements de charbon et d’uranium au pied des montagnes, de pétrole en plaine ; mine de charbon, mine d’uranium (avec la recherche de l’atome) et derrick se posent dessus, même sur la roche.
+- [x] Herbe à chat (serre), pétrole (derrick), influence (calculée : loisirs et prestige).
+- [x] Exploitation forestière : posée en forêt, elle abat les arbres autour d’elle et en tire de la laine ; la forêt recule.
+- [x] Entrepôt : plus de place pour les croquettes et la laine (1 500 sans entrepôt, le surplus se perd).
+- [x] L’onglet Ressources (bouton à pelote dans le bloc des ressources) : stocks et débits, électricité, eau, influence, stock, métiers.
+- [x] Les croquettes servent du début à la fin : repas, pâté, et plus tard l’entretien des unités.
+- [x] Bilan de fin de mois : croquettes, laine, ronrons, Catcoins et habitants gagnés ou perdus, affiché en bas de l’écran.
+- [ ] Équilibrer tous ces chiffres en jouant (voir l’étape 12).
 
 ## Étape 4. Territoire et villes
 

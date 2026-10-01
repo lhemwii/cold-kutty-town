@@ -29,6 +29,7 @@
     <button class="res" type="button" data-k="l" aria-describedby="resPop"><span class="ico" data-ico="laine"></span><span class="res-lab">Laine</span><b id="vL">0</b><i id="dL">+0</i></button>
     <button class="res" type="button" data-k="r" aria-describedby="resPop"><span class="ico" data-ico="paw"></span><span class="res-lab">Ronrons</span><b id="vR">0</b><i id="dR">+0</i></button>
     <div class="res pop" title="Habitants et emplois"><span class="ico" data-ico="pop"></span><b id="vP">0</b><i id="dP">habitants</i></div>
+    <button class="btn k res-more" type="button" id="btnRes" aria-pressed="false" aria-label="Ressources" title="Ressources : luxe, Catcoins, charbon, électricité, eau..."></button>
   </section>
   <section class="hud-race panel" id="hudRace" aria-label="Course au territoire" title="Part de l’île tenue par chaque camp. Le premier à 60 % gagne.">
     <span class="flag rf" data-flag="usc"></span>
@@ -50,6 +51,7 @@
   </section>
 </header>
 <div class="res-pop panel" id="resPop" role="tooltip" hidden></div>
+<section class="xres panel" id="xres" aria-label="Ressources" hidden></section>
 
 <!-- la vue : zoom, rotation, boussole, meteo, son, photo -->
 <nav class="view panel" aria-label="Vue">
@@ -138,6 +140,7 @@
     <div class="ev-choices"><button class="btn" id="evA" type="button"></button><button class="btn" id="evB" type="button"></button></div>
   </section>
   <div class="toast" id="toast" hidden></div>
+  <div class="bilan panel" id="bilan" role="status" hidden></div>
   <section class="drawer panel" id="buildMenu" aria-label="Construire" hidden>
     <div class="cats" id="buildCats" role="tablist" aria-label="Catégories"></div>
     <div class="palette" id="palette" role="radiogroup" aria-label="Bâtiment à construire"></div>

@@ -5,7 +5,7 @@ import { CAMP_FULL, GAME, H, M, SC, SIDES, TAU, W, bz, cam, clamp, dep, fput, ha
 import { pennant } from './03-buildings-base.ts';
 import { TYPES } from './04-types.ts';
 import { typeName } from './05-types-extra.ts';
-import { cutTrees } from './07-world.ts';
+import { cutTrees, treesIn } from './07-world.ts';
 import { SID, TER, lockCells, rebuildLocks, terPct } from './08-territory.ts';
 import { reseatCars, roadAccess } from './09-roads.ts';
 import { rebuildTown } from './10-town.ts';
@@ -15,7 +15,13 @@ import { $, achieve, andList, toast } from './13-ui.ts';
 // pop habitants, jobs emplois, fun loisirs, rad rayon d'influence, cost laine a la construction, costR ronrons,
 // up : ameliorable, coast : au bord de l'eau, noRoad : n'a pas besoin de route, time : secondes de chantier.
 /** Categorie du menu de construction. */
-export type Cat = 'base' | 'logement' | 'nourriture' | 'laine' | 'loisirs' | 'prestige' | 'mer' | 'frontiere';
+export type Cat = 'base' | 'logement' | 'nourriture' | 'laine' | 'industrie' | 'services' | 'loisirs' | 'prestige' | 'mer' | 'frontiere' | 'recherche' | 'armee';
+/** Ressources de l'onglet Ressources, en stock : le luxe (pate, tricot, herbe a chat), la monnaie, ce qu'on tire du sol. */
+export type XRes = 'pate' | 'tricot' | 'herbe' | 'coins' | 'charbon' | 'uranium' | 'petrole';
+export const XRES: XRes[] = ['pate', 'tricot', 'herbe', 'coins', 'charbon', 'uranium', 'petrole'];
+export const XRES_NAME: Record<XRes, string> = { pate: 'Pâté', tricot: 'Tricot', herbe: 'Herbe à chat', coins: 'Catcoins', charbon: 'Charbon', uranium: 'Uranium', petrole: 'Pétrole' };
+/** Gisements de la carte. */
+export type DepositKind = 'charbon' | 'uranium' | 'petrole';
 /** Un flux de ressource : c croquettes, l laine, r ronrons. */
 export type Flow = 'c' | 'l' | 'r';
 /** Fiche economique d'un type de batiment (voir le commentaire au-dessus). */
@@ -23,9 +29,21 @@ export interface EcoDef {
   cat: Cat; cost: number; costR: number; costC: number;
   c: number; l: number; r: number; pop: number; jobs: number; fun: number; rad: number;
   up: boolean; time: number; coast?: boolean; noRoad?: boolean; desc?: string;
+  /** production (positive) ou consommation (negative) par minute des ressources de l'onglet Ressources */
+  x?: Partial<Record<XRes, number>>;
+  /** electricite et eau : capacite produite (positive) ou besoin (negatif) */
+  elec?: number; eau?: number;
+  /** se pose sur un gisement ; tire de la laine de la foret alentour ; transforme (s'arrete si ce qu'il consomme manque) */
+  deposit?: DepositKind; forest?: boolean; conv?: boolean;
+  /** place de stock en plus pour les croquettes et la laine */
+  stock?: number;
+  /** se pose pres de l'eau (mer ou riviere) */
+  nearWater?: boolean;
+  /** recherche necessaire pour le construire (etape 8) */
+  tech?: string;
 }
 /** Prix d'un batiment ou d'une amelioration. */
-export interface Price { l: number; c: number; r: number }
+export interface Price { l: number; c: number; r: number; t?: number; p?: number }
 export const bdef = (cat: Cat, cost: number, o: Partial<EcoDef>): EcoDef => Object.assign({ cat, cost, costR: 0, costC: 0, c: 0, l: 0, r: 0, pop: 0, jobs: 0, fun: 0, rad: 34, up: false, time: 0 }, o);
 export const ECO: Record<string, EcoDef> = {
   qg: bdef('base', 0, { c: 10, l: 12, r: 6, pop: 6, rad: 150, noRoad: true, time: 12 }),
@@ -83,9 +101,11 @@ export function priceOf(type: string, side: Side): Price {
   const n = type === 'drapeau' ? SH.BLD.filter(l => l.side === side && l.type === 'drapeau').length : 0;
   return { l: e.cost, c: e.costC + n * 5, r: e.costR + n * 3 };
 }
-export const costLabel = (p: Price): string => andList([p.l ? p.l + ' laine' : '', p.c ? p.c + ' croquettes' : '', p.r ? p.r + ' ronrons' : '']) || 'gratuit';
-export const canAfford = (side: Side, p: Price): boolean => canPay(side, p.l, p.r, p.c);
-export const upCost = (l: Building): { l: number; r: number } | null => { const e = ECO[l.type], lv = l.lvl || 1; return lv >= 3 || !e || !e.up ? null : { l: Math.round(Math.max(30, e.cost) * (lv === 1 ? 1.5 : 2.6)), r: lv === 1 ? 15 : 40 }; };
+export const costLabel = (p: Price): string => andList([p.l ? p.l + ' laine' : '', p.c ? p.c + ' croquettes' : '', p.r ? p.r + ' ronrons' : '', p.t ? p.t + ' tricot' : '', p.p ? p.p + ' pâté' : '']) || 'gratuit';
+export const canAfford = (side: Side, p: Price): boolean => canPay(side, p.l, p.r, p.c) && RES[side].x.tricot >= (p.t || 0) && RES[side].x.pate >= (p.p || 0);
+export function payPrice(side: Side, p: Price): void { pay(side, p.l, p.r, p.c); RES[side].x.tricot -= p.t || 0; RES[side].x.pate -= p.p || 0; }
+// le niveau 3 demande aussi du tricot, et du pate pour les logements
+export const upCost = (l: Building): Price | null => { const e = ECO[l.type], lv = l.lvl || 1; return lv >= 3 || !e || !e.up ? null : { l: Math.round(Math.max(30, e.cost) * (lv === 1 ? 1.5 : 2.6)), c: 0, r: lv === 1 ? 15 : 40, t: lv === 2 ? 10 : 0, p: lv === 2 && e.cat === 'logement' ? 10 : 0 }; };
 export const buildTime = (type: string): number => { const e = ECO[type]; return e && e.time ? e.time : Math.round(7 + (e ? e.cost : 20) / 7); };
 export const popOf = (l: Building): number => LVL_POP[l.type] ? LVL_POP[l.type][(l.lvl || 1) - 1] : (ECO[l.type] ? ECO[l.type].pop : 0);
 
@@ -97,34 +117,99 @@ export interface Resources {
   /** 1 pendant une penurie de croquettes */
   short: number; shortL: number;
   split: Record<Flow, [string, number][]>;
+  /** stocks et debits de l'onglet Ressources, avec leur detail */
+  x: Record<XRes, number>; rx: Record<XRes, number>; splitX: Record<XRes, [string, number][]>;
+  /** reseaux : capacite et besoin, et la part couverte (0 a 1) */
+  elecP: number; elecU: number; eauP: number; eauU: number; elecCov: number; eauCov: number;
+  /** ce que l'autre camp pense de nous ; place de stock pour croquettes et laine */
+  influence: number; cap: number;
+  /** emplois demandes par metier, et la part pourvue */
+  demand: Record<Metier, number>; effM: Record<Metier, number>;
 }
-export const newRes = (): Resources => ({ croq: 150, laine: 260, ron: 60, rc: 0, rl: 0, rr: 0, pop: 0, jobs: 0, fun: 0, eff: 1, funRatio: 0, short: 0, shortL: 0, split: { c: [], l: [], r: [] } });
+/* ---- habitants et metiers (etape 3) ---- */
+export type Metier = 'nourriture' | 'laine' | 'industrie' | 'services' | 'recherche' | 'armee';
+export const METIERS: Metier[] = ['nourriture', 'laine', 'industrie', 'services', 'recherche', 'armee'];
+export const METIER_NAME: Record<Metier, string> = { nourriture: 'Nourriture', laine: 'Laine', industrie: 'Industrie', services: 'Services', recherche: 'Recherche', armee: 'Armée' };
+export const metierOf = (cat: Cat): Metier => cat === 'nourriture' || cat === 'mer' ? 'nourriture' : cat === 'laine' ? 'laine' : cat === 'industrie' ? 'industrie' : cat === 'recherche' ? 'recherche' : cat === 'armee' ? 'armee' : 'services';
+/** priorite de chaque metier (0 a 3), reglee par le joueur ; l'IA garde 2 partout */
+export const PRIO: Record<Side, Record<Metier, number>> = { usc: { nourriture: 2, laine: 2, industrie: 2, services: 2, recherche: 2, armee: 2 }, ccp: { nourriture: 2, laine: 2, industrie: 2, services: 2, recherche: 2, armee: 2 } };
+// les habitants vont d'abord aux metiers prioritaires ; chaque metier ne prend pas plus que ce qu'il demande
+export function shareJobs(pop: number, demand: Record<Metier, number>, prio: Record<Metier, number>): Record<Metier, number> {
+  const got: Record<Metier, number> = { nourriture: 0, laine: 0, industrie: 0, services: 0, recherche: 0, armee: 0 };
+  let left = pop;
+  for (let round = 0; round < 4 && left > .01; round++){
+    let wsum = 0; for (const m of METIERS) if (got[m] < demand[m] && prio[m] > 0) wsum += prio[m] * demand[m];
+    if (!wsum) break;
+    let used = 0;
+    for (const m of METIERS){ if (got[m] >= demand[m] || prio[m] <= 0) continue; const give = Math.min(demand[m] - got[m], left * prio[m] * demand[m] / wsum); got[m] += give; used += give; }
+    left -= used;
+  }
+  const eff = { ...got }; for (const m of METIERS) eff[m] = demand[m] ? clamp(got[m] / demand[m], 0, 1) : 1;
+  return eff;
+}
+const xZero = (): Record<XRes, number> => ({ pate: 0, tricot: 0, herbe: 0, coins: 0, charbon: 0, uranium: 0, petrole: 0 });
+const xSplit = (): Record<XRes, [string, number][]> => ({ pate: [], tricot: [], herbe: [], coins: [], charbon: [], uranium: [], petrole: [] });
+export const BASE_CAP = 1500;
+export const newRes = (): Resources => ({ croq: 150, laine: 260, ron: 60, rc: 0, rl: 0, rr: 0, pop: 0, jobs: 0, fun: 0, eff: 1, funRatio: 0, short: 0, shortL: 0, split: { c: [], l: [], r: [] },
+  x: Object.assign(xZero(), { coins: 50 }), rx: xZero(), splitX: xSplit(), elecP: 0, elecU: 0, eauP: 0, eauU: 0, elecCov: 1, eauCov: 1, influence: 0, cap: BASE_CAP,
+  demand: { nourriture: 0, laine: 0, industrie: 0, services: 0, recherche: 0, armee: 0 }, effM: { nourriture: 1, laine: 1, industrie: 1, services: 1, recherche: 1, armee: 1 } });
+/** arbres vivants autour d'un batiment (exploitation forestiere) */
+export function treesAround(l: Building, r: number): number { let n = 0; treesIn(l.ca - r, l.ca + r, l.cb - r, l.cb + r, (t) => { if (t.alive && Math.hypot(t.a - l.ca, t.b - l.cb) < r) n++; }); return n; }
+export const FOREST_R = 30;
 export const RES: Record<Side, Resources> = { usc: newRes(), ccp: newRes() };
 // bilan d'un camp : ce qui entre et ce qui sort, avec le detail pour les infobulles
 export function ecoTally(side: Side): void {
-  const R = RES[side], sp: Resources['split'] = { c: [], l: [], r: [] };
-  let pop = 0, jobs = 0, fun = 0;
+  const R = RES[side], sp: Resources['split'] = { c: [], l: [], r: [] }, spx = xSplit();
+  let pop = 0, jobs = 0, fun = 0, elecP = 0, elecU = 0, eauP = 0, eauU = 0, cap = BASE_CAP, prestige = 0;
   const mine = SH.BLD.filter(l => l.side === side && l.done);
-  for (const l of mine){ pop += popOf(l); if (l.active) jobs += (ECO[l.type] ? ECO[l.type].jobs : 0) * LVL_MULT[(l.lvl || 1) - 1] ** .5; }
+  for (const l of mine){
+    const e = ECO[l.type]; pop += popOf(l); if (!e) continue;
+    const mult = LVL_MULT[(l.lvl || 1) - 1];
+    if (l.active) jobs += e.jobs * mult ** .5;
+    if (!l.active && !e.noRoad) continue;
+    const fed = !e.conv || !XRES.some(k => (e.x?.[k] || 0) < 0 && R.x[k] < .5);
+    if (e.elec){ if (e.elec > 0){ if (fed) elecP += e.elec * mult; } else elecU -= e.elec * mult ** .5; }
+    if (e.eau){ if (e.eau > 0) eauP += e.eau * mult; else eauU -= e.eau * mult ** .5; }
+    if (e.stock) cap += e.stock * mult;
+    if (e.cat === 'prestige') prestige += 5 * mult;
+  }
+  eauU += pop * .5;
+  const elecCov = elecU ? clamp(elecP / elecU, 0, 1) : 1, eauCov = eauU ? clamp(eauP / eauU, 0, 1) : 1;
+  // les habitants se repartissent entre les metiers selon les priorites du joueur
+  const demand: Record<Metier, number> = { nourriture: 0, laine: 0, industrie: 0, services: 0, recherche: 0, armee: 0 };
+  for (const l of mine){ const e = ECO[l.type]; if (e && l.active && e.jobs) demand[metierOf(e.cat)] += e.jobs * LVL_MULT[(l.lvl || 1) - 1] ** .5; }
+  const effM = shareJobs(pop, demand, PRIO[side]);
   const eff = jobs ? clamp(pop / jobs, .3, 1) : 1;
   const acc: Record<Flow, number> = { c: 0, l: 0, r: 0 }, add = (k: Flow, v: number, why: string): void => { if (!v) return; acc[k] += v; const e = sp[k].find(x => x[0] === why); if (e) e[1] += v; else sp[k].push([why, v]); };
+  const accX = xZero(), addX = (k: XRes, v: number, why: string): void => { if (!v) return; accX[k] += v; const e = spx[k].find(x => x[0] === why); if (e) e[1] += v; else spx[k].push([why, v]); };
   for (const l of mine){
     const e = ECO[l.type]; if (!e) continue;
     const mult = LVL_MULT[(l.lvl || 1) - 1], nm = typeName(l.type, side);
     if (!l.active){ for (const k of ['c', 'l'] as const) if (e[k] < 0) add(k, e[k], nm + ' (sans route)'); continue; }
+    // un transformateur s'arrete si ce qu'il consomme manque ; sans electricite, on tourne a moitie
+    if (e.conv && ((e.c < 0 && R.croq < 1) || (e.l < 0 && R.laine < 1) || XRES.some(k => (e.x?.[k] || 0) < 0 && R.x[k] < .5))) continue;
+    const pw = (e.elec || 0) < 0 ? .5 + .5 * elecCov : 1;
     for (const k of ['c', 'l', 'r'] as const){
-      const v = e[k]; if (!v) continue;
-      if (v > 0) add(k, v * mult * (e.jobs ? eff : 1) * (k === 'r' ? taste(l.type, side) : 1), nm);
+      let v = e[k];
+      if (k === 'l' && e.forest) v = Math.min(8, treesAround(l, FOREST_R) * .25);
+      if (!v) continue;
+      if (v > 0) add(k, v * mult * pw * (e.jobs ? Math.max(.3, effM[metierOf(e.cat)]) : 1) * (k === 'r' ? taste(l.type, side) : 1), nm);
       else add(k, v * (1 + (mult - 1) * .5), nm + ' (fonctionnement)');
     }
+    for (const k of XRES){ const v = e.x?.[k]; if (!v) continue; addX(k, v > 0 ? v * mult * pw * (e.jobs ? Math.max(.3, effM[metierOf(e.cat)]) : 1) : v * (1 + (mult - 1) * .5), nm); }
     fun += e.fun * mult * taste(l.type, side);
   }
-  // les habitants mangent, et ronronnent s'ils ont a manger et de quoi se distraire
+  // les habitants mangent (et du pate s'il y en a), paient l'impot, et ronronnent s'ils ont a manger, de l'eau, de quoi se distraire
   add('c', -pop * .35, 'Repas des habitants');
+  const pate = R.x.pate > .5, herbe = R.x.herbe > .5;
+  if (pate) addX('pate', -pop * .02, 'Pâté des habitants');
+  if (herbe) addX('herbe', -pop * .015, 'Herbe à chat des habitants');
+  addX('coins', pop * .12, 'Impôts');
   const funRatio = pop ? clamp(fun / pop, 0, 1.5) : 0;
   if (R.short) add('r', -pop * .06, 'Habitants affamés');
-  else add('r', pop * .3 * (.5 + funRatio), 'Habitants heureux');
-  Object.assign(R, { rc: acc.c, rl: acc.l, rr: acc.r, pop, jobs: Math.round(jobs), fun: Math.round(fun), eff, funRatio, split: sp });
+  else add('r', pop * .3 * (.5 + funRatio) * (.6 + .4 * eauCov) * (pate ? 1.25 : 1) * (herbe ? 1.25 : 1), 'Habitants heureux');
+  Object.assign(R, { rc: acc.c, rl: acc.l, rr: acc.r, pop, jobs: Math.round(jobs), fun: Math.round(fun), eff, funRatio, split: sp,
+    rx: accX, splitX: spx, elecP, elecU, eauP, eauU, elecCov, eauCov, cap, influence: Math.round(fun * .4 + prestige), demand, effM });
 }
 export function refreshAccess(): void { for (const l of SH.BLD) l.active = roadAccess(l); for (const s of SIDES) ecoTally(s); }
 export let ecoAcc = 0;
@@ -136,7 +221,8 @@ export function stepEco(dt: number): void {
   for (const side of SIDES){
     ecoTally(side);
     const R = RES[side];
-    R.croq = clamp(R.croq + R.rc * k, 0, 99999); R.laine = clamp(R.laine + R.rl * k, 0, 99999); R.ron = clamp(R.ron + R.rr * k, 0, 99999);
+    R.croq = clamp(R.croq + R.rc * k, 0, Math.max(R.cap, R.croq)); R.laine = clamp(R.laine + R.rl * k, 0, Math.max(R.cap, R.laine)); R.ron = clamp(R.ron + R.rr * k, 0, 99999);
+    for (const x of XRES) R.x[x] = clamp(R.x[x] + R.rx[x] * k, 0, 99999);
     const was = R.short; R.short = R.croq <= 0 && R.rc < 0 ? 1 : 0;
     if (R.short && !was){
       SH.logDay(side, 'short', 'pénurie de croquettes');
@@ -191,8 +277,8 @@ export function onUpgraded(l: Building): void {
 export function upgradeBuilding(l: Building): string {
   const c = upCost(l); if (!c) return 'Déjà au niveau maximum.';
   if (!l.done || l.upT) return 'Déjà en chantier.';
-  if (!canPay(l.side, c.l, c.r)) return 'Il faut ' + c.l + ' laine et ' + c.r + ' ronrons.';
-  pay(l.side, c.l, c.r);
+  if (!canAfford(l.side, c)) return 'Il faut ' + costLabel(c) + '.';
+  payPrice(l.side, c);
   l.upT = GAME.t; l.udur = buildTime(l.type) * .7;
   SH.saveSoon();
   return '';
@@ -386,4 +472,4 @@ export function stepSpace(t: number): void {
 }
 
 // appeles depuis des modules plus petits en numero
-Object.assign(SH, { ECO, CATS_MENU, taste, LVL_POP, LVL_MULT, lvlName, costOf, priceOf, costLabel, canAfford, upCost, popOf, RES, refreshAccess, canPay, pay, startBuilding, upgradeBuilding, demolishBuilding, siteDrawables, SPACE });
+Object.assign(SH, { XRES, XRES_NAME, payPrice, ECO, CATS_MENU, taste, LVL_POP, LVL_MULT, lvlName, costOf, priceOf, costLabel, canAfford, upCost, popOf, RES, refreshAccess, canPay, pay, startBuilding, upgradeBuilding, demolishBuilding, siteDrawables, SPACE });
