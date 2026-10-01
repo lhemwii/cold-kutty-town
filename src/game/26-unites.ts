@@ -72,7 +72,7 @@ function passGrid(){
   PLAND = new Uint8Array(PW * PH); PSEA = new Uint8Array(PW * PH);
   for (let y = 0; y < PH; y++) for (let x = 0; x < PW; x++){
     const a = GA0 + (x + .5) * GS8, b = GB0 + (y + .5) * GS8, t = baseAt(a, b);
-    if (t === T_SEA){ let deep = true; for (const [da, db] of [[-3, -3], [3, 3], [-3, 3], [3, -3]]) if (baseAt(a + da, b + db) !== T_SEA) deep = false; PSEA[y * PW + x] = deep ? 1 : 0; continue; }
+    if (t === T_SEA){ let deep = true; for (const [da, db] of [[-3, -3], [3, 3], [-3, 3], [3, -3]]) if (baseAt(a + da, b + db) !== T_SEA) deep = false; PSEA[y * PW + x] = deep ? 1 : 0; if (SH.tunnelAt && SH.tunnelAt(a, b)) PLAND[y * PW + x] = 1; continue; }
     let ok = t !== T_ROCK;
     if (ok) peaksIn(a - 60, a + 60, b - 60, b + 60, (pk) => { if (Math.hypot(pk.a - a, pk.b - b) < pk.R * .8) ok = false; });
     // un tunnel ouvre un passage dans la montagne (etape 6)

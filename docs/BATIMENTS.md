@@ -106,8 +106,8 @@ Proposition à valider, faite à partir de la vision du [PRD](PRD.md).
 | **Route** [existe] P1<br>Coût : de la laine au mètre.<br>Relie les bâtiments ; chemin de terre, puis route goudronnée. | Route à lignes jaunes. | Route à bordures blanches. |
 | **Pont** [nouveau] P2<br>Coût : de la laine au mètre, plus cher qu’une route.<br>Franchit une rivière ou une anse. | Pont métallique. | Pont de béton. |
 | **Tunnel** [nouveau] P2<br>Coût : beaucoup de laine.<br>Traverse une montagne. | Entrée à fronton. | Entrée à étoile. |
-| **Gare et voie ferrée** [existe en dessin] P2<br>Coût : 80 laine la gare, de la laine au mètre.<br>Transporte les ressources entre villes. | Gare centrale. | Gare du Peuple. |
-| **Métro** [existe en dessin] P3<br>Coût : 100 laine.<br>Habitants entre quartiers. | Bouche de métro. | Métro du Peuple à lustres. |
+| **Gare et voie ferrée** [existe] P2<br>Coût : 40 laine et 10 ronrons la gare ; la voie, de la laine au pas (ponts et tunnels plus chers).<br>Deux gares sur un même réseau : un train fait la navette et relie leurs villes (une ville sans lien perd la moitié de sa production). | Gare de briques à horloge, marquise sur le quai. | Gare du Peuple en béton à étoile, enseigne VOKZAL. |
+| **Station de métro** [existe] P3<br>Coût : 35 laine, 15 ronrons. Entretien : électricité.<br>Reliée aux deux stations les plus proches (280 pas) : elle distrait le quartier, d’autant plus qu’elle a de lignes. | Bouche de métro à rambarde verte et globes, SUBWAY. | Pavillon de pierre à coupole et grand M rouge. |
 | **Dépôt de bus** [nouveau] P3<br>Coût : 40 laine.<br>Habitants plus mobiles. | Dépôt de bus jaunes. | Dépôt de trolleybus. |
 
 ## Recherche et espace
@@ -124,7 +124,7 @@ Proposition à valider, faite à partir de la vision du [PRD](PRD.md).
 
 | Bâtiment et ses règles | USC | CCR |
 |---|---|---|
-| **Caserne** [nouveau] P1<br>Coût : 50 laine. Entretien : 2 croquettes.<br>Forme explorateurs, bâtisseurs, soldats. | Base militaire à mât. | Caserne du Peuple. |
+| **Caserne** [existe] P1<br>Coût : 50 laine. Entretien : 2 croquettes.<br>Forme explorateurs, bâtisseurs, soldats. | Base militaire à mât. | Caserne du Peuple. |
 | **Usine de chars** [nouveau] P2<br>Coût : 90 laine. Électricité.<br>Construit jeeps, chars, artillerie. | Arsenal. | Usine de tracteurs (qui fait des chars). |
 | **Port militaire** [nouveau] P2<br>Coût : 90 laine. Sur la côte.<br>Construit navires de transport et de combat. | Chantier naval à cale sèche. | Chantier naval du Peuple. |
 | **Aérodrome** [nouveau] P2<br>Coût : 100 laine. Électricité.<br>Construit avions. | Base aérienne. | Aérodrome du Peuple. |

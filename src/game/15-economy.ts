@@ -15,7 +15,7 @@ import { $, achieve, andList, toast } from './13-ui.ts';
 // pop habitants, jobs emplois, fun loisirs, rad rayon d'influence, cost laine a la construction, costR ronrons,
 // up : ameliorable, coast : au bord de l'eau, noRoad : n'a pas besoin de route, time : secondes de chantier.
 /** Categorie du menu de construction. */
-export type Cat = 'base' | 'logement' | 'nourriture' | 'laine' | 'industrie' | 'services' | 'loisirs' | 'prestige' | 'mer' | 'frontiere' | 'recherche' | 'armee';
+export type Cat = 'base' | 'logement' | 'nourriture' | 'laine' | 'industrie' | 'services' | 'loisirs' | 'prestige' | 'mer' | 'frontiere' | 'recherche' | 'armee' | 'transport';
 /** Ressources de l'onglet Ressources, en stock : le luxe (pate, tricot, herbe a chat), la monnaie, ce qu'on tire du sol. */
 export type XRes = 'pate' | 'tricot' | 'herbe' | 'coins' | 'charbon' | 'uranium' | 'petrole';
 export const XRES: XRes[] = ['pate', 'tricot', 'herbe', 'coins', 'charbon', 'uranium', 'petrole'];
@@ -157,6 +157,8 @@ export const newRes = (): Resources => ({ croq: 150, laine: 260, ron: 60, rc: 0,
 export function treesAround(l: Building, r: number): number { let n = 0; treesIn(l.ca - r, l.ca + r, l.cb - r, l.cb + r, (t) => { if (t.alive && Math.hypot(t.a - l.ca, t.b - l.cb) < r) n++; }); return n; }
 export const FOREST_R = 30;
 export const RES: Record<Side, Resources> = { usc: newRes(), ccp: newRes() };
+/** lignes ajoutees au bilan par les modules suivants : add('c' | 'l' | 'r', valeur, raison), addX(ressource, valeur, raison) */
+export const TALLY: ((side: Side, add: (k: Flow, v: number, why: string) => void, addX: (k: XRes, v: number, why: string) => void) => void)[] = [];
 // bilan d'un camp : ce qui entre et ce qui sort, avec le detail pour les infobulles
 export function ecoTally(side: Side): void {
   const R = RES[side], sp: Resources['split'] = { c: [], l: [], r: [] }, spx = xSplit();
@@ -188,7 +190,8 @@ export function ecoTally(side: Side): void {
     if (!l.active){ for (const k of ['c', 'l'] as const) if (e[k] < 0) add(k, e[k], nm + ' (sans route)'); continue; }
     // un transformateur s'arrete si ce qu'il consomme manque ; sans electricite, on tourne a moitie
     if (e.conv && ((e.c < 0 && R.croq < 1) || (e.l < 0 && R.laine < 1) || XRES.some(k => (e.x?.[k] || 0) < 0 && R.x[k] < .5))) continue;
-    const pw = (e.elec || 0) < 0 ? .5 + .5 * elecCov : 1;
+    // pw : l'electricite ; link : une ville sans lien avec la capitale perd une part de sa production en route (etape 6)
+    const pw = ((e.elec || 0) < 0 ? .5 + .5 * elecCov : 1) * (SH.prodMult ? SH.prodMult(l) : 1);
     for (const k of ['c', 'l', 'r'] as const){
       let v = e[k];
       if (k === 'l' && e.forest) v = Math.min(8, treesAround(l, FOREST_R) * .25);
@@ -197,8 +200,10 @@ export function ecoTally(side: Side): void {
       else add(k, v * (1 + (mult - 1) * .5), nm + ' (fonctionnement)');
     }
     for (const k of XRES){ const v = e.x?.[k]; if (!v) continue; addX(k, v > 0 ? v * mult * pw * (e.jobs ? Math.max(.3, effM[metierOf(e.cat)]) : 1) : v * (1 + (mult - 1) * .5), nm); }
-    fun += e.fun * mult * taste(l.type, side);
+    fun += e.fun * mult * taste(l.type, side) * (SH.funMult ? SH.funMult(l) : 1);
   }
+  // ce que les autres modules ajoutent au bilan (commerce, transports...)
+  for (const f of TALLY) f(side, add, addX);
   if (SH.wallUpkeep) add('l', -SH.wallUpkeep(side), 'Rideau de Laine (entretien)');
   if (SH.unitUpkeep){ const u = SH.unitUpkeep(side); if (u.c) add('c', -u.c, 'Unités (rations)'); if (u.p) addX('petrole', -u.p, 'Unités (carburant)'); }
   // les habitants mangent (et du pate s'il y en a), paient l'impot, et ronronnent s'ils ont a manger, de l'eau, de quoi se distraire

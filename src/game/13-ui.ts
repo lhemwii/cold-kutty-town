@@ -117,7 +117,7 @@ state.tool = 'walk'; state.buildType = 'maison'; state.sel = null;
 export const HINTS: Record<string, string> = {
   walk: 'Glisse pour te déplacer, molette pour zoomer, clic droit glissé pour tourner. Clique sur un bâtiment ou un chat.',
   build: 'Choisis un bâtiment puis clique dans ton territoire. Clic droit glissé ou T pour le tourner (Maj+T dans l’autre sens), seize directions. Les bâtiments de la mer se posent face à l’eau.',
-  road: 'Clique le départ, puis l’arrivée (Maj pour suivre l’une des seize directions). La route continue depuis son bout : clic droit ou Échap pour arrêter.',
+  road: 'Clique le départ, puis l’arrivée (Maj pour suivre l’une des seize directions). La route continue depuis son bout : clic droit ou Échap pour arrêter. Ctrl glissé : à main levée. Une route neuve est un chemin de terre : clique-la ensuite pour la goudronner.',
   curve: 'Clique le départ, puis le point qui tire la courbe, puis l’arrivée.',
   wall: 'Clique le début du Rideau de Laine puis sa fin. Il fige ta frontière. 3 laine tous les 10 pas.',
   demolish: 'Clique sur un bâtiment, une route ou un pan de mur pour le démolir. La moitié de la laine revient.',
@@ -131,8 +131,10 @@ export function setTool(m: string){
   state.tool = m; toolPts = [];
   for (const b of document.querySelectorAll('[data-tool]')) if (b instanceof HTMLElement) b.setAttribute('aria-pressed', String(b.dataset.tool === m));
   $('buildMenu').hidden = m !== 'build';
-  $('modeHint').textContent = HINTS[m] || '';
-  scene.classList.toggle('build', m === 'build' || m === 'road' || m === 'curve' || m === 'wall' || m === 'barge' || m === 'landing');
+  const ct = SH.TOOLS ? SH.TOOLS[m] : null;
+  $('modeHint').textContent = HINTS[m] || (ct ? ct.hint : '');
+  if (ct && ct.start) ct.start();
+  scene.classList.toggle('build', m === 'build' || m === 'road' || m === 'curve' || m === 'wall' || m === 'barge' || m === 'landing' || !!ct);
   scene.classList.toggle('demolish', m === 'demolish');
   SH.ghost = null;
 }
@@ -196,16 +198,33 @@ export function roadClick(a: number, b: number){
   const need = state.tool === 'curve' ? 3 : 2;
   if (toolPts.length < need){ SH.sfx('click'); return; }
   const pts = state.tool === 'curve' ? sampleCurve(toolPts[0], toolPts[1], toolPts[2]) : sampleLine(toolPts[0], toolPts[1]);
-  const why = roadProblem(pts, GAME.side);
-  if (why){ toast(why); toolPts.pop(); return; }
-  const cost = roadCost(pts);
-  if (!SH.canPay(GAME.side, cost, 0)){ toast('Il faut ' + cost + ' laine pour cette route.'); toolPts.pop(); return; }
-  SH.pay(GAME.side, cost, 0);
-  const r = addRoad(pts, GAME.side);
-  pushHistory({ kind: 'road', id: r.id, l: cost });
-  SH.sfx('click'); SH.saveSoon(); SH.renderHUD();
+  if (!placeRoad(pts)){ toolPts.pop(); return; }
   // on repart du bout pour enchainer
   toolPts = [pts[pts.length - 1]];
+}
+// une route du joueur : d'abord un chemin de terre, qu'on goudronne ensuite (etape 6)
+export function placeRoad(pts: Vec2[]): boolean {
+  const why = roadProblem(pts, GAME.side);
+  if (why){ toast(why); return false; }
+  const cost = roadCost(pts, true);
+  if (!SH.canPay(GAME.side, cost, 0)){ toast('Il faut ' + cost + ' laine pour cette route.'); return false; }
+  SH.pay(GAME.side, cost, 0);
+  const r = addRoad(pts, GAME.side, true);
+  pushHistory({ kind: 'road', id: r.id, l: cost });
+  SH.sfx('click'); SH.saveSoon(); SH.renderHUD();
+  return true;
+}
+// a main levee (Ctrl glisse avec l'outil Route) : on lisse le trace puis on le pose
+export function freeRoad(raw: Vec2[]){
+  if (raw.length < 3){ toast('Trop court : glisse plus loin.'); return; }
+  let p: Vec2[] = [raw[0]];
+  for (const q of raw){ const l = p[p.length - 1]; if (Math.hypot(q[0] - l[0], q[1] - l[1]) >= 10) p.push(q); }
+  p.push(raw[raw.length - 1]);
+  for (let it = 0; it < 2; it++){ const o: Vec2[] = [p[0]]; for (let k = 0; k + 1 < p.length; k++){ const a = p[k], b = p[k + 1]; o.push([a[0] * .75 + b[0] * .25, a[1] * .75 + b[1] * .25], [a[0] * .25 + b[0] * .75, a[1] * .25 + b[1] * .75]); } o.push(p[p.length - 1]); p = o; }
+  p[0] = snapRoadPoint(p[0][0], p[0][1], GAME.side); p[p.length - 1] = snapRoadPoint(p[p.length - 1][0], p[p.length - 1][1], GAME.side);
+  const pts: Vec2[] = [p[0]];
+  for (let k = 1; k < p.length; k++){ const s2 = sampleLine(p[k - 1], p[k]); for (let j = 1; j < s2.length; j++) pts.push(s2[j]); }
+  placeRoad(pts);
 }
 
 /* ---- Rideau de Laine ---- */
@@ -301,9 +320,10 @@ export function demolishAt(a: number, b: number){
     SH.sfx('demolish', l.ca, l.cb); if (state.sel === l) SH.selectBuilding(null); SH.saveSoon(); SH.renderHUD(); return;
   }
   const n = nearRoad(a, b, RW + 2, GAME.side);
-  if (n){ removeRoad(n.r); SH.RES[GAME.side].laine += Math.round(roadCost(n.r.pts) / 2); toast('Route démolie.'); SH.sfx('demolish', a, b); SH.saveSoon(); SH.renderHUD(); return; }
+  if (n){ removeRoad(n.r); SH.RES[GAME.side].laine += Math.round(roadCost(n.r.pts, n.r.dirt) / 2); toast('Route démolie.'); SH.sfx('demolish', a, b); SH.saveSoon(); SH.renderHUD(); return; }
   const w = SH.WALLS.find(o => o.side === GAME.side && segDist(o.pa, o.pb, o.qa, o.qb, a, b)[0] < 4);
   if (w){ const n2 = SH.WALLS.filter(o => o.line === w.line).length; removeWallLine(w.line); SH.RES[GAME.side].laine += Math.round(n2 * WALL_COST / 2); toast('Rideau détricoté.'); SH.sfx('demolish', a, b); SH.saveSoon(); return; }
+  if (typeof SH.demolishExtra === 'function' && SH.demolishExtra(a, b)) return;
   toast('Rien à démolir ici.');
 }
 
@@ -353,6 +373,8 @@ export function drawToolPreview(t: number){
   } else if (tool === 'demolish'){
     const l = bldAt(hoverW[0], hoverW[1]); if (l && l.side === GAME.side) dashRect(l.a0, l.a1, l.b0, l.b1, false);
   } else if (tool === 'barge') drawLandingMark(t);
+  else if (SH.TOOLS && SH.TOOLS[tool] && SH.TOOLS[tool].preview) SH.TOOLS[tool].preview(t, hoverW);
+  if (SH.freePts && SH.freePts.length > 1) dashPoly(SH.freePts, true, t);
 }
 export function drawLandingMark(t: number){
   if (!hoverW) return;
@@ -416,7 +438,7 @@ export function updateClockUI(){
 
 /* ---- pointeur : se balader, zoomer, tourner, agir ---- */
 /** un glisser en cours : ou il a commence, la camera d'alors, et ce qu'il fait (tourner la vue, tourner le batiment, ou deplacer) */
-export interface Drag { x: number; y: number; a: number; b: number; phi: number; moved: boolean; id: number; turn: boolean; spin: boolean; dir0: number; right: boolean; box?: [number, number] }
+export interface Drag { x: number; y: number; a: number; b: number; phi: number; moved: boolean; id: number; turn: boolean; spin: boolean; dir0: number; right: boolean; box?: [number, number]; free?: Vec2[] }
 /** un pincement a deux doigts : ecart, angle, rotation et zoom au debut */
 export interface Pinch { d: number; ang: number; phi: number; z: number; turning?: boolean }
 export let drag: Drag | null = null, pointer: Vec2 | null = null;
@@ -458,7 +480,9 @@ scene.addEventListener('pointerdown', e => {
   if (e.pointerType === 'mouse' && e.button !== 0 && e.button !== 2) return;
   // Ctrl (ou Cmd) glisse : un cadre pour choisir des unites
   const box: [number, number] | undefined = e.pointerType === 'mouse' && e.button === 0 && (e.ctrlKey || e.metaKey) && state.tool === 'walk' && GAME.mode === 'play' && !OV_ON ? toLogical(e) : undefined;
-  drag = { box, x: e.clientX, y: e.clientY, a: cam.a, b: cam.b, phi: cam.phi, moved: false, id: e.pointerId, turn, spin, dir0: state.dirManual ? state.buildDir || 0 : (SH.ghost ? SH.ghost.l.dir : 0), right: e.button === 2 };
+  // Ctrl glisse avec l'outil Route : une route a main levee
+  const free: Vec2[] | undefined = e.pointerType === 'mouse' && e.button === 0 && (e.ctrlKey || e.metaKey) && state.tool === 'road' && GAME.mode === 'play' && !OV_ON ? [worldUnder(e)] : undefined;
+  drag = { box, free, x: e.clientX, y: e.clientY, a: cam.a, b: cam.b, phi: cam.phi, moved: false, id: e.pointerId, turn, spin, dir0: state.dirManual ? state.buildDir || 0 : (SH.ghost ? SH.ghost.l.dir : 0), right: e.button === 2 };
   try { scene.setPointerCapture(e.pointerId); } catch (_) {}
 });
 scene.addEventListener('pointermove', e => {
@@ -479,6 +503,7 @@ scene.addEventListener('pointermove', e => {
     if (!drag.moved && Math.hypot(dx, dy) > 5){ drag.moved = true; scene.classList.add(drag.turn || drag.spin ? 'turning' : 'panning'); cam.target = null; cam.follow = null; }
     if (drag.moved){
       if (drag.box){ SH.selBox = [drag.box[0], drag.box[1], lx, ly]; }
+      else if (drag.free){ const w = worldUnder(e), l = drag.free[drag.free.length - 1]; if (Math.hypot(w[0] - l[0], w[1] - l[1]) > 3) drag.free.push(w); SH.freePts = drag.free; }
       else if (drag.spin){ const nd = ((drag.dir0 + Math.round(dx / 24)) % NDIR + NDIR) % NDIR; if (nd !== (state.buildDir || 0)){ state.buildDir = nd; state.dirManual = true; SH.ghost = null; SH.sfx('click'); } }
       else if (drag.turn){ cam.phi = drag.phi + dx * 0.008; cam.phiT = null; }
       else {
@@ -506,6 +531,7 @@ scene.addEventListener('pointermove', e => {
 export function endPointer(e: PointerEvent){
   if (e.pointerType === 'touch'){ touches.delete(e.pointerId); if (touches.size < 2 && pinch){ pinch = null; drag = null; snapZoom(); return; } }
   const d = drag; drag = null; scene.classList.remove('panning', 'turning');
+  if (d && d.free){ SH.freePts = null; if (d.moved){ freeRoad(d.free); return; } }
   if (d && d.box){ const bx = SH.selBox; SH.selBox = null; if (d.moved && bx && typeof SH.unitBox === 'function'){ SH.unitBox(bx[0], bx[1], bx[2], bx[3], e.shiftKey); return; } }
   if (!d || d.moved || d.id !== e.pointerId || e.type === 'pointercancel') return;
   if (d.right){
@@ -526,8 +552,12 @@ export function endPointer(e: PointerEvent){
     if (typeof SH.unitClick === 'function' && SH.unitClick(w[0], w[1], lx, ly, e.shiftKey)) return;
     const c = catUnder(lx, ly); if (c){ SH.openChat(c); return; }
     const v = vestPick(lx, ly); if (v){ SH.selectVestige(v); return; }
-    SH.selectBuilding(bldPick(lx, ly)); return;
+    const bp = bldPick(lx, ly);
+    if (!bp && typeof SH.pickLine === 'function' && SH.pickLine(w[0], w[1])) return;
+    SH.selectBuilding(bp); return;
   }
+  const ct = SH.TOOLS ? SH.TOOLS[state.tool] : null;
+  if (ct){ ct.click(w[0], w[1]); return; }
   if (state.tool === 'build') tryBuild(w[0], w[1]);
   else if (state.tool === 'road' || state.tool === 'curve') roadClick(w[0], w[1]);
   else if (state.tool === 'wall') wallClick(w[0], w[1]);
@@ -552,7 +582,7 @@ window.addEventListener('keydown', e => {
   if (typing(e) || e.metaKey || e.ctrlKey || e.altKey) return;
   const k = e.key.toLowerCase();
   if (['arrowleft','arrowright','arrowup','arrowdown','q','a','z','w','s','d'].includes(k)){ keys.add(k); cam.target = null; cam.follow = null; e.preventDefault(); return; }
-  if (k === 'escape'){ if (typeof SH.unitEscape === 'function' && SH.unitEscape()) return; if (state.chatCat) SH.closeChat(); else if (toolPts.length) toolPts = []; else if (state.sel || state.selV) SH.selectBuilding(null); else if (state.tool !== 'landing') setTool('walk'); return; }
+  if (k === 'escape'){ if (typeof SH.unitEscape === 'function' && SH.unitEscape()) return; if (SH.TOOLS && SH.TOOLS[state.tool] && SH.TOOLS[state.tool].esc && SH.TOOLS[state.tool].esc()) return; if (typeof SH.cardEscape === 'function' && SH.cardEscape()) return; if (state.chatCat) SH.closeChat(); else if (toolPts.length) toolPts = []; else if (state.sel || state.selV) SH.selectBuilding(null); else if (state.tool !== 'landing') setTool('walk'); return; }
   if (GAME.mode !== 'play'){ if (k === '+' || k === '=') zoomStep(1); else if (k === '-' || k === '_') zoomStep(-1); return; }
   if (k === 'b') setTool(state.tool === 'build' ? 'walk' : 'build');
   else if (k === 'r') setTool('road');
@@ -560,6 +590,7 @@ window.addEventListener('keydown', e => {
   else if (k === 'c') setTool('curve');
   else if (k === 'm') setTool('wall');
   else if (k === 'x') setTool('demolish');
+  else if (SH.KEYS && SH.KEYS[k]) SH.KEYS[k](e);
   else if (k === ' ') { e.preventDefault(); setPaused(!GAME.paused); }
   else if (k === '1' || k === '2' || k === '3') setSpeed(SPEEDS[+k - 1]);
   else if (k === 'pageup') rotateBy(-Math.PI / 4);

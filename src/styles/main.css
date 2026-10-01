@@ -490,3 +490,4 @@ body.playing .home{background:rgba(12,26,48,.55)}
 .chip.ter b{font:600 11px/1 var(--mono)}.chip.ter b.u{color:var(--usc)}.chip.ter b.c{color:var(--ccp)}
 .mini-ter{display:inline-flex;width:40px;height:8px;border:1.5px solid var(--paper);background:var(--ink)}
 .mini-ter i{display:block;height:100%}.mini-ter i.u{background:var(--usc)}.mini-ter i.c{background:var(--ccp);margin-left:auto}
+.lines-cv{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:1}

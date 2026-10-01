@@ -265,14 +265,15 @@ Chaque étape laisse le jeu jouable. L’ordre proposé : d’abord ce qui exist
 - [x] Formation par le QG, les villes et la caserne (nouvelle catégorie Armée), une à la fois, avec une file ; entretien en croquettes (rations) dans le bilan.
 - [ ] À revoir ensemble : le « déjà vu » montre l’état actuel des bâtiments ennemis plutôt qu’une image figée ; les forêts et montagnes restent dessinées sous le brouillard (on connaît la géographie, pas l’ennemi).
 
-## Étape 6. Transports et connexions
+## Étape 6. Transports et connexions (fait)
 
-- [ ] Routes : tracé à main levée, accroche sur le milieu d’une route, ponts ; chemin de terre puis route goudronnée.
-- [ ] Chemin de fer : voies, gares, trains qu’on voit circuler ; il transporte les ressources entre villes.
-- [ ] Une ville sans lien ne profite pas de la production des autres.
-- [ ] Métro entre quartiers.
-- [ ] Tunnels sous les montagnes.
-- [ ] Lignes lisibles à la façon de Mini Metro (une couleur par ligne).
+- [x] Routes : Ctrl glissé avec l’outil Route trace à main levée (le tracé est lissé) ; une route s’accroche au bout ou au milieu d’une autre ; ponts au-dessus de l’eau (90 pas au plus, quatre fois plus chers), tunnels sous la roche (cinq fois plus chers, avec la recherche des tunnels quand elle existera). Une route neuve est un chemin de terre (moitié prix, voitures plus lentes) ; un clic dessus ouvre sa fiche : Goudronner ou Démolir.
+- [x] Chemin de fer : outil Voie (V), gare posée le long de la voie (Gare de briques à l’USC, Gare du Peuple à la CCR) ; entre deux gares d’un même réseau, un train (locomotive et deux wagons de laine ou de croquettes) fait la navette, avec un arrêt à chaque gare. Ponts et tunnels comme pour les routes.
+- [x] Une ville sans lien (route ou train) avec la capitale perd la moitié de sa production en route ; son panneau le dit, et la vue Lignes écrit « isolée » à côté de son nom.
+- [x] Métro : la station (bouche à rambarde verte à l’USC, pavillon au grand M rouge à la CCR) se relie aux deux stations les plus proches ; reliée, elle distrait le quartier, d’autant plus qu’elle a de lignes.
+- [x] Tunnels et ponts laissent passer les unités à pied.
+- [x] Vue Lignes (L, ou le bouton du rail de droite), à la façon de Mini Metro : routes en gris (pointillé pour la terre), réseaux de trains d’une couleur chacun, lignes de métro en tirets, gares et stations en ronds blancs, trains en jaune, noms des villes.
+- [ ] À revoir ensemble : les voies seulement droites (pas encore de courbe), un seul train par paire de gares, pas d’aiguillage visible ; l’équilibre du coût des ponts, tunnels et du goudron.
 
 ## Étape 7. Le monde
 

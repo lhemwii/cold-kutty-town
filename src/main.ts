@@ -28,3 +28,4 @@ import './game/23-planet.ts';
 import './game/24-ressources.ts';
 import './game/25-villes.ts';
 import './game/26-unites.ts';
+import './game/27-transports.ts';

@@ -44,4 +44,6 @@ Trois niveaux pour la plupart des bâtiments : le port passe de ponton à quai p
 
 Glisser pour se déplacer, molette pour zoomer, clic droit glissé pour tourner. En construction, clic droit glissé ou T pour tourner le bâtiment de 22,5 degrés (Maj+T dans l’autre sens). B construire, R route, C courbe, M Rideau, X démolir, Échap arrêter, Espace pause, 1 2 3 vitesse, Ctrl+Z annuler.
 
+Transports : V voie ferrée, puis une gare à chaque bout ; L la vue des lignes. Avec l’outil Route, Ctrl glissé trace à main levée. Un clic sur une route ouvre sa fiche (goudronner, démolir).
+
 Unités : clic pour en choisir une (Maj pour en ajouter), Ctrl glissé pour un cadre, G pour toutes celles à l’écran, clic droit pour les envoyer (sur un ennemi : l’attaquer), Échap pour les lâcher. Un QG, une ville ou une caserne choisis forment des unités.
