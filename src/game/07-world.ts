@@ -2,7 +2,7 @@ import { SH } from './00-shared.ts';
 import type { Side } from './00-shared.ts';
 import type { Vec2 } from './02-ground.ts';
 import type { Sprite } from './01-core.ts';
-import { COLOR, FONT, H, M, PC, PS, SC, SHADOW_V, TAU, UP, W, bay, blit, blitAt, boxS, bz, cam, clamp, dep, drawFace, fput, hash2, lb, line3, prj, state, textW, unprj, wallFace } from './01-core.ts';
+import { COLOR, FONT, GAME, H, HOOKS, M, PC, PS, SC, SHADOW_V, TAU, UP, W, bay, blit, blitAt, boxS, bz, cam, clamp, dep, drawFace, fput, hash2, lb, line3, prj, state, textW, unprj, wallFace } from './01-core.ts';
 import { GA0, GB0, GH, GSC, GW, IS, ISEED, MOUNT_T, T_FOREST, T_GRASS, T_ROCK, baseAt, cellOf, clearForest, gBase, gLand, landDAt, mapScale, mountN } from './02-ground.ts';
 import { pennant, treeSpr, treeSprSc } from './03-buildings-base.ts';
 /* ================= forets : des milliers d'arbres, ranges par cases pour ne dessiner que ceux a l'ecran ================= */
@@ -85,7 +85,15 @@ export function treesIn(a0: number, a1: number, b0: number, b1: number, fn: (t: 
     for (const t of L) if (t.alive && t.a >= a0 && t.a <= a1 && t.b >= b0 && t.b <= b1) fn(t);
   }
 }
-export function cutTrees(a0: number, a1: number, b0: number, b1: number): number { let n = 0; treesIn(a0 - 3, a1 + 3, b0 - 3, b1 + 3, (t) => { t.alive = false; n++; }); if (n) TREES.ver++; clearForest(a0, a1, b0, b1); return n; }
+export function cutTrees(a0: number, a1: number, b0: number, b1: number): number { let n = 0; treesIn(a0 - 3, a1 + 3, b0 - 3, b1 + 3, (t) => { t.alive = false; n++; addStump(t.a, t.b); }); if (n) TREES.ver++; clearForest(a0, a1, b0, b1); return n; }
+/* ---- defrichage : les souches restent un moment la ou on a coupe la foret ---- */
+export const STUMPS: { a: number; b: number; t: number }[] = [];
+export const STUMP_LIFE = 120;
+export function addStump(a: number, b: number){ STUMPS.push({ a, b, t: GAME.t }); if (STUMPS.length > 600) STUMPS.shift(); }
+export function drawStump(a: number, b: number){
+  const p = prj(a, b, 0), x = Math.round(p[0]), y = Math.round(p[1]);
+  SH.CUR = M.PIER; fput(x - 1, y, 0); fput(x, y, 0); fput(x + 1, y, 0); fput(x, y - 1, 1); fput(x - 1, y - 1, 1);
+}
 // arbres le long d'un trait (routes, mur)
 export function cutTreesAlong(pts: Vec2[], w: number): number {
   let n = 0;
@@ -93,7 +101,7 @@ export function cutTreesAlong(pts: Vec2[], w: number): number {
     const [pa, pb] = pts[k], [qa, qb] = pts[k + 1], L = Math.hypot(qa - pa, qb - pb) || 1;
     treesIn(Math.min(pa, qa) - w - 3, Math.max(pa, qa) + w + 3, Math.min(pb, qb) - w - 3, Math.max(pb, qb) + w + 3, (t) => {
       const s = clamp(((t.a - pa) * (qa - pa) + (t.b - pb) * (qb - pb)) / (L * L), 0, 1);
-      if (Math.hypot(pa + (qa - pa) * s - t.a, pb + (qb - pb) * s - t.b) < w + 3){ t.alive = false; n++; }
+      if (Math.hypot(pa + (qa - pa) * s - t.a, pb + (qb - pb) * s - t.b) < w + 3){ t.alive = false; n++; addStump(t.a, t.b); }
     });
     clearForest(Math.min(pa, qa) - w, Math.max(pa, qa) + w, Math.min(pb, qb) - w, Math.max(pb, qb) + w);
   }
@@ -367,3 +375,10 @@ export function drawVestige(v: { kind: VestKind; a: number; b: number; ang: numb
 
 // appeles depuis des modules plus petits en numero
 Object.assign(SH, { drawLighthouse });
+
+// les souches comme petits objets de la scene, tant qu'elles sont fraiches
+HOOKS.dyn.push((t: number, out: Drawable[]) => {
+  const gt = GAME.t;
+  while (STUMPS.length && gt - STUMPS[0].t > STUMP_LIFE) STUMPS.shift();
+  for (const s of STUMPS){ const q = prj(s.a, s.b, 0); if (q[0] < -10 || q[0] > W + 10 || q[1] < -10 || q[1] > H + 10) continue; out.push({ d: dep(s.a, s.b), a: s.a, b: s.b, f: () => drawStump(s.a, s.b) }); }
+});

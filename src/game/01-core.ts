@@ -76,6 +76,8 @@ export interface UiState {
   tool: string;
   /** orientation du batiment a poser (0 a 3) */
   buildDir?: number;
+  /** vrai quand le joueur a tourne le batiment lui-meme ; sinon il regarde la route la plus proche */
+  dirManual?: boolean;
   chatCat: Cat | null;
   sel: import('./00-shared.ts').Building | null;
   selV: Vestige | null;

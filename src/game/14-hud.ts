@@ -5,7 +5,7 @@ import { TYPES } from './04-types.ts';
 import { typeName } from './05-types-extra.ts';
 import { VEST_DEF, drawVestige, type VestDef, type VestKind, type Vestige } from './07-world.ts';
 import { TER, influenceOf, sideAt, terPct } from './08-territory.ts';
-import { footOf } from './10-town.ts';
+import { footOf, matOf } from './10-town.ts';
 import { FAR, PALL } from './11-render.ts';
 import { $, $of, CAT_ICON, ICONS, andList, costHTML, ico, pips, pixelSVG, progress, pushHistory, setTool, toast, type Pal } from './13-ui.ts';
 import type { EcoDef, Flow, Price, Resources } from './15-economy.ts';
@@ -118,7 +118,7 @@ export function thumb(type: string, side: Side, w: number, h: number, lvl?: numb
     const r = TYPES[type].build(lot, 5), probe = { x0: 1e9, y0: 1e9, x1: -1e9, y1: -1e9 };
     setView({ TX: w >> 1, TY: Math.round(h * .62) });
     const parts = r.parts.slice().sort((u, v) => (dep(u.a, u.b) + u.zb) - (dep(v.a, v.b) + v.zb));
-    const drawAll = () => { for (const d of r.decals || []){ SH.CUR = side === 'ccp' ? M.CCP : M.USC; d(0); } for (const p of parts){ SH.CUR = p.m != null ? p.m : (side === 'ccp' ? M.CCP : M.USC); p.draw(0); } };
+    const bm = matOf(type, side, 0), drawAll = () => { for (const d of r.decals || []){ SH.CUR = side === 'ccp' ? M.CCP : M.USC; d(0); } for (const p of parts){ SH.CUR = p.m != null ? p.m : bm; p.draw(0); } };
     drawAll();
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (fb[y * W + x] || mb[y * W + x]){ probe.x0 = Math.min(probe.x0, x); probe.x1 = Math.max(probe.x1, x); probe.y0 = Math.min(probe.y0, y); probe.y1 = Math.max(probe.y1, y); }
     if (probe.x1 >= 0){ setView({ TX: TX + Math.round(w / 2 - (probe.x0 + probe.x1) / 2), TY: TY + Math.round(h / 2 - (probe.y0 + probe.y1) / 2) }); fb.fill(0); mb.fill(0); lb.fill(0); drawAll(); }
@@ -172,7 +172,7 @@ export function fillPalette(){
     const ct = document.createElement('span'); ct.className = 'bb-cost'; ct.innerHTML = costHTML(SH.priceOf(type, GAME.side));
     const eff = document.createElement('span'); eff.className = 'bb-eff'; eff.innerHTML = effLine(e);
     b.append(img, nm, ct, eff);
-    b.addEventListener('click', () => { state.buildType = type; for (const o of pal.children) o.setAttribute('aria-checked', String(o instanceof HTMLElement && o.dataset.t === type)); SH.ghost = null; if (state.tool !== 'build') setTool('build'); $('modeHint').innerHTML = '<b>' + typeName(type, GAME.side) + '</b><span>' + (e.desc || '') + '</span>'; SH.sfx('click'); });
+    b.addEventListener('click', () => { state.buildType = type; state.dirManual = false; for (const o of pal.children) o.setAttribute('aria-checked', String(o instanceof HTMLElement && o.dataset.t === type)); SH.ghost = null; if (state.tool !== 'build') setTool('build'); $('modeHint').innerHTML = '<b>' + typeName(type, GAME.side) + '</b><span>' + (e.desc || '') + '</span>'; SH.sfx('click'); });
     pal.appendChild(b);
   }
   refreshPalette();
@@ -290,6 +290,14 @@ export function renderSel(){
   const btn = (label: string, sub: string, fn: () => void, why?: string) => { const b = document.createElement('button'); b.className = 'btn'; b.type = 'button'; b.innerHTML = '<span>' + label + '</span>' + (sub ? '<i>' + sub + '</i>' : ''); b.disabled = !!why; if (why) b.title = why; b.addEventListener('click', fn); act.append(b); return b; };
   const uc: { l: number; r: number } | null = SH.upCost(l);
   if (uc && l.done) btn('Améliorer', costHTML({ l: uc.l, c: 0, r: uc.r }), () => { const why = SH.upgradeBuilding(l); if (why) toast(why); else { pushHistory({ kind: 'upgrade', id: l.id, l: uc.l, r: uc.r }); toast('Amélioration lancée.'); SH.sfx('click'); } renderHUD(); $('sel').dataset.key = ''; renderSel(); }, l.upT ? 'Amélioration déjà en cours.' : lackText({ l: uc.l, c: 0, r: uc.r }) ? 'Il manque ' + lackText({ l: uc.l, c: 0, r: uc.r }) + '.' : '');
+  if (uc && l.done && !l.upT){
+    // ce que l'amelioration va rapporter
+    const nl = (l.lvl || 1) + 1, bits: string[] = [];
+    if (SH.LVL_POP[l.type]) bits.push(ico('pop', 'habitants') + ' ' + SH.LVL_POP[l.type][nl - 1] + ' habitants');
+    if (e && (e.c > 0 || e.l > 0 || e.r > 0)) bits.push('production × ' + String(SH.LVL_MULT[nl - 1]).replace('.', ','));
+    bits.push('un peu plus de territoire');
+    const n = document.createElement('p'); n.className = 'sel-note'; n.innerHTML = 'Au niveau ' + nl + ' : ' + bits.join(', ') + '.'; act.append(n);
+  }
   if (l.type === 'port' && l.done){
     const bc = BARGE_COST;
     btn('Barge de débarquement', costHTML(bc), () => { if (!SH.canAfford(GAME.side, bc)){ toast('Il faut ' + SH.costLabel(bc) + '.'); return; } state.bargeFrom = l; setTool('barge'); toast('Clique sur la côte où la barge doit accoster.'); }, lackText(bc) ? 'Il manque ' + lackText(bc) + '.' : '');
@@ -327,4 +335,4 @@ for (const id of ['topbar', 'hudRes', 'hudRace', 'hudTime', 'bottom']) hudRO.obs
 window.addEventListener('resize', layoutHUD);
 
 // appeles depuis des modules plus petits en numero
-Object.assign(SH, { renderHUD, selectBuilding, selectVestige, bargeTarget });
+Object.assign(SH, { renderHUD, selectBuilding, selectVestige, bargeTarget, effLine });

@@ -1,5 +1,5 @@
 import { SH, type Building } from './00-shared.ts';
-import { COLOR, FONT, M, TAU, blit, boxS, bz, cam, clamp, drawFace, flagSmall, fput, hash2, line3, plateW, prj, win, winColor } from './01-core.ts';
+import { COLOR, FONT, M, TAU, blit, boxS, bz, cam, clamp, drawFace, drawStar, flagSmall, fput, hash2, line3, plateW, prj, win, winColor } from './01-core.ts';
 import { Lc, artSprite, drawCar, facadePlate, part, wallBase } from './03-buildings-base.ts';
 import { TYPES } from './04-types.ts';
 /* ================= nouveaux batiments ================= */
@@ -65,7 +65,8 @@ Object.assign(TYPES, {
     parts.push(part(lot.a1 - 3, lot.b1 - 3, 0, () => { const sa = lot.a1 - 3, sb = lot.b1 - 3; SH.CUR = M.METAL; line3(sa - 6, sb, 0, sa - 6, sb, 8, 1); line3(sa + 6, sb, 0, sa + 6, sb, 8, 1); plateW(ccp ? 'CINE' : 'DRIVE IN', sa, sb, 8); }));
     return { parts, lights: [Lc(lot.ca, sb + 12, 17, 1.2)] };
   } },
-  bowling: { name: 'Bowling', fem: false, build(lot: Building, seed: number){
+  bowling: { name: 'Bowling', nameCCP: 'Club ouvrier', fem: false, build(lot: Building, seed: number){
+    const ccp = lot.side === 'ccp';
     const la = 28, lb = 17, hh = 8;
     const a0 = Math.round(lot.ca - la / 2), a1 = a0 + la, b0 = Math.round(lot.cb - lb / 2) - 2, b1 = b0 + lb;
     const body = () => boxS(a0, a1, b0, b1, 0, hh, (u: number, h: number, x: number, y: number, k: number) => {
@@ -79,8 +80,8 @@ Object.assign(TYPES, {
     }, 0);
     const sign = (t: number) => {
       const p = prj(lot.ca - 8, b1 - 2, hh), x = Math.round(p[0]), y = Math.round(p[1]);
-      SH.CUR = M.NEUTRAL; blit(PIN_SPR, x, y);
-      const on = (COLOR && SH.DAY) || Math.floor(t * 3) % 6 !== 5; facadePlate('BOWLING', lot.ca + 4, b1, b0, hh + 1, { off: !on });
+      if (ccp){ SH.CUR = M.SIGN_CCP; drawStar(fput, x - 3, y - 8, 0, true); } else { SH.CUR = M.NEUTRAL; blit(PIN_SPR, x, y); }
+      const on = (COLOR && SH.DAY) || Math.floor(t * 3) % 6 !== 5; facadePlate(ccp ? 'CLUB' : 'BOWLING', lot.ca + 4, b1, b0, hh + 1, { off: !on });
     };
     return { parts: [part(lot.ca, lot.cb - 2, 0, body), part(lot.ca, lot.cb - 2, .5, sign)], lights: [Lc(lot.ca, b1 + 7, 14, 1.4)] };
   } },

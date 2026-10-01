@@ -231,6 +231,23 @@ export function drawSite(l: Building, t: number, p: number): void {
   SH.CUR = M.BUBBLE; for (let x = 0; x < 17; x++){ fput(bx + x, by, 0); fput(bx + x, by + 2, 0); } fput(bx - 1, by + 1, 0); fput(bx + 17, by + 1, 0);
   SH.CUR = l.side === 'usc' ? M.FLAG_BLUE : M.FLAG_RED; for (let x = 0; x < 17; x++) fput(bx + x, by + 1, x < Math.round(p * 17) ? 0 : 1);
 }
+// amelioration en cours : echafaudage autour du batiment, grue qui tourne, barre d'avancement
+export function drawUpgradeSite(l: Building, t: number, p: number): void {
+  const a0 = l.a0 + 2, a1 = l.a1 - 2, b0 = l.b0 + 2, b1 = l.b1 - 2, Hh = 12 + (l.lvl || 1) * 9;
+  SH.CUR = M.KVAS;
+  for (const [a, b] of [[a0, b0], [a1, b0], [a1, b1], [a0, b1]]) line3(a, b, 0, a, b, Hh, 1);
+  for (let z = 3.5; z < Hh; z += 4){ line3(a0, b1, z, a1, b1, z, 1); line3(a1, b0, z, a1, b1, z, 1); }
+  for (let z = 3.5; z + 4 < Hh; z += 8){ line3(a0, b1, z, a0 + 4, b1, z + 4, 0); line3(a1, b1 - 4, z, a1, b1, z + 4, 0); }
+  const ga = a1 + 2, gb = b0 - 1, gh = Hh + 8, ang = t * .6 + l.ca;
+  SH.CUR = M.KVAS; line3(ga, gb, 0, ga, gb, gh, 1); line3(ga + .6, gb, 0, ga + .6, gb, gh, 1);
+  const ja = ga + Math.cos(ang) * 13, jb = gb + Math.sin(ang) * 13;
+  line3(ga - Math.cos(ang) * 4, gb - Math.sin(ang) * 4, gh, ja, jb, gh, 1); line3(ga, gb, gh + 3, ja, jb, gh, 1);
+  SH.CUR = M.METAL; line3(ja, jb, gh, ja, jb, gh - 4 - 6 * Math.abs(Math.sin(t * 1.3)), 0);
+  drawDust(l, t, .3 + .15 * Math.sin(t * 5));
+  const bp = prj(l.ca, l.cb, Hh + 6), bx = Math.round(bp[0]) - 8, by = Math.round(bp[1]);
+  SH.CUR = M.BUBBLE; for (let x = 0; x < 17; x++){ fput(bx + x, by, 0); fput(bx + x, by + 2, 0); } fput(bx - 1, by + 1, 0); fput(bx + 17, by + 1, 0);
+  SH.CUR = M.ICON_Y; for (let x = 0; x < 17; x++) fput(bx + x, by + 1, x < Math.round(p * 17) ? 0 : 1);
+}
 export function drawDust(l: Building, t: number, amt: number): void {
   SH.CUR = M.SMOKE;
   const c = prj(l.ca, l.cb, 0), cx = Math.round(c[0]), cy = Math.round(c[1]);
@@ -246,7 +263,7 @@ export function siteDrawables(t: number, out: Drawable[]): void {
   for (const l of SH.BLD){
     const q = prj(l.ca, l.cb, 0); if (q[0] < -60 * SC || q[0] > W + 60 * SC || q[1] < -60 * SC || q[1] > H + 80 * SC) continue;
     if (!l.done) out.push({ d: dep(l.ca, l.cb) + 2, a: l.ca, b: l.cb, f: () => drawSite(l, t, clamp((gt - l.buildT) / l.bdur, 0, 1)) });
-    else if (l.upT) out.push({ d: dep(l.ca, l.cb) + 6, a: l.ca, b: l.cb, f: () => drawDust(l, t, .45 + .2 * Math.sin(t * 5)) });
+    else if (l.upT) out.push({ d: dep(l.ca, l.cb) + 6, a: l.ca, b: l.cb, f: () => drawUpgradeSite(l, t, clamp((gt - l.upT) / (l.udur || 1), 0, 1)) });
     else if (l.doneT && gt < l.doneT + .7) out.push({ d: dep(l.ca, l.cb) + 6, a: l.ca, b: l.cb, f: () => drawDust(l, t, 1 - (gt - (l.doneT || 0)) / .7) });
     if (l.done && !l.active && !l.upT) out.push({ d: dep(l.ca, l.cb) + 8, a: l.ca, b: l.cb, f: () => drawNoRoad(l, t) });
   }

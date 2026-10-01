@@ -65,7 +65,8 @@ export const TYPES: Record<string, BuildingType> = {
       part(g.ca, g.cb, .6, () => facadePlate('MAIRIE', g.ca, g.b1, g.b0, g.hh - 1))];
     return { parts, lights: houseLights(g).concat([Lc(g.ca, g.b1 + 9, 14, 1.3)]) };
   } },
-  diner: { name: 'Diner', fem: false, build(lot: Building, seed: number){
+  diner: { name: 'Diner', nameCCP: 'Cantine du Peuple', fem: false, build(lot: Building, seed: number){
+    const ccp = lot.side === 'ccp';
     const la = 26, lb = 12, hh = 7;
     const a0 = Math.round(lot.ca - la / 2), a1 = a0 + la, b0 = Math.round(lot.cb - lb / 2), b1 = b0 + lb;
     const body = () => boxS(a0, a1, b0, b1, 0, hh, (u: number, h: number, x: number, y: number, k: number) => {
@@ -81,13 +82,14 @@ export const TYPES: Record<string, BuildingType> = {
       const on = (COLOR && SH.DAY) || Math.floor(t * 2.5) % 5 !== 4;
       const p = prj(lot.ca, lot.cb, hh), bx = Math.round(p[0]);
       SH.CUR = M.METAL; line3(lot.ca - 6, lot.cb, hh, lot.ca - 6, lot.cb, hh + 3, 1); line3(lot.ca + 6, lot.cb, hh, lot.ca + 6, lot.cb, hh + 3, 1);
-      const r = plateW('DINER', lot.ca, lot.cb, hh + 3, { off: !on });
+      const r = plateW(ccp ? 'CANTINE' : 'DINER', lot.ca, lot.cb, hh + 3, { off: !on });
       SH.CUR = M.SIGN; if (on) drawStar(fput, bx - 2, r[1] - 6, 1);
     };
     return { parts: [part(lot.ca, lot.cb, 0, body), part(lot.ca, lot.cb, .5, sign)],
       lights: [Lc(lot.ca, b1 + 7, 15, 1.45), sideLight(a0, a1, b0, b1, 1, 9, 1.2), sideLight(a0, a1, b0, b1, 3, 9, 1.2)] };
   } },
-  cinema: { name: 'Cinéma', fem: false, build(lot: Building, seed: number){
+  cinema: { name: 'Cinéma', nameCCP: 'Cinéma du Peuple', fem: false, build(lot: Building, seed: number){
+    const ccp = lot.side === 'ccp';
     const la = 22, lb = 18, hh = 15;
     const a0 = Math.round(lot.ca - la / 2), a1 = a0 + la, b0 = Math.round(lot.cb - lb / 2) - 2, b1 = b0 + lb;
     const body = () => boxS(a0, a1, b0, b1, 0, hh, (u: number, h: number, x: number, y: number, k: number) => {
@@ -108,7 +110,7 @@ export const TYPES: Record<string, BuildingType> = {
     };
     const blade = (t: number) => {
       const p = prj(a1 - 3, b1 + 2, 10), bx = Math.round(p[0]), by = Math.round(p[1]);
-      const word = 'CINE', h = word.length * 6 + 3, k = Math.floor(t * 6) % 5;
+      const word = ccp ? 'KINO' : 'CINE', h = word.length * 6 + 3, k = Math.floor(t * 6) % 5;
       SH.CUR = M.SIGN;
       for (let y = by - h; y <= by; y++) for (let x = bx - 3; x <= bx + 3; x++){
         const edge = x === bx - 3 || x === bx + 3 || y === by - h || y === by;
@@ -119,7 +121,8 @@ export const TYPES: Record<string, BuildingType> = {
     return { parts: [part(lot.ca, lot.cb - 2, 0, body), part(lot.ca, lot.cb - 2, .3, marquee), part(lot.ca, lot.cb - 2, .6, blade)],
       lights: [Lc(lot.ca, b1 + 9, 18, 1.6)] };
   } },
-  station: { name: 'Station-service', fem: true, build(lot: Building, seed: number){
+  station: { name: 'Station-service', nameCCP: 'Station du Peuple', fem: true, build(lot: Building, seed: number){
+    const ccp = lot.side === 'ccp';
     const a0 = Math.round(lot.a0 + 5), b0 = Math.round(lot.b0 + 3);
     const kiosk = () => boxS(a0, a0 + 10, b0, b0 + 9, 0, 7, (u: number, h: number, x: number, y: number, k: number) => {
       if (k === 0){ if (u >= 6.5 && u < 9 && h < 5.2) return (u < 7 || h >= 4.7) ? 1 : 0; const kk = win(u, h, 1.5, 2.3, 4, 3.4); return kk ? winColor(kk, true, x, y) : 0; }
@@ -132,10 +135,10 @@ export const TYPES: Record<string, BuildingType> = {
     };
     const sign = () => {
       const pp = prj(a0 + 27, b0 + 2, 0), px = Math.round(pp[0]), py = Math.round(pp[1]);
-      SH.CUR = M.SIGN;
+      SH.CUR = ccp ? M.SIGN_CCP : M.SIGN;
       for (let k = 0; k < 19; k++) fput(px, py - k, 1);
       for (let dy = -7; dy <= 7; dy++) for (let dx = -7; dx <= 7; dx++){ const r = Math.hypot(dx, dy); if (r > 7.4) continue; fput(px + dx, py - 25 + dy, r > 6.3 ? 1 : 0); }
-      drawText(fput, 'GAZ', px - 5, py - 27, 1);
+      if (ccp) drawStar(fput, px - 3, py - 28, 1, true); else drawText(fput, 'GAZ', px - 5, py - 27, 1);
     };
     return { parts: [part(a0 + 5, b0 + 4.5, 0, kiosk), part(a0 + 8, b0 + 17, 0, pump(a0 + 7)), part(a0 + 15, b0 + 17, 0, pump(a0 + 14)),
       part(a0 + 12.5, b0 + 17.5, 1, canopy), part(a0 + 27, b0 + 2, 0, sign)],
@@ -249,7 +252,7 @@ export const TYPES: Record<string, BuildingType> = {
       part(ca + 12, cb + 13, 0, (t) => drawFlagPole(ca + 12, cb + 13, 0, 22, 'ccp', t))],
       lights: [Lc(ca, cb + 17, 16, 1.4), sideLight(ca - 15, ca + 15, cb - 11, cb + 11, 1, 9, 1.1), sideLight(ca - 15, ca + 15, cb - 11, cb + 11, 3, 9, 1.1)] };
   } },
-  usine: { name: 'Usine', fem: true, build(lot: Building, seed: number){
+  usine: { name: 'Filature', nameCCP: 'Combinat textile', fem: true, build(lot: Building, seed: number){
     const la = 28, lb = 18, hh = 10, ccp = lot.side === 'ccp';
     const a0 = Math.round(lot.ca - la / 2), a1 = a0 + la, b0 = Math.round(lot.cb - lb / 2), b1 = b0 + lb;
     const body = () => boxS(a0, a1, b0, b1, 0, hh, (u: number, h: number, x: number, y: number, k: number) => {
@@ -265,7 +268,7 @@ export const TYPES: Record<string, BuildingType> = {
         const p = prj(cx, cy2, 32); smokeAt(p[0], p[1] - 1, t * 1.4, sd + seed); smokeAt(p[0] + 2, p[1] - 3, t * 1.1 + .5, sd * 3 + seed);
       }));
     }
-    parts.push(part(lot.ca, lot.cb, .7, () => facadePlate(ccp ? 'USINE 7' : 'KUTTY MOTORS', lot.ca, b1, b0, hh + .5)));
+    parts.push(part(lot.ca, lot.cb, .7, () => facadePlate(ccp ? 'COMBINAT' : 'TEXTILES', lot.ca, b1, b0, hh + .5)));
     return { parts, lights: [sideLight(a0, a1, b0, b1, 0, 10, 1.2), sideLight(a0, a1, b0, b1, 1, 8, 1.1)] };
   } },
   statue: { name: 'Statue', fem: true, build(lot: Building, seed: number){

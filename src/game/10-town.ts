@@ -297,6 +297,10 @@ export function catPixels(c: CatDef, fr: number, f: number, lit: boolean): [numb
 /* ================= reconstruction des objets ================= */
 export let BUILT: { lot: Building; r: BuiltParts }[] = [], STATIC_PARTS: Part[] = [], DECALS: ((t: number) => void)[] = [], LIGHTS_STATIC: Light[] = [], BEACONS: number[][] = [];
 export const USC_MATS = [M.USC, M.USC2, M.USC3, M.USC4, M.USC5], CCP_MATS = [M.CCP, M.CCP2, M.CCP3];
+// matiere propre a un batiment de la CCR (beton, gris) quand elle differe de celle de l'USC
+export const BUILD_MAT_CCP: Record<string, number> = { diner: M.CONCRETE, cinema: M.CONCRETE, station: M.CCP, bowling: M.CCP2 };
+// matiere de base d'un batiment : la sienne s'il en a une, sinon une des couleurs de son camp
+export const matOf = (type: string, side: Side, sd: number): number => (side === 'ccp' && BUILD_MAT_CCP[type]) || BUILD_MAT[type] || (side === 'ccp' ? CCP_MATS[sd % 3] : USC_MATS[sd % 5]);
 export const BUILD_MAT: Record<string, number> = { diner: M.CHROME, usine: M.BRICK, peuple: M.SANDSTONE, mairie: M.SANDSTONE, qg: M.SANDSTONE, cinema: M.BRICK, station: M.USC5, bowling: M.USC5, port: M.PIER, pecherie: M.PIER };
 export const SHADOW_EXTRA: Record<string, (l: Building) => number[]> = {
   chateau: (l) => SH.circ(l.ca, l.cb, 8, 31, 12).concat(SH.circ(l.ca, l.cb, 6, 0, 4)),
@@ -359,7 +363,7 @@ export function rebuildTown(): void {
     if (!l.done || !TYPES[l.type]) continue;
     const sd = seedOf(l), r = buildParts(l, sd);
     BUILT.push({ lot: l, r });
-    const bm = BUILD_MAT[l.type] || (l.side === 'ccp' ? CCP_MATS[sd % 3] : USC_MATS[sd % 5]);
+    const bm = matOf(l.type, l.side, sd);
     for (const p of r.parts){ if (p.m == null) p.m = bm; p.side = l.side; p.lot = l; }
     if (r.parts[0]){ let ex = SHADOW_EXTRA[l.type] ? SHADOW_EXTRA[l.type](l) : []; if (r.turned){ ex = ex.slice(); for (let i = 0; i + 1 < ex.length; i += 3){ const q = r.turned(ex[i], ex[i + 1]); ex[i] = q[0]; ex[i + 1] = q[1]; } } const sh = ex.concat(r.shadowPts || []); if (sh.length) r.parts[0].shadow = sh; }
     if (l.lvl > 1 && !SH.LVL_POP[l.type] && l.type !== 'port') STATIC_PARTS.push(Object.assign(part(l.ca, l.b1 + 1, .05, () => levelBadge(l)), { side: l.side, lot: l }));

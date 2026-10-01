@@ -117,7 +117,7 @@ state.tool = 'walk'; state.buildType = 'maison'; state.sel = null;
 export const HINTS: Record<string, string> = {
   walk: 'Glisse pour te déplacer, molette pour zoomer, clic droit glissé pour tourner. Clique sur un bâtiment ou un chat.',
   build: 'Choisis un bâtiment puis clique dans ton territoire. Clic droit glissé ou T pour le tourner (Maj+T dans l’autre sens), seize directions. Les bâtiments de la mer se posent face à l’eau.',
-  road: 'Clique le départ, puis l’arrivée. La route continue depuis son bout : clic droit ou Échap pour arrêter.',
+  road: 'Clique le départ, puis l’arrivée (Maj pour suivre l’une des seize directions). La route continue depuis son bout : clic droit ou Échap pour arrêter.',
   curve: 'Clique le départ, puis le point qui tire la courbe, puis l’arrivée.',
   wall: 'Clique le début du Rideau de Laine puis sa fin. Il fige ta frontière. 3 laine tous les 10 pas.',
   demolish: 'Clique sur un bâtiment, une route ou un pan de mur pour le démolir. La moitié de la laine revient.',
@@ -149,8 +149,14 @@ export function achieve(id: AchievementId){ if (unlock(id)) setTimeout(() => toa
 // position proposee pour le batiment sous le curseur (arrondie a 2 unites), et sa direction s'il est au bord de l'eau
 export function buildSpot(a: number, b: number){
   const type = state.buildType, e: EcoDef = SH.ECO[type], ca = Math.round(a / 2) * 2, cb = Math.round(b / 2) * 2;
-  const dir = e && e.coast ? coastDir(ca, cb) : (state.buildDir || 0);
+  const dir = e && e.coast ? coastDir(ca, cb) : (state.dirManual ? (state.buildDir || 0) : autoDir(ca, cb));
   return { type, ca, cb, dir, why: placeProblem(type, GAME.side, ca, cb, dir, false) };
+}
+// sans direction choisie a la main, la facade (+b) regarde la route la plus proche ; la touche T ou le clic droit glisse reprennent la main
+export function autoDir(ca: number, cb: number): number {
+  const n = nearRoad(ca, cb, 60, GAME.side); if (!n || n.d < 1) return state.buildDir || 0;
+  const th = Math.atan2(-(n.a - ca), n.b - cb);
+  return ((Math.round(-th * 8 / Math.PI) % NDIR) + NDIR) % NDIR;
 }
 export function tryBuild(a: number, b: number){
   const s = buildSpot(a, b);
@@ -166,16 +172,26 @@ export function tryBuild(a: number, b: number){
 }
 
 /* ---- routes ---- */
+// Maj enfoncee : la route droite suit l'une des seize directions depuis son depart
+export let shiftDown = false;
+window.addEventListener('keydown', e => { if (e.key === 'Shift') shiftDown = true; });
+window.addEventListener('keyup', e => { if (e.key === 'Shift') shiftDown = false; });
+window.addEventListener('blur', () => { shiftDown = false; });
+export function snap16(from: Vec2, to: Vec2): Vec2 {
+  const da = to[0] - from[0], db = to[1] - from[1], L = Math.hypot(da, db), st = Math.PI / 8, an = Math.round(Math.atan2(db, da) / st) * st;
+  return [Math.round(from[0] + Math.cos(an) * L), Math.round(from[1] + Math.sin(an) * L)];
+}
+const roadEnd = (a: number, b: number): Vec2 => { const e = snapRoadPoint(a, b, GAME.side); return shiftDown && state.tool === 'road' && toolPts.length === 1 ? snap16(toolPts[0], e) : e; };
 export function roadPreviewPts(){
   if (!hoverW) return null;
-  const end = snapRoadPoint(hoverW[0], hoverW[1], GAME.side);
+  const end = roadEnd(hoverW[0], hoverW[1]);
   if (state.tool === 'road' && toolPts.length === 1) return sampleLine(toolPts[0], end);
   if (state.tool === 'curve' && toolPts.length === 1) return sampleLine(toolPts[0], end);
   if (state.tool === 'curve' && toolPts.length === 2) return sampleCurve(toolPts[0], toolPts[1], end);
   return null;
 }
 export function roadClick(a: number, b: number){
-  const p: Vec2 = state.tool === 'curve' && toolPts.length === 1 ? [Math.round(a), Math.round(b)] : snapRoadPoint(a, b, GAME.side);
+  const p: Vec2 = state.tool === 'curve' && toolPts.length === 1 ? [Math.round(a), Math.round(b)] : roadEnd(a, b);
   toolPts.push(p);
   const need = state.tool === 'curve' ? 3 : 2;
   if (toolPts.length < need){ SH.sfx('click'); return; }
@@ -440,7 +456,7 @@ scene.addEventListener('pointerdown', e => {
   const spin = e.pointerType === 'mouse' && e.button === 2 && state.tool === 'build' && !OV_ON;
   const turn = !spin && e.pointerType === 'mouse' && (e.button === 2 || (e.button === 0 && e.shiftKey));
   if (e.pointerType === 'mouse' && e.button !== 0 && e.button !== 2) return;
-  drag = { x: e.clientX, y: e.clientY, a: cam.a, b: cam.b, phi: cam.phi, moved: false, id: e.pointerId, turn, spin, dir0: state.buildDir || 0, right: e.button === 2 };
+  drag = { x: e.clientX, y: e.clientY, a: cam.a, b: cam.b, phi: cam.phi, moved: false, id: e.pointerId, turn, spin, dir0: state.dirManual ? state.buildDir || 0 : (SH.ghost ? SH.ghost.l.dir : 0), right: e.button === 2 };
   try { scene.setPointerCapture(e.pointerId); } catch (_) {}
 });
 scene.addEventListener('pointermove', e => {
@@ -460,7 +476,7 @@ scene.addEventListener('pointermove', e => {
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
     if (!drag.moved && Math.hypot(dx, dy) > 5){ drag.moved = true; scene.classList.add(drag.turn || drag.spin ? 'turning' : 'panning'); cam.target = null; cam.follow = null; }
     if (drag.moved){
-      if (drag.spin){ const nd = ((drag.dir0 + Math.round(dx / 24)) % NDIR + NDIR) % NDIR; if (nd !== (state.buildDir || 0)){ state.buildDir = nd; SH.ghost = null; SH.sfx('click'); } }
+      if (drag.spin){ const nd = ((drag.dir0 + Math.round(dx / 24)) % NDIR + NDIR) % NDIR; if (nd !== (state.buildDir || 0)){ state.buildDir = nd; state.dirManual = true; SH.ghost = null; SH.sfx('click'); } }
       else if (drag.turn){ cam.phi = drag.phi + dx * 0.008; cam.phiT = null; }
       else {
         const s = SH.DPR / SH.Z, sv = { a: cam.a, b: cam.b };
@@ -479,7 +495,7 @@ scene.addEventListener('pointermove', e => {
     if (state.tool === 'build' && GAME.mode === 'play' && !OV_ON){
       const s = buildSpot(hoverW[0], hoverW[1]), e2: EcoDef = SH.ECO[s.type];
       if (s.why) $('modeHint').textContent = s.why;
-      else $('modeHint').innerHTML = '<b>' + typeName(s.type, GAME.side) + '</b>' + costHTML(SH.priceOf(s.type, GAME.side)) + '<span>' + (e2.desc || '') + '</span>';
+      else $('modeHint').innerHTML = '<b>' + typeName(s.type, GAME.side) + '</b>' + costHTML(SH.priceOf(s.type, GAME.side)) + (SH.effLine ? '<span class="hint-eff">' + SH.effLine(e2) + '</span>' : '') + '<span>' + (e2.desc || '') + '</span>';
     }
     if (typeof SH.showTip === 'function') SH.showTip(e, hoverB);
   }
@@ -530,7 +546,7 @@ window.addEventListener('keydown', e => {
   if (GAME.mode !== 'play'){ if (k === '+' || k === '=') zoomStep(1); else if (k === '-' || k === '_') zoomStep(-1); return; }
   if (k === 'b') setTool(state.tool === 'build' ? 'walk' : 'build');
   else if (k === 'r') setTool('road');
-  else if (k === 't' && state.tool === 'build'){ state.buildDir = ((state.buildDir || 0) + (e.shiftKey ? NDIR - 1 : 1)) % NDIR; SH.ghost = null; SH.sfx('click'); }
+  else if (k === 't' && state.tool === 'build'){ state.buildDir = ((state.dirManual ? state.buildDir || 0 : (SH.ghost ? SH.ghost.l.dir : 0)) + (e.shiftKey ? NDIR - 1 : 1)) % NDIR; state.dirManual = true; SH.ghost = null; SH.sfx('click'); }
   else if (k === 'c') setTool('curve');
   else if (k === 'm') setTool('wall');
   else if (k === 'x') setTool('demolish');
