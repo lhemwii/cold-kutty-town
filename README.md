@@ -28,6 +28,8 @@ Pour l’instant, les chats et le journal utilisent des textes tout faits : aucu
 ```bash
 npm run build      # écrit le site dans dist/
 npm run preview    # sert dist/ sur http://localhost:4173
+npm test           # les règles pures (Vitest)
+npm run smoke      # essai de fumée : une partie dans Chromium (après le build)
 ```
 
 Le dépôt est relié à Vercel : chaque push sur `main` part en production, chaque autre branche donne une préversion avec sa propre adresse. Pour Claude en ligne, ajoute `ANTHROPIC_API_KEY` dans les variables d’environnement du projet Vercel.

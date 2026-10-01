@@ -352,13 +352,13 @@ Chaque étape laisse le jeu jouable. L’ordre proposé : d’abord ce qui exist
 - [x] Dix nouveaux événements à choix, liés à la frontière (valises au checkpoint, brouillard sur le Rideau, ballon-sonde, troc au pont), à la mer (banc de sardines, cargo en détresse, tempête) et au commerce (foire, plan d’exportation, marché noir).
 - [ ] Un modèle de langue en option pour les chats et le journal (plus tard : les répliques passent déjà par un seul endroit, `fallbackReply` de 21-main).
 
-## Étape 15. Technique
+## Étape 15. Technique (fait en partie)
 
-- [ ] Tests automatiques : règles (économie, territoire, routes) avec Vitest, démarrage et partie rapide avec Playwright.
-- [ ] Intégration continue : build et tests à chaque push.
+- [x] Tests automatiques : les règles sans page ni dessin passent dans `src/rules/` (métiers, codage des sauvegardes, géométrie, chemins A*, prix du commerce, score), essayées par 14 tests Vitest dans Node (`npm test`) ; un essai de fumée Playwright démarre le site construit, ouvre une partie, attend le QG, ouvre les écrans principaux et recharge une sauvegarde (`npm run smoke`).
+- [x] Intégration continue : `.github/workflows/ci.yml` lance build (avec les types), tests et essai de fumée à chaque push sur main et à chaque pull request.
 - [x] Modules ES, puis TypeScript module par module (étape 0.19).
-- [ ] Séparer l’état, les règles et le dessin (un seul objet d’état) : nécessaire pour les unités et pour le jeu en ligne.
-- [ ] Mesurer la performance sur mobile et sur une vraie carte graphique.
+- [~] Séparer l’état, les règles et le dessin : premier pas fait avec `src/rules/`. Reste à réunir l’état de la partie (bâtiments, routes, unités, ressources, recherche, diplomatie) dans un seul objet sérialisable, pour le jeu en ligne (étape 17).
+- [~] Performance : `scripts/perf.mjs` mesure le temps d’une image (moyenne et grande carte, de près et de loin, processeur et carte graphique). Premiers chiffres sans vraie carte graphique (SwiftShader) : 5 à 7 ms de près, 25 à 38 ms tout au loin. Reste à mesurer sur un vrai téléphone et une vraie carte graphique.
 
 ## Étape 16. L’IA adverse (en dernier)
 

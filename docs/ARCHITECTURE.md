@@ -63,6 +63,8 @@ Ces fichiers ne dépendent d’aucun module du jeu : n’importe quel module peu
 
 | Fichier | Rôle |
 |---|---|
+| `src/rules/*.ts` | Règles pures (métiers, plages, géométrie, A*, commerce, score) : ni page, ni dessin, ni état ; essayées par `tests/*.test.ts` (Vitest). |
+| `scripts/smoke.mjs`, `scripts/perf.mjs` | Essai de fumée et mesure de performance, sur le site construit (Playwright). |
 | `src/gpu/present.ts` | Affichage par PixiJS : mise en couleur de l’image par la palette, dans un shader (voir plus bas). |
 | `src/platform/standalone.ts` | Hors de claude.ai : Claude par `/api/claude`, téléchargements par le navigateur. |
 | `src/platform/store.ts` | Stockage du jeu, une valeur texte par clé : le navigateur sur le web, des fichiers dans la version de bureau. |
