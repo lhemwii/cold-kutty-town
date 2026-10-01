@@ -6,7 +6,7 @@ import { TYPES } from './04-types.ts';
 import { typeName } from './05-types-extra.ts';
 import { drawCyl } from './06-types-more.ts';
 import { FOOT } from './10-town.ts';
-import { costHTML, toast } from './13-ui.ts';
+import { achieve, costHTML, toast } from './13-ui.ts';
 import { lackText, refreshPalette } from './14-hud.ts';
 import { ECO, RES, SPACE, SPACE_STEPS, bdef, canAfford, payPrice, type Price } from './15-economy.ts';
 import { UNITS, UNIT_DEF, type Unit, type UnitDef } from './26-unites.ts';
@@ -159,7 +159,7 @@ export function spyMission(kind: string, side: Side, l: Building, spy?: Unit): s
   if (kind === 'vol'){
     const mine = SCI[side], theirs = SCI[foe], can = [...theirs.done].filter(id => !mine.done.has(id));
     if (!can.length) return 'Rien à voler : l’autre camp ne sait rien de plus.';
-    const id = can[Math.floor(Math.random() * can.length)]; mine.done.add(id); refreshPalette();
+    const id = can[Math.floor(Math.random() * can.length)]; mine.done.add(id); refreshPalette(); if (side === GAME.side) achieve('ESPION');
     return 'Recherche volée : ' + (TECH.get(id)?.name || id) + '.';
   }
   SAB.set(l.id, GAME.t + 60); l.hp = Math.min(l.hp == null ? (SH.bhpMax ? SH.bhpMax(l) : 100) : l.hp, (SH.bhpMax ? SH.bhpMax(l) : 100) * .3);

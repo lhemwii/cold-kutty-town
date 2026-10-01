@@ -327,12 +327,13 @@ Chaque étape laisse le jeu jouable. L’ordre proposé : d’abord ce qui exist
 - [x] Les boutons Ressources, Recherche et Pourparlers passent dans le dock, avec leur nom.
 - [ ] À revoir ensemble : les prix du marché, le rythme des fuites, une vraie scène au checkpoint (files de chats, échanges visibles), des nations amies plus vivantes.
 
-## Étape 12. Gagner, et les types de partie
+## Étape 12. Gagner, et les types de partie (fait, à équilibrer)
 
-- [ ] Victoires, chacune activable ou non à la création de la partie : militaire (annihilation, capitulation), scientifique, sociale, économique, de circonstance. Elles reposent sur la guerre et sur les trois indicateurs.
-- [ ] Types de partie dans « Nouvelle partie » : Blitz (on choisit la durée ; à la fin, le meilleur score gagne) et Sans fin (jusqu’à une victoire).
-- [ ] Succès redéfinis avec le jeu (`src/platform/achievements.ts`).
-- [ ] Équilibrage d’une partie Blitz et d’une partie Sans fin.
+- [x] Cinq victoires, chacune cochée ou non dans « Nouvelle partie » : militaire (plus un hôtel de ville à l’autre camp, ou sa capitulation), scientifique (le premier aux cinq jalons), sociale (au moins 150 habitants, deux fois plus que l’autre camp, sans famine, trois minutes), économique (4 000 Catcoins et une production une fois et demie celle de l’autre camp, trois minutes), de circonstance (70 % de l’île deux minutes, ou dix minutes de paix signée : le meilleur score l’emporte).
+- [x] Types de partie : Sans fin (jusqu’à une victoire) et Blitz de 20, 40 ou 60 minutes (le temps restant s’affiche sous l’horloge ; à la fin, le meilleur score gagne). Le score additionne territoire, habitants, recherches, jalons, Catcoins, production, villes et force.
+- [x] La course aux victoires : un clic sur le bloc du territoire (ou O) montre, pour chaque victoire, où en est chaque camp et le temps qu’il lui reste à tenir.
+- [x] Succès redéfinis (`src/platform/achievements.ts`) : une deuxième ville, un premier train, dix recherches, un chat sur la Lune, la paix, une recherche volée, vingt transfuges, chacune des victoires, gagner un Blitz.
+- [~] Équilibrage : une partie jouée par l’IA des deux côtés sert de mesure (voir l’étape 16) ; les seuils restent à régler en jouant.
 
 ## Étape 13. L’écran, deuxième version
 

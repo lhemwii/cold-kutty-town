@@ -101,6 +101,7 @@ function judge(kind: TreatyKind | 'capitulation'): string {
       if (recent < 300) return 'Vous nous avez attaqués il y a trop peu de temps.';
       return '';
     case 'capitulation': {
+      if (SH.winEnabled && !SH.winEnabled('militaire')) return 'La victoire militaire n’est pas au programme de cette partie.';
       const cities = (SH.BLD as Building[]).filter(l => l.side === ai && isCity(l) && l.done).length;
       if (ratio < .25 || cities === 0 || (RES[ai].pop < RES[me].pop * .25 && ratio < .6)) return '';
       return ccp ? 'Capituler ? Le Peuple n’a jamais capitulé.' : 'Capituler ? L’USC ne capitule jamais.';

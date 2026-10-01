@@ -4,9 +4,9 @@
 
 Un city builder de chats pendant la guerre froide. En couleur, du matin à la nuit.
 
-Une île vierge, deux camps : les United Sands of Cats (USC) et la Cats Communist Republic (CCR). Tu choisis ton camp et ta plage, tes barges accostent, et tu bâtis ta ville : routes droites ou courbes, maisons, pêcheries, bergeries, port qui devient grand port. Chaque bâtiment fait grandir ton territoire, bleu ou rouge, en direct sur la carte. Croquettes pour manger, laine pour bâtir, ronrons pour conquérir. Le premier camp à tenir 60 % de l’île gagne.
+Une île vierge, deux camps : les United Sands of Cats (USC) et la Cats Communist Republic (CCR). Tu choisis ton camp et ta plage, tes barges accostent, et tu bâtis ta ville : routes droites ou courbes, maisons, pêcheries, bergeries, port qui devient grand port. Chaque bâtiment fait grandir ton territoire, bleu ou rouge, en direct sur la carte. Croquettes pour manger, laine pour bâtir, ronrons pour conquérir. Puis des villes reliées par la route et le train, la recherche, l’armée, la course à l’espace, les espions, les traités au Rideau de Laine. On gagne par les armes, la science, le bonheur de ses habitants, la richesse ou les circonstances, en partie sans fin ou en Blitz.
 
-**Jouer en ligne :** (lien Vercel à venir)
+**Jouer en ligne :** https://cold-kutty-town.vercel.app
 
 ## Lancer le jeu sur ton ordi
 

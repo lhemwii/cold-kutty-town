@@ -39,7 +39,7 @@
     <div class="space-race" id="spaceRace" aria-label="Course à l’espace"></div>
   </section>
   <section class="hud-time panel" id="hudTime" aria-label="Date et temps">
-    <div class="tb-clock"><span id="calLabel">septembre</span><output id="clockTime">10:30</output></div>
+    <div class="tb-clock"><span id="calLabel">septembre</span><output id="clockTime">10:30</output><span class="blitz-t" id="blitzT" hidden></span></div>
     <button class="btn k" id="clockPlay" type="button" aria-label="Mettre en pause" title="Pause (Espace)" aria-pressed="false"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="3" width="3.5" height="10" fill="currentColor"/><rect x="9.5" y="3" width="3.5" height="10" fill="currentColor"/></svg></button>
     <button class="btn k" id="clockSpeed" type="button" aria-label="Vitesse du jeu" title="Vitesse (1, 2, 3)">×1</button>
     <span class="k-sep"></span>
@@ -105,6 +105,7 @@
 <section class="units panel" id="card" aria-label="Fiche" hidden></section>
 <section class="sci panel" id="sci" role="dialog" aria-label="Recherche" hidden></section>
 <section class="sci panel" id="dip" role="dialog" aria-label="Pourparlers" hidden></section>
+<section class="sci panel" id="vic" role="dialog" aria-label="Victoires" hidden></section>
 
 <div class="tip" id="tip" hidden></div>
 
@@ -229,6 +230,9 @@
     <p class="field-note" id="newMapNote"></p>
     <label class="field"><span>Île</span><span class="field-row"><input id="newSeed" type="text" inputmode="numeric" maxlength="5" placeholder="au hasard" autocomplete="off"><button class="btn" id="newDice" type="button">Tirer au sort</button></span></label>
     <p class="field-note">Le numéro d’île, avec la même taille et la même forme, redonne la même carte : partage-le pour jouer sur la même.</p>
+    <div class="field"><span>Type de partie</span><div class="seg" id="newType" role="radiogroup" aria-label="Type de partie"><button class="btn" type="button" role="radio" data-v="0">Sans fin</button><button class="btn" type="button" role="radio" data-v="20">Blitz 20 min</button><button class="btn" type="button" role="radio" data-v="40">Blitz 40 min</button><button class="btn" type="button" role="radio" data-v="60">Blitz 1 h</button></div></div>
+    <div class="field"><span>Victoires possibles</span><div class="checks" id="newWins"><label><input type="checkbox" data-w="militaire" checked> Militaire</label><label><input type="checkbox" data-w="science" checked> Scientifique</label><label><input type="checkbox" data-w="sociale" checked> Sociale</label><label><input type="checkbox" data-w="economie" checked> Économique</label><label><input type="checkbox" data-w="circonstance" checked> De circonstance</label></div></div>
+    <p class="field-note" id="newTypeNote"></p>
     <div class="intro-modes"><button class="btn primary" id="introGo" type="button">Débarquer</button></div>
   </section>
 
