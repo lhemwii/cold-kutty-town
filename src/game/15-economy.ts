@@ -200,6 +200,7 @@ export function ecoTally(side: Side): void {
     fun += e.fun * mult * taste(l.type, side);
   }
   if (SH.wallUpkeep) add('l', -SH.wallUpkeep(side), 'Rideau de Laine (entretien)');
+  if (SH.unitUpkeep){ const u = SH.unitUpkeep(side); if (u.c) add('c', -u.c, 'Unités (rations)'); if (u.p) addX('petrole', -u.p, 'Unités (carburant)'); }
   // les habitants mangent (et du pate s'il y en a), paient l'impot, et ronronnent s'ils ont a manger, de l'eau, de quoi se distraire
   add('c', -pop * .35, 'Repas des habitants');
   const pate = R.x.pate > .5, herbe = R.x.herbe > .5;

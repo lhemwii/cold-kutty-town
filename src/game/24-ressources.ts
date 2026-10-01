@@ -121,8 +121,8 @@ HOOKS.place.push((type: string, side: Side, ca: number, cb: number): string => {
 /* ---- l'exploitation forestiere abat un arbre de temps en temps ---- */
 let forestAcc = 0;
 HOOKS.step.push((dt: number) => {
-  if (GAME.mode !== 'play' || GAME.paused) return;
-  forestAcc += dt * GAME.speed; if (forestAcc < 12) return; forestAcc = 0;
+  if (GAME.mode !== 'play') return;
+  forestAcc += dt; if (forestAcc < 12) return; forestAcc = 0;
   for (const l of SH.BLD as Building[]){
     if (l.type !== 'foret' || !l.done || !l.active) continue;
     let pick: { a: number; b: number; alive: boolean } | null = null;

@@ -44,6 +44,9 @@ La conversion depuis l’ancienne portée unique a été faite par un script (an
 | `21-main.ts` | Radio, conversation, sauvegarde, déroulé de la partie (accueil, plage, victoire), boucle de jeu. |
 | `22-home.ts` | Accueil du jeu : menu, parties sauvegardées par emplacements (`ckt-saves`, `ckt-partie-*`, vignettes), profil, options, île qui tourne en fond. |
 | `23-planet.ts` | Éteint pour l’instant (`GLOBE_ON = false`), gardé pour le mode espace. Le globe, sans transition : de loin, `planetWarp` pose l’image plate du jeu sur une sphère dont le rayon descend en continu jusqu’à celui de la planète (`CURV`, `GR`, `geoSet`, `geoCast`, `geoProj` dans 01-core, `curvOf` dans 11-render). Hors de l’image plate : la carte de l’île, puis une texture tirée au sort (océans, continents, banquise, nuages). Jour et nuit, halo, étoiles fixes dans l’espace. Sert aussi de fond à l’accueil. |
+| `24-ressources.ts` | Étape 3 : gisements (charbon, uranium, pétrole), nouveaux bâtiments de ressources, onglet Ressources (stocks, réseaux d’eau et d’électricité, métiers et priorités), bilan de fin de mois. |
+| `25-villes.ts` | Étape 4 : camp, baraquements, chef-lieu puis ville (`ville`), noms des villes, plaques au-dessus des hôtels de ville, chevrons de la frontière qui bouge, entretien du Rideau. |
+| `26-unites.ts` | Étape 5 : brouillard du joueur (`TER.fog`, mis à jour deux fois par seconde), unités (`UNIT_DEF`, `UNITS`), chemins A* sur une grille de 8 (terre ou mer), formation par les bâtiments, sélection (clic, Maj, cadre Ctrl, G), ordres au clic droit, bâtisseurs qui posent un camp hors du territoire, caserne, sauvegarde. Crochets laissés aux étapes suivantes : `SH.combatChase`, `SH.combatStep`, `SH.drawVehicle`, `SH.boardOrder`, `SH.groundSlow`, `SH.tunnelAt`, `SH.FOG_SOURCES`, `SH.hasTech`. |
 
 ## Hors des modules numérotés
 

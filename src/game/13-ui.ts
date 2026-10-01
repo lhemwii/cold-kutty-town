@@ -416,7 +416,7 @@ export function updateClockUI(){
 
 /* ---- pointeur : se balader, zoomer, tourner, agir ---- */
 /** un glisser en cours : ou il a commence, la camera d'alors, et ce qu'il fait (tourner la vue, tourner le batiment, ou deplacer) */
-export interface Drag { x: number; y: number; a: number; b: number; phi: number; moved: boolean; id: number; turn: boolean; spin: boolean; dir0: number; right: boolean }
+export interface Drag { x: number; y: number; a: number; b: number; phi: number; moved: boolean; id: number; turn: boolean; spin: boolean; dir0: number; right: boolean; box?: [number, number] }
 /** un pincement a deux doigts : ecart, angle, rotation et zoom au debut */
 export interface Pinch { d: number; ang: number; phi: number; z: number; turning?: boolean }
 export let drag: Drag | null = null, pointer: Vec2 | null = null;
@@ -456,7 +456,9 @@ scene.addEventListener('pointerdown', e => {
   const spin = e.pointerType === 'mouse' && e.button === 2 && state.tool === 'build' && !OV_ON;
   const turn = !spin && e.pointerType === 'mouse' && (e.button === 2 || (e.button === 0 && e.shiftKey));
   if (e.pointerType === 'mouse' && e.button !== 0 && e.button !== 2) return;
-  drag = { x: e.clientX, y: e.clientY, a: cam.a, b: cam.b, phi: cam.phi, moved: false, id: e.pointerId, turn, spin, dir0: state.dirManual ? state.buildDir || 0 : (SH.ghost ? SH.ghost.l.dir : 0), right: e.button === 2 };
+  // Ctrl (ou Cmd) glisse : un cadre pour choisir des unites
+  const box: [number, number] | undefined = e.pointerType === 'mouse' && e.button === 0 && (e.ctrlKey || e.metaKey) && state.tool === 'walk' && GAME.mode === 'play' && !OV_ON ? toLogical(e) : undefined;
+  drag = { box, x: e.clientX, y: e.clientY, a: cam.a, b: cam.b, phi: cam.phi, moved: false, id: e.pointerId, turn, spin, dir0: state.dirManual ? state.buildDir || 0 : (SH.ghost ? SH.ghost.l.dir : 0), right: e.button === 2 };
   try { scene.setPointerCapture(e.pointerId); } catch (_) {}
 });
 scene.addEventListener('pointermove', e => {
@@ -476,7 +478,8 @@ scene.addEventListener('pointermove', e => {
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
     if (!drag.moved && Math.hypot(dx, dy) > 5){ drag.moved = true; scene.classList.add(drag.turn || drag.spin ? 'turning' : 'panning'); cam.target = null; cam.follow = null; }
     if (drag.moved){
-      if (drag.spin){ const nd = ((drag.dir0 + Math.round(dx / 24)) % NDIR + NDIR) % NDIR; if (nd !== (state.buildDir || 0)){ state.buildDir = nd; state.dirManual = true; SH.ghost = null; SH.sfx('click'); } }
+      if (drag.box){ SH.selBox = [drag.box[0], drag.box[1], lx, ly]; }
+      else if (drag.spin){ const nd = ((drag.dir0 + Math.round(dx / 24)) % NDIR + NDIR) % NDIR; if (nd !== (state.buildDir || 0)){ state.buildDir = nd; state.dirManual = true; SH.ghost = null; SH.sfx('click'); } }
       else if (drag.turn){ cam.phi = drag.phi + dx * 0.008; cam.phiT = null; }
       else {
         const s = SH.DPR / SH.Z, sv = { a: cam.a, b: cam.b };
@@ -503,8 +506,13 @@ scene.addEventListener('pointermove', e => {
 export function endPointer(e: PointerEvent){
   if (e.pointerType === 'touch'){ touches.delete(e.pointerId); if (touches.size < 2 && pinch){ pinch = null; drag = null; snapZoom(); return; } }
   const d = drag; drag = null; scene.classList.remove('panning', 'turning');
+  if (d && d.box){ const bx = SH.selBox; SH.selBox = null; if (d.moved && bx && typeof SH.unitBox === 'function'){ SH.unitBox(bx[0], bx[1], bx[2], bx[3], e.shiftKey); return; } }
   if (!d || d.moved || d.id !== e.pointerId || e.type === 'pointercancel') return;
-  if (d.right){ if (toolPts.length){ toolPts = []; toast('Tracé interrompu.'); } else if (state.tool !== 'walk') setTool('walk'); return; }
+  if (d.right){
+    // clic droit sans glisser : ordre aux unites selectionnees (aller la)
+    if (state.tool === 'walk' && GAME.mode === 'play' && typeof SH.unitOrder === 'function'){ const w0 = worldUnder(e); if (SH.unitOrder(w0[0], w0[1])) return; }
+    if (toolPts.length){ toolPts = []; toast('Tracé interrompu.'); } else if (state.tool !== 'walk') setTool('walk'); return;
+  }
   if (d.turn) return;
   const w = worldUnder(e);
   if (state.tool === 'landing'){ if (typeof SH.chooseLanding === 'function') SH.chooseLanding(w[0], w[1]); return; }
@@ -514,6 +522,8 @@ export function endPointer(e: PointerEvent){
   if (OV_ON){ cam.follow = [w[0], w[1]]; setZoom(SH.KDEF, e.clientX, e.clientY); if (state.tool !== 'walk') toast('Rapproche-toi pour construire.'); return; }
   const [lx, ly] = toLogical(e);
   if (state.tool === 'walk'){
+    // les unites d'abord : clic pour en choisir une (Maj pour en ajouter), ou pour viser quand une action attend sa cible
+    if (typeof SH.unitClick === 'function' && SH.unitClick(w[0], w[1], lx, ly, e.shiftKey)) return;
     const c = catUnder(lx, ly); if (c){ SH.openChat(c); return; }
     const v = vestPick(lx, ly); if (v){ SH.selectVestige(v); return; }
     SH.selectBuilding(bldPick(lx, ly)); return;
@@ -542,7 +552,7 @@ window.addEventListener('keydown', e => {
   if (typing(e) || e.metaKey || e.ctrlKey || e.altKey) return;
   const k = e.key.toLowerCase();
   if (['arrowleft','arrowright','arrowup','arrowdown','q','a','z','w','s','d'].includes(k)){ keys.add(k); cam.target = null; cam.follow = null; e.preventDefault(); return; }
-  if (k === 'escape'){ if (state.chatCat) SH.closeChat(); else if (toolPts.length) toolPts = []; else if (state.sel || state.selV) SH.selectBuilding(null); else if (state.tool !== 'landing') setTool('walk'); return; }
+  if (k === 'escape'){ if (typeof SH.unitEscape === 'function' && SH.unitEscape()) return; if (state.chatCat) SH.closeChat(); else if (toolPts.length) toolPts = []; else if (state.sel || state.selV) SH.selectBuilding(null); else if (state.tool !== 'landing') setTool('walk'); return; }
   if (GAME.mode !== 'play'){ if (k === '+' || k === '=') zoomStep(1); else if (k === '-' || k === '_') zoomStep(-1); return; }
   if (k === 'b') setTool(state.tool === 'build' ? 'walk' : 'build');
   else if (k === 'r') setTool('road');

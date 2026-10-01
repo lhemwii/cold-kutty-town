@@ -154,7 +154,7 @@ export function viewCorners(){
 }
 export function drawMap(t: number){
   if (!document.body.classList.contains('has-map') || !MAPV.cv || GAME.mode === 'menu') return;
-  if (t - MINI.t < .12) return; MINI.t = t;
+  if (t - MINI.t < .12) return; MINI.t = t; SH.MINI_T = t;
   mapUpdate();
   const g = mapCtx; if (!g) return;
   const s = miniScale();
@@ -181,6 +181,7 @@ mapCv.addEventListener('pointercancel', () => { MINI.drag = false; });
 export function mapFit(){ document.body.classList.toggle('has-map', window.innerWidth >= 1000 && window.innerHeight >= 600); }
 window.addEventListener('resize', mapFit); mapFit();
 HOOKS.after.push(drawMap);
+SH.miniAB = miniAB;
 
 /* ================= fiche d'un batiment au survol ================= */
 export const tipEl = $('tip');

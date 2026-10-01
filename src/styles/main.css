@@ -181,6 +181,17 @@ body:not(.playing) .minimap,body.photo .minimap{display:none}
 .sel-actions .btn.danger:hover{background:#f8d7d7}
 .sel-note{margin:0;font-size:12px;line-height:1.35}
 
+/* unites choisies (etape 5), a la place de la fiche */
+.units{right:calc(20px + var(--rail));top:max(calc(var(--hud-top) + 10px),calc(10px + env(safe-area-inset-top,0px)));width:280px;padding:10px 12px 12px;display:grid;gap:8px;font-size:12.5px}
+.un-head{display:flex;justify-content:space-between;align-items:center}
+.un-head b{font:800 16px/1.1 var(--text)}
+.un-list{display:grid;gap:5px}
+.un-row{display:grid;grid-template-columns:1fr 90px;gap:8px;align-items:center}
+.un-act{display:grid;gap:6px}
+.un-act .btn{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 10px;font-size:13px}
+.un-act .btn i{font-style:normal}
+@media (max-width:720px){.units{left:10px;right:calc(20px + var(--rail));width:auto}}
+
 /* bas de l'ecran, au centre : evenements, messages, tiroir de construction, aide de l'outil, outils */
 .bottom{position:fixed;z-index:10;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none}
 body.has-map .bottom{left:236px;right:236px}

@@ -21,11 +21,13 @@ export interface Territory {
   ver: number; srcVer: number; acc: number; fightAcc: number;
   rate: Record<Side, number>; lastGain: Record<Side, number>; carry: Record<Side, number>;
   box: Record<Side, Box>;
+  /** brouillard du joueur, par case : 0 jamais vue, 1 deja vue, 2 vue en ce moment ; fogOn : actif pendant la partie */
+  fog: Uint8Array; fogOn: boolean;
 }
 const EMPTY8 = new Uint8Array(0);
 export const TER: Territory = { W: GW / GSC / TC, H: GH / GSC / TC, N: 0, own: EMPTY8, land: EMPTY8, lock: EMPTY8, fresh: new Float32Array(0), tgt: { usc: EMPTY8, ccp: EMPTY8 },
   cnt: { usc: 0, ccp: 0 }, landN: 1, ver: 0, srcVer: -1, acc: 0, fightAcc: 0, rate: { usc: 0, ccp: 0 }, lastGain: { usc: 0, ccp: 0 }, carry: { usc: 0, ccp: 0 },
-  box: { usc: [1e9, -1, 1e9, -1], ccp: [1e9, -1, 1e9, -1] } };
+  box: { usc: [1e9, -1, 1e9, -1], ccp: [1e9, -1, 1e9, -1] }, fog: EMPTY8, fogOn: false };
 TER.N = TER.W * TER.H;
 export const terIdx = (a: number, b: number): number => { const x = Math.floor((a - GA0) / TC), y = Math.floor((b - GB0) / TC); return (x < 0 || y < 0 || x >= TER.W || y >= TER.H) ? -1 : y * TER.W + x; };
 export const ownerAt = (a: number, b: number): number => { const i = terIdx(a, b); return i < 0 ? 0 : TER.own[i]; };
@@ -40,6 +42,7 @@ export function initTerritory(): void {
   TER.W = Math.round(GW / GSC / TC); TER.H = Math.round(GH / GSC / TC); TER.N = TER.W * TER.H;
   TER.own = new Uint8Array(TER.N); TER.land = new Uint8Array(TER.N); TER.lock = new Uint8Array(TER.N); TER.fresh = new Float32Array(TER.N);
   TER.tgt.usc = new Uint8Array(TER.N); TER.tgt.ccp = new Uint8Array(TER.N);
+  TER.fog = new Uint8Array(TER.N).fill(2); TER.fogOn = false;
   let n = 0;
   for (let y = 0; y < TER.H; y++) for (let x = 0; x < TER.W; x++){
     // une case compte comme terre si son centre et la majorite de ses coins sont a terre
@@ -168,3 +171,10 @@ export function stepTerritory(dt: number): void {
 export const terPct = (side: Side): number => TER.cnt[side] / TER.landN;
 /** cases prises a l'autre camp ces derniers temps (i la case, side le gagnant, t le moment) : la frontiere qui bouge */
 export const FRONT: { i: number; side: Side; t: number }[] = [];
+
+/* ---- brouillard (etape 5) : ce que le joueur voit ---- */
+export const fogAt = (a: number, b: number): number => { if (!TER.fogOn) return 2; const i = terIdx(a, b); return i < 0 ? 0 : TER.fog[i]; };
+/** vrai si le joueur voit ce point en ce moment (toujours vrai sans brouillard) */
+export const fogVisible = (a: number, b: number): boolean => fogAt(a, b) === 2;
+/** vrai si le joueur a deja vu ce point */
+export const fogSeenAt = (a: number, b: number): boolean => fogAt(a, b) > 0;

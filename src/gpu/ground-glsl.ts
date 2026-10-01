@@ -84,7 +84,8 @@ int ownAt(int x, int y){
   ivec2 c = ivec2(f);
   if ((byte(texelFetch(uCells, c, 0).r) & 15) == 0) return 0;
   int sh = int(uTerI.z);
-  return byte(texelFetch(uTer, ivec2(c.x >> sh, c.y >> sh), 0).r);
+  int v = byte(texelFetch(uTer, ivec2(c.x >> sh, c.y >> sh), 0).r);
+  return (v & 8) != 0 ? 0 : (v & 7);
 }
 int baseOf(int o){ return o > 2 ? o - 2 : o; }
 // ce qui est dessus en un pixel : ce qu'a dessine le processeur ou un objet pose par la carte graphique, le plus haut rang
@@ -113,17 +114,19 @@ void main(){
     int tx = int(uT.x), ty = int(uT.y), tick = int(uAnim.x);
     int ry = ((y - ty) & 3) << 2;
     vec2 fc = cellPos(x, y);
-    int tone = 0, gm = int(uMatA.x), lv = 0, own = 0;
+    int tone = 0, gm = int(uMatA.x), lv = 0, own = 0, fog = 0;
     ivec2 c = ivec2(0);
     if (inGrid(fc)){
       c = ivec2(fc);
       ivec2 cell = bytes(texelFetch(uCells, c, 0)).rg;
       int ty2 = cell.r & 15; tone = cell.g;
+      int terv = 0;
+      if (uTerI.w > 0.5){ int sh = int(uTerI.z); terv = byte(texelFetch(uTer, ivec2(c.x >> sh, c.y >> sh), 0).r); fog = terv >> 3; }
       if (ty2 == 0){ int cls = cell.r >> 4; gm = cls == 0 ? int(uMatA.z) : cls == 1 ? int(uMatA.y) : int(uMatA.x); }
       else {
         gm = lutType(ty2);
         if (ty2 == 1) lv = byte(texelFetch(uQuarter, ivec2(c.x >> 2, c.y >> 2), 0).r);
-        if (uTerI.w > 0.5){ int sh = int(uTerI.z); own = byte(texelFetch(uTer, ivec2(c.x >> sh, c.y >> sh), 0).r); }
+        if (fog != 1) own = terv & 7;
       }
     }
     int v = 0;
@@ -151,6 +154,8 @@ void main(){
         if (v != 0) gm = int(uMatB.x);
       }
     }
+    // brouillard : jamais vu (+ 8), presque noir en trame ; deja vu mais pas en vue (+ 16), dans l'ombre
+    if (fog == 1 && BAYER[ry | ((x - tx) & 3)] < 12){ gm = int(uMatB.w); v = 0; lv = 0; } else if (fog != 0) lv = 4;
     // camp et frontiere : un pixel de couleur franche de chaque cote du changement de camp
     o = own;
     int base = baseOf(own);

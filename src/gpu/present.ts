@@ -16,6 +16,8 @@ export interface GroundMats {
   /** matiere de chaque type de sol */
   typeMat: number[];
   sea: number; seaMid: number; seaShallow: number; foam: number; beam: number; road: number; reflect: number;
+  /** matiere du brouillard jamais vu */
+  dark: number;
   /** pour chaque matiere : lumineuse (source de reflet), eau, garde sa teinte dans un reflet */
   glows: Uint8Array; waters: Uint8Array; keepTint: Uint8Array;
 }
@@ -280,7 +282,7 @@ export async function createPresenter(canvas: HTMLCanvasElement, w: number, h: n
       m.typeMat.forEach((mat, t) => { if (t < 256) lut[t * 4] = mat; });
       for (let k = 0; k < 256; k++){ const j = (256 + k) * 4; lut[j + 1] = m.glows[k] ? 255 : 0; lut[j + 2] = m.waters[k] ? 255 : 0; lut[j + 3] = m.keepTint[k] ? 255 : 0; }
       lutSrc.update();
-      set('uMatA', m.sea, m.seaMid, m.seaShallow, m.foam); set('uMatB', m.beam, m.road, m.reflect, 0);
+      set('uMatA', m.sea, m.seaMid, m.seaShallow, m.foam); set('uMatB', m.beam, m.road, m.reflect, m.dark);
     },
     groundGrid(g: GroundGrid){
       grid = g;

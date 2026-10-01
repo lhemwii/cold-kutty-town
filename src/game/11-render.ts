@@ -7,7 +7,7 @@ import { BAYER, COLOR, db, makeSprite, GAME, GEO, GLOBE_ON, H, HOOKS, M, N, PC, 
 import { GA0, GB0, GDIRTY, GH, GQH, GQW, GSC, GW, TYPE_MAT, T_BEACH, T_DIRT, T_FOREST, T_GRASS, T_PIER, T_QUAY, T_ROAD, T_ROCK, T_SEA, T_WALK, cellOf, gPh, gSea, gTone, gType, gVar, mapScale } from './02-ground.ts';
 import { drawCarAng } from './03-buildings-base.ts';
 import { VEST, drawGlow, drawLampHeads, drawLantern, drawSailboat, sailPos, towerSpot, treeDrawables } from './07-world.ts';
-import { TC, TER, terIdx } from './08-territory.ts';
+import { TC, TER, fogSeenAt, fogVisible, terIdx } from './08-territory.ts';
 import { CARS } from './09-roads.ts';
 import { BEACONS, DECALS, LIGHTS_STATIC, STATIC_PARTS, catMat, catPixels, catPos } from './10-town.ts';
 /* ================= palette de la version couleur : pour chaque matiere, teinte sombre puis claire ================= */
@@ -458,7 +458,7 @@ export function renderGround(t: number){
   const w = W, h = H, tx = TX, ty = TY, gw = GW, gh = GH, ga0 = GA0, gb0 = GB0, qw = GQW, gsc = GSC, tsh = GSC === 2 ? 3 : 2;
   const bm = beaconNear();
   const LA = bm ? bm[0] : 0, LB = bm ? bm[1] : 0, MF = M.FOAM, MBm = M.BEAM, MS2 = M.SEA, MSS = M.SEA_SHALLOW, MSM = M.SEA_MID;
-  const TO = TER.own, TW = TER.W, TFR = TER.fresh, gt = GAME.t, hasT = !!TO;
+  const TO = TER.own, TW = TER.W, TFR = TER.fresh, gt = GAME.t, hasT = !!TO, FG = TER.fog, fogOn = TER.fogOn && FG.length === TO.length, DARK = M.CAT_BLACK;
   if (OROW.length !== w) OROW = new Uint8Array(w);
   const UP = OROW; UP.fill(0);
   let i = 0;
@@ -469,14 +469,15 @@ export function renderGround(t: number){
     const dfa = dax * gsc, dfb = dbx * gsc;
     let la = a - LA, lbb = b - LB, left = 0;
     for (let x = 0; x < w; x++, i++){
-      let tone = 0, m = MS2, lv = 0, own = 0;
+      let tone = 0, m = MS2, lv = 0, own = 0, fg = 2;
       if (fa >= 0 && fbb >= 0 && fa < gw && fbb < gh){
         const ia = fa | 0, ib = fbb | 0, ci = ib * gw + ia; tone = GT[ci];
         const ty2 = GTY[ci];
+        if (fogOn) fg = FG[(ib >> tsh) * TW + (ia >> tsh)];
         if (ty2 === 0) m = GS[ci] < 16 ? MSS : GS[ci] < 50 ? MSM : MS2;
         else {
           m = TM[ty2]; if (ty2 === 1) lv = GV[(ib >> 2) * qw + (ia >> 2)];
-          if (hasT){ const ti = (ib >> tsh) * TW + (ia >> tsh); own = TO[ti]; if (own && gt - TFR[ti] < 1.1) own += 2; }
+          if (hasT && fg !== 0){ const ti = (ib >> tsh) * TW + (ia >> tsh); own = TO[ti]; if (own && gt - TFR[ti] < 1.1) own += 2; }
         }
       }
       let v = 0;
@@ -497,6 +498,8 @@ export function renderGround(t: number){
           if (v) m = MBm;
         }
       }
+      // brouillard : jamais vu, presque noir (trame) ; deja vu mais pas en vue, dans l'ombre
+      if (fg === 0 && BY[ry | ((x - tx) & 3)] < 12){ m = DARK; v = 0; lv = 0; } else if (fg !== 2) lv = 4;
       F[i] = v; MB[i] = m; LBF[i] = lv;
       // frontiere : un pixel de couleur franche de chaque cote du changement de camp
       const base = own > 2 ? own - 2 : own;
@@ -517,7 +520,7 @@ export const EMPTY_PX = 255;
 let GCELLS = new Uint8Array(0), GQUART = new Uint8Array(0), gridOf: Uint8Array | null = null;
 // territoire pour la carte graphique : camp de chaque case, + 2 si elle vient d'etre conquise
 let TERPX = new Uint8Array(0);
-if (GPU) GPU.groundMats({ typeMat: TYPE_MAT, sea: M.SEA, seaMid: M.SEA_MID, seaShallow: M.SEA_SHALLOW, foam: M.FOAM, beam: M.BEAM, road: M.ROAD, reflect: M.REFLECT, glows: GLOWS, waters: WATERS, keepTint: KEEP_TINT });
+if (GPU) GPU.groundMats({ typeMat: TYPE_MAT, sea: M.SEA, seaMid: M.SEA_MID, seaShallow: M.SEA_SHALLOW, foam: M.FOAM, beam: M.BEAM, road: M.ROAD, reflect: M.REFLECT, dark: M.CAT_BLACK, glows: GLOWS, waters: WATERS, keepTint: KEEP_TINT });
 // le sol peut-il etre calcule par la carte graphique pour cette image ? (pas pour le globe, ni si la grille depasse ses textures)
 export function groundOnGpu(): boolean { return !!GPU && GPU_HEAVY && !SH.CPU_GROUND &&
  gType.length > 0 && GW <= GPU.maxTex && GH <= GPU.maxTex && SH.CURV <= 0; }
@@ -557,7 +560,9 @@ export function groundView(t: number): GroundView {
     if (TERPX.length !== TER.N) TERPX = new Uint8Array(TER.N);
     const TO = TER.own, TFR = TER.fresh, P = TERPX, gt = GAME.t;
     let changed = false;
-    for (let i = 0, n = TER.N; i < n; i++){ let v = TO[i]; if (v && gt - TFR[i] < 1.1) v += 2; if (P[i] !== v){ P[i] = v; changed = true; } }
+    // camp (+ 2 juste conquis) ; brouillard : + 8 jamais vu, + 16 deja vu mais pas en vue
+    const FG = TER.fog, fogOn = TER.fogOn && FG.length === TO.length;
+    for (let i = 0, n = TER.N; i < n; i++){ let v = TO[i]; if (v && gt - TFR[i] < 1.1) v += 2; if (fogOn){ const f = FG[i]; if (f === 0) v = 8; else if (f === 1) v += 16; } if (P[i] !== v){ P[i] = v; changed = true; } }
     ter = { w: TER.W, h: TER.H, sh: GSC === 2 ? 3 : 2, own: P, changed };
   }
   return {
@@ -577,7 +582,7 @@ export function pixelLit(j: number): boolean {
 
 export function groundOwners(){
   const dax = (.5 * PC - .5 * PS) / SC, dbx = (-.5 * PS - .5 * PC) / SC, day = (PC + PS) / SC, dby = (PC - PS) / SC, o = unprj(.5, .5);
-  const OB = ob, GTY = gType, TO = TER.own, TW = TER.W, TFR = TER.fresh, gt = GAME.t, w = W, h = H, gw = GW, gh = GH, gsc = GSC, tsh = GSC === 2 ? 3 : 2;
+  const OB = ob, GTY = gType, TO = TER.own, TW = TER.W, TFR = TER.fresh, gt = GAME.t, w = W, h = H, gw = GW, gh = GH, gsc = GSC, tsh = GSC === 2 ? 3 : 2, FG = TER.fog, fogOn = TER.fogOn && FG.length === TO.length;
   if (OROW.length !== w) OROW = new Uint8Array(w);
   const UP = OROW; UP.fill(0);
   let i = 0;
@@ -586,7 +591,7 @@ export function groundOwners(){
     const dfa = dax * gsc, dfb = dbx * gsc;
     for (let x = 0; x < w; x++, i++){
       let own = 0;
-      if (fa >= 0 && fbb >= 0 && fa < gw && fbb < gh){ const ia = fa | 0, ib = fbb | 0; if (GTY[ib * gw + ia] !== 0){ const ti = (ib >> tsh) * TW + (ia >> tsh); own = TO[ti]; if (own && gt - TFR[ti] < 1.1) own += 2; } }
+      if (fa >= 0 && fbb >= 0 && fa < gw && fbb < gh){ const ia = fa | 0, ib = fbb | 0; if (GTY[ib * gw + ia] !== 0){ const ti = (ib >> tsh) * TW + (ia >> tsh); if (!fogOn || FG[ti] !== 0){ own = TO[ti]; if (own && gt - TFR[ti] < 1.1) own += 2; } } }
       const base = own > 2 ? own - 2 : own;
       let ov = own;
       if (x > 0 && base !== left){ if (base) ov = base + 2; if (left) OB[i - 1] = left + 2; }
@@ -723,17 +728,20 @@ export function render(t: number){
   SH.GPU_FX = gpuFx;
   const list: Drawable[] = [];
   const Mg = 110 * SC;
+  const fogOn = TER.fogOn && GAME.mode === 'play', me = GAME.side;
   for (const p of STATIC_PARTS){
     const q = prj(p.a, p.b, 0);
     if (q[0] < -Mg || q[0] > W + Mg || q[1] < -30 * SC || q[1] > H + Mg + 60 * SC) continue;
+    // un batiment de l'autre camp n'apparait qu'une fois decouvert
+    if (fogOn && p.side && p.side !== me && !fogSeenAt(p.lot ? p.lot.ca : p.a, p.lot ? p.lot.cb : p.b)) continue;
     list.push({ d: dep(p.a, p.b) + p.zb, f: p.draw, m: p.m, side: p.side, a: p.a, b: p.b, key: p });
   }
   treeDrawables(list, t, shadowsOn);
   const cm = 20 + 20 * SC;
-  for (const c of CARS){ const p = c.pos; if (!p) continue; const q = prj(p.a, p.b, 0); if (q[0] < -cm || q[0] > W + cm || q[1] < -cm || q[1] > H + cm) continue; list.push({ d: dep(p.a, p.b), a: p.a, b: p.b, f: () => drawCarAng(p.a, p.b, p.ang, c.side) }); }
-  for (const c of SH.CATS){ const p = catPos(c, t), q = prj(p.a, p.b, 0); c.screen = null; if (q[0] < -20 || q[0] > W + 20 || q[1] < -20 || q[1] > H + 20) continue; list.push({ d: dep(p.a, p.b) + .2, a: p.a, b: p.b, f: far ? () => { drawCat(c, t); c.screen = null; } : () => drawCat(c, t) }); }
+  for (const c of CARS){ const p = c.pos; if (!p) continue; if (fogOn && c.side !== me && !fogVisible(p.a, p.b)) continue; const q = prj(p.a, p.b, 0); if (q[0] < -cm || q[0] > W + cm || q[1] < -cm || q[1] > H + cm) continue; list.push({ d: dep(p.a, p.b), a: p.a, b: p.b, f: () => drawCarAng(p.a, p.b, p.ang, c.side) }); }
+  for (const c of SH.CATS){ const p = catPos(c, t), q = prj(p.a, p.b, 0); c.screen = null; if (fogOn && c.side !== me && c.side !== 'neutre' && !fogVisible(p.a, p.b)) continue; if (q[0] < -20 || q[0] > W + 20 || q[1] < -20 || q[1] > H + 20) continue; list.push({ d: dep(p.a, p.b) + .2, a: p.a, b: p.b, f: far ? () => { drawCat(c, t); c.screen = null; } : () => drawCat(c, t) }); }
   const sp = sailPos(t); list.push({ d: dep(sp[0], sp[1]), a: sp[0], b: sp[1], f: drawSailboat, big: true });
-  for (const o of dyn) list.push(o);
+  for (const o of dyn){ if (fogOn && o.side && o.side !== me && o.a != null && o.b != null && !fogVisible(o.a, o.b)) continue; list.push(o); }
   const sorted = sortByDepth(list);
   if (far) farRefresh(sorted, t);
   // chaque objet a son rang ; avec le sol sur la carte graphique, elle pose ce qu'elle peut (voir gpuDraw)

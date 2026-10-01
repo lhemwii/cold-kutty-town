@@ -257,12 +257,13 @@ Chaque étape laisse le jeu jouable. L’ordre proposé : d’abord ce qui exist
 - [x] La pression aux frontières : des chevrons de la couleur du camp qui gagne apparaissent là où il prend des cases à l’autre, cinq secondes.
 - [x] Rideau de Laine : il se trace en plusieurs clics à la suite (chaque clic repart du bout) ; il coûte un peu d’entretien en laine ; le Checkpoint sert de porte. Ce qu’il apporte de plus vient avec les fuites d’habitants (étape 11).
 
-## Étape 5. Brouillard et premières unités
+## Étape 5. Brouillard et premières unités (fait)
 
-- [ ] Brouillard : jamais vu, déjà vu (figé tel qu’on l’a vu), vu ; sur la scène, la vue de loin et la mini-carte.
-- [ ] Unités : sélection (clic, cadre), ordre de déplacement, chemin à terre qui contourne les montagnes et l’eau.
-- [ ] Explorateurs (révèlent le brouillard, trouvent les gisements) et bâtisseurs (posent un camp loin, même hors du territoire).
-- [ ] La caserne qui les produit.
+- [x] Brouillard : jamais vu (sol presque noir, en trame), déjà vu (assombri), vu ; sur la scène, la vue de loin, la mini-carte, et à l’identique par la carte graphique et par le processeur. Les bâtiments ennemis restent affichés une fois vus ; ses unités, ses chats et ses voitures seulement en vue. Le brouillard est sauvegardé.
+- [x] Unités : clic pour en choisir une (Maj pour ajouter), cadre au Ctrl glissé, G pour toutes, Échap ; clic droit pour les envoyer, en formation ; chemin A* à terre qui contourne la mer, la roche et les montagnes (la mer pour les navires, à l’étape 9) ; panneau des unités choisies (vie, Halte, Dissoudre).
+- [x] Explorateurs (rapides, voient loin : un gisement doit avoir été vu pour y poser une mine) et bâtisseurs (Poser un camp : ils y vont et le montent, même hors du territoire).
+- [x] Formation par le QG, les villes et la caserne (nouvelle catégorie Armée), une à la fois, avec une file ; entretien en croquettes (rations) dans le bilan.
+- [ ] À revoir ensemble : le « déjà vu » montre l’état actuel des bâtiments ennemis plutôt qu’une image figée ; les forêts et montagnes restent dessinées sous le brouillard (on connaît la géographie, pas l’ennemi).
 
 ## Étape 6. Transports et connexions
 

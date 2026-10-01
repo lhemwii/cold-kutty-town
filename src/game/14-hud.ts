@@ -303,6 +303,7 @@ export function renderSel(){
     btn('Barge de débarquement', costHTML(bc), () => { if (!SH.canAfford(GAME.side, bc)){ toast('Il faut ' + SH.costLabel(bc) + '.'); return; } state.bargeFrom = l; setTool('barge'); toast('Clique sur la côte où la barge doit accoster.'); }, lackText(bc) ? 'Il manque ' + lackText(bc) + '.' : '');
   }
   if (l.type === 'port' || l.type === 'pecherie'){ const n = SH.BOATS.filter(b => b.home === l.id).length; const d = document.createElement('p'); d.className = 'sel-note'; d.textContent = n ? n + ' bateau' + (n > 1 ? 'x' : '') + ' en mer ou à quai.' : (l.type === 'port' ? 'Au niveau 2, le port arme des chalutiers, au niveau 3 un cargo.' : 'Un chalutier par niveau.'); act.append(d); }
+  if (typeof SH.selExtra === 'function') SH.selExtra(l, btn, act);
   if (l.type !== 'qg') btn('Démolir', 'rend ' + costHTML({ l: Math.round(SH.costOf(l.type) / 2), c: 0, r: 0 }), () => { const refund = SH.demolishBuilding(l); pushHistory({ kind: 'demolish', b: l, refund }); toast(typeName(l.type, l.side) + ' démoli' + (TYPES[l.type].fem ? 'e' : '') + ', ' + refund + ' laine récupérée.'); SH.sfx('demolish', l.ca, l.cb); selectBuilding(null); SH.saveSoon(); renderHUD(); }).classList.add('danger');
 }
 export const BARGE_COST: Price = { l: 40, c: 60, r: 30 };
