@@ -3,7 +3,7 @@
 Le PRD dit **quoi** ([PRD.md](PRD.md)). Ce plan dit **dans quel ordre**. On coche au fur et à mesure.
 Règle : **l’IA adverse vient en dernier**. Tout le reste d’abord. Tant qu’elle n’est pas finie, elle reste une ébauche qui joue en face.
 
-Légende : `[x]` fait · `[~]` fait mais à reprendre · `[ ]` à faire
+Légende : `[x]` fait, `[~]` fait mais à reprendre, `[ ]` à faire.
 
 Les demandes qui arrivent en cours de route et ne rentrent dans aucune étape deviennent des **étapes intermédiaires** : 0.1, 0.2, etc., placées juste après l’étape en cours.
 
