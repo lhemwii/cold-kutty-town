@@ -176,7 +176,6 @@ export function hatAt(look: string, dx: number, dy: number, x: number, y: number
   return -1;
 }
 export function outfitAt(o: string, cx: number, y: number, x: number, t: number){
-  const cy = y - 86;
   switch (o){
     case 'veste': case 'costume': {
       const v = (y - 88) * .42;

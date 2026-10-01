@@ -3,7 +3,7 @@ import type { Sprite } from './01-core.ts';
 import type { Drawable } from './07-world.ts';
 import type { Cat } from './10-town.ts';
 import { LIGHT, QUAD, createPresenter, type Fx, type GroundView, type Presenter } from '../gpu/present.ts';
-import { BAYER, COLOR, db, makeSprite, GAME, GEO, GLOBE_ON, H, HOOKS, M, N, PC, PROJ_FIX, PS, RAYHIT, RP, SC, SHADOW_V, TAU, TX, TY, W, cam, clamp, dep, fb, fput, geoCast, geoProj, geoSet, getView, groundDelta, hash2, img, lb, litAt, mb, prj, px32, setProj, setView, state, unprj } from './01-core.ts';
+import { BAYER, COLOR, db, makeSprite, GAME, GEO, GLOBE_ON, H, HOOKS, M, N, PC, PS, RAYHIT, RP, SC, SHADOW_V, TAU, TX, TY, W, cam, clamp, dep, fb, fput, geoCast, geoProj, geoSet, getView, groundDelta, hash2, img, lb, litAt, mb, prj, px32, setProj, setView, state, unprj } from './01-core.ts';
 import { GA0, GB0, GDIRTY, GH, GQH, GQW, GSC, GW, TYPE_MAT, T_BEACH, T_DIRT, T_FOREST, T_GRASS, T_PIER, T_QUAY, T_ROAD, T_ROCK, T_SEA, T_WALK, cellOf, gPh, gSea, gTone, gType, gVar, mapScale } from './02-ground.ts';
 import { drawCarAng } from './03-buildings-base.ts';
 import { VEST, drawGlow, drawLampHeads, drawLantern, drawSailboat, sailPos, towerSpot, treeDrawables } from './07-world.ts';
@@ -309,7 +309,7 @@ export function setZNow(nz: number){
   const ax = SH.ZANCH ? SH.ZANCH[0] : window.innerWidth / 2, ay = SH.ZANCH ? SH.ZANCH[1] : window.innerHeight / 2;
   setView({ PC: Math.cos(cam.phi), PS: Math.sin(cam.phi) });
   const g = screenToWorld(ax, ay), s1 = RAYHIT.sky;
-  const oz = SH.Z; SH.Z = nz;
+  SH.Z = nz;
   // le point sous la souris reste sous la souris (sauf si on vise l'espace)
   const g2 = screenToWorld(ax, ay), s2 = RAYHIT.sky;
   if (!s1 && !s2){ cam.a += g[0] - g2[0]; cam.b += g[1] - g2[1]; }

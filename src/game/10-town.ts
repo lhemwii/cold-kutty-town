@@ -1,7 +1,7 @@
 import { SH } from './00-shared.ts';
 import type { Building, BuiltParts, Light, Part, Side } from './00-shared.ts';
 import type { Vec2 } from './02-ground.ts';
-import { COLOR, HOOKS, M, MOON, PC, PS, SC, SUN, TAU, TX, TY, bay, blitAt, fb, fput, hash2, prj, setView } from './01-core.ts';
+import { COLOR, HOOKS, M, MOON, PC, PS, SC, SUN, TAU, TX, TY, bay, blitAt, fput, hash2, prj, setView } from './01-core.ts';
 import { GA0, GB0, GH, GSC, GW, T_BEACH, T_ROCK, T_SEA, baseAt, landDAt, seaDAt } from './02-ground.ts';
 import { LAMP_SPR, Lc, part } from './03-buildings-base.ts';
 import { TYPES, seedOf } from './04-types.ts';

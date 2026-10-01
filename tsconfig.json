@@ -1,5 +1,5 @@
 {
-  // TypeScript vérifie les modules déjà convertis (.ts) ; les autres restent en JavaScript le temps de la conversion.
+  // Tout le jeu est en TypeScript strict, sans variable ni import inutilisé.
   // Vite ne fait que retirer les types au build : c'est « npm run typecheck » (lancé par « npm run build ») qui vérifie.
   "compilerOptions": {
     "target": "ES2022",
@@ -7,6 +7,7 @@
     "moduleResolution": "bundler",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "strict": true,
+    "noUnusedLocals": true,
     "noEmit": true,
     "allowJs": true,
     "checkJs": false,

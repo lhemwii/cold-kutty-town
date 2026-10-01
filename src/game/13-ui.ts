@@ -4,7 +4,7 @@ import { T_SEA, baseAt, landDAt, nearestShore, type Vec2 } from './02-ground.ts'
 import { pennant } from './03-buildings-base.ts';
 import { TYPES } from './04-types.ts';
 import { typeName } from './05-types-extra.ts';
-import { GRAFFITI, cutTreesAlong, drawWallPiece, vestAt, type Vestige } from './07-world.ts';
+import { GRAFFITI, cutTreesAlong, drawWallPiece, vestAt } from './07-world.ts';
 import { TER, influenceOf, rebuildLocks, sideAt } from './08-territory.ts';
 import { RW, addRoad, nearRoad, removeRoad, roadCost, roadProblem, sampleCurve, sampleLine, segDist, snapRoadPoint } from './09-roads.ts';
 import { NDIR, bldAt, buildParts, coastDir, makeBuilding, placeProblem, rebuildTown, type Cat } from './10-town.ts';
@@ -243,10 +243,11 @@ export function removeWallLine(line: number){
 
 /* ---- demolir, annuler ---- */
 /** une action du joueur qu'on peut annuler, avec ce qu'elle a coute (t : temps de jeu) */
-export type HistoryEntry = ({ kind: 'build'; id: number; l: number; r: number; c: number } | { kind: 'road'; id: number; l: number } | { kind: 'wall'; line: number; l: number }) & { t?: number };
+export type HistoryEntry = ({ kind: 'build'; id: number; l: number; r: number; c: number } | { kind: 'road'; id: number; l: number } | { kind: 'wall'; line: number; l: number }
+  | { kind: 'upgrade'; id: number; l: number; r: number } | { kind: 'demolish'; b: Building; refund: number }) & { t?: number };
 export const HISTORY: HistoryEntry[] = [];
 export function pushHistory(h: HistoryEntry){ h.t = GAME.t; HISTORY.push(h); if (HISTORY.length > 30) HISTORY.shift(); updateUndo(); }
-export function updateUndo(){ const b = $of('btnUndo', HTMLButtonElement); b.disabled = !HISTORY.length; b.title = HISTORY.length ? 'Annuler la dernière construction (Ctrl+Z)' : 'Rien à annuler'; }
+export function updateUndo(){ const b = $of('btnUndo', HTMLButtonElement); b.disabled = !HISTORY.length; b.title = HISTORY.length ? 'Annuler la dernière action (Ctrl+Z)' : 'Rien à annuler'; }
 export function undo(){
   const h = HISTORY.pop(); updateUndo();
   if (!h){ toast('Rien à annuler.'); return; }
@@ -258,15 +259,28 @@ export function undo(){
   } else if (h.kind === 'road'){
     const r = SH.ROADS.find(o => o.id === h.id); if (r){ removeRoad(r); R.laine += h.l; } toast('Route effacée.');
   } else if (h.kind === 'wall'){ removeWallLine(h.line); R.laine += h.l; toast('Rideau détricoté.'); }
+  else if (h.kind === 'upgrade'){
+    // amelioration en cours : on rend tout ; deja finie : on redescend d'un niveau et on rend la moitie
+    const l = SH.BLD.find(o => o.id === h.id);
+    if (l && l.upT){ l.upT = 0; R.laine += h.l; R.ron += h.r; }
+    else if (l && (l.lvl || 1) > 1){ l.lvl--; R.laine += Math.round(h.l / 2); R.ron += Math.round(h.r / 2); rebuildLocks(); TER.srcVer = -1; rebuildTown(); SH.mapDirtyRect(l.a0 - 4, l.a1 + 4, l.b0 - 4, l.b1 + 4); }
+    toast('Amélioration annulée.');
+  } else if (h.kind === 'demolish'){
+    // le batiment revient tel qu'il etait, la laine rendue repart
+    const l = h.b; l.demoT = -1e9; l.active = true;
+    if (!SH.BLD.includes(l)){ SH.BLD.push(l); R.laine = Math.max(0, R.laine - h.refund); rebuildLocks(); TER.srcVer = -1; rebuildTown(); SH.refreshAccess(); SH.mapDirtyRect(l.a0, l.a1, l.b0, l.b1); }
+    toast('Démolition annulée.');
+  }
   if (state.sel && !SH.BLD.includes(state.sel)) SH.selectBuilding(null);
   SH.saveSoon(); SH.renderHUD();
 }
+$('btnUndo').addEventListener('click', () => { undo(); SH.sfx('click'); });
 export function demolishAt(a: number, b: number){
   const l = bldAt(a, b);
   if (l){
     if (l.side !== GAME.side){ toast('Ce bâtiment appartient à l’autre camp.'); return; }
     if (l.type === 'qg'){ toast('On ne démolit pas son QG.'); return; }
-    const refund = SH.demolishBuilding(l);
+    const refund = SH.demolishBuilding(l); pushHistory({ kind: 'demolish', b: l, refund });
     toast(typeName(l.type, l.side) + (TYPES[l.type].fem ? ' démolie' : ' démoli') + ', ' + refund + ' laine récupérée.');
     SH.sfx('demolish', l.ca, l.cb); if (state.sel === l) SH.selectBuilding(null); SH.saveSoon(); SH.renderHUD(); return;
   }

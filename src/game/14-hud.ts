@@ -1,5 +1,5 @@
 import { SH, type Building, type Side } from './00-shared.ts';
-import { CAMP_FULL, GAME, H, M, PC, PS, SC, TX, TY, W, clamp, dep, fb, getView, img, lb, mb, setView, state } from './01-core.ts';
+import { CAMP_FULL, GAME, H, M, TX, TY, W, dep, fb, getView, lb, mb, setView, state } from './01-core.ts';
 import { nearestShore } from './02-ground.ts';
 import { TYPES } from './04-types.ts';
 import { typeName } from './05-types-extra.ts';
@@ -7,7 +7,7 @@ import { VEST_DEF, drawVestige, type VestDef, type VestKind, type Vestige } from
 import { TER, influenceOf, sideAt, terPct } from './08-territory.ts';
 import { footOf } from './10-town.ts';
 import { FAR, PALL } from './11-render.ts';
-import { $, $of, CAT_ICON, ICONS, andList, costHTML, ico, pips, pixelSVG, progress, setTool, toast, type Pal } from './13-ui.ts';
+import { $, $of, CAT_ICON, ICONS, andList, costHTML, ico, pips, pixelSVG, progress, pushHistory, setTool, toast, type Pal } from './13-ui.ts';
 import type { EcoDef, Flow, Price, Resources } from './15-economy.ts';
 /* ================= interface : barre du haut, menu de construction, batiment selectionne ================= */
 // icones et drapeaux en pixels : un dessin en caracteres, une couleur par lettre, rendu en SVG net
@@ -289,13 +289,13 @@ export function renderSel(){
   // why : ce qui empeche l'action, dit au survol du bouton grise
   const btn = (label: string, sub: string, fn: () => void, why?: string) => { const b = document.createElement('button'); b.className = 'btn'; b.type = 'button'; b.innerHTML = '<span>' + label + '</span>' + (sub ? '<i>' + sub + '</i>' : ''); b.disabled = !!why; if (why) b.title = why; b.addEventListener('click', fn); act.append(b); return b; };
   const uc: { l: number; r: number } | null = SH.upCost(l);
-  if (uc && l.done) btn('Améliorer', costHTML({ l: uc.l, c: 0, r: uc.r }), () => { const why = SH.upgradeBuilding(l); if (why) toast(why); else { toast('Amélioration lancée.'); SH.sfx('click'); } renderHUD(); $('sel').dataset.key = ''; renderSel(); }, l.upT ? 'Amélioration déjà en cours.' : lackText({ l: uc.l, c: 0, r: uc.r }) ? 'Il manque ' + lackText({ l: uc.l, c: 0, r: uc.r }) + '.' : '');
+  if (uc && l.done) btn('Améliorer', costHTML({ l: uc.l, c: 0, r: uc.r }), () => { const why = SH.upgradeBuilding(l); if (why) toast(why); else { pushHistory({ kind: 'upgrade', id: l.id, l: uc.l, r: uc.r }); toast('Amélioration lancée.'); SH.sfx('click'); } renderHUD(); $('sel').dataset.key = ''; renderSel(); }, l.upT ? 'Amélioration déjà en cours.' : lackText({ l: uc.l, c: 0, r: uc.r }) ? 'Il manque ' + lackText({ l: uc.l, c: 0, r: uc.r }) + '.' : '');
   if (l.type === 'port' && l.done){
     const bc = BARGE_COST;
     btn('Barge de débarquement', costHTML(bc), () => { if (!SH.canAfford(GAME.side, bc)){ toast('Il faut ' + SH.costLabel(bc) + '.'); return; } state.bargeFrom = l; setTool('barge'); toast('Clique sur la côte où la barge doit accoster.'); }, lackText(bc) ? 'Il manque ' + lackText(bc) + '.' : '');
   }
   if (l.type === 'port' || l.type === 'pecherie'){ const n = SH.BOATS.filter(b => b.home === l.id).length; const d = document.createElement('p'); d.className = 'sel-note'; d.textContent = n ? n + ' bateau' + (n > 1 ? 'x' : '') + ' en mer ou à quai.' : (l.type === 'port' ? 'Au niveau 2, le port arme des chalutiers, au niveau 3 un cargo.' : 'Un chalutier par niveau.'); act.append(d); }
-  if (l.type !== 'qg') btn('Démolir', 'rend ' + costHTML({ l: Math.round(SH.costOf(l.type) / 2), c: 0, r: 0 }), () => { const refund = SH.demolishBuilding(l); toast(typeName(l.type, l.side) + ' démoli' + (TYPES[l.type].fem ? 'e' : '') + ', ' + refund + ' laine récupérée.'); SH.sfx('demolish', l.ca, l.cb); selectBuilding(null); SH.saveSoon(); renderHUD(); }).classList.add('danger');
+  if (l.type !== 'qg') btn('Démolir', 'rend ' + costHTML({ l: Math.round(SH.costOf(l.type) / 2), c: 0, r: 0 }), () => { const refund = SH.demolishBuilding(l); pushHistory({ kind: 'demolish', b: l, refund }); toast(typeName(l.type, l.side) + ' démoli' + (TYPES[l.type].fem ? 'e' : '') + ', ' + refund + ' laine récupérée.'); SH.sfx('demolish', l.ca, l.cb); selectBuilding(null); SH.saveSoon(); renderHUD(); }).classList.add('danger');
 }
 export const BARGE_COST: Price = { l: 40, c: 60, r: 30 };
 export function bargeTarget(a: number, b: number){

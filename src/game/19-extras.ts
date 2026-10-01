@@ -1,6 +1,6 @@
 import { store as KV } from '../platform/store.ts';
 import { SH, type Building } from './00-shared.ts';
-import { CAMP_SHORT, COLOR, GAME, H, HOOKS, N, TAU, W, cam, clamp, state } from './01-core.ts';
+import { CAMP_SHORT, COLOR, GAME, H, HOOKS, TAU, W, cam, clamp, state } from './01-core.ts';
 import { GA0, GB0, T_SEA, typeAt } from './02-ground.ts';
 import { sideAt } from './08-territory.ts';
 import { CLOCK, MAPV, MS, OV_ON, WEATHER, clampCam, devH, devW, mapUpdate, render, scene, screenToWorld } from './11-render.ts';

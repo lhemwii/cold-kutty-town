@@ -1,4 +1,4 @@
-import { SH, type Building, type BuiltParts, type Light, type Part } from './00-shared.ts';
+import { SH, type Building, type BuiltParts, type Part } from './00-shared.ts';
 import { COLOR, CONST_SH, M, TAU, UP, blitAt, boxS, bz, clamp, dep, drawFace, drawFlagPole, drawStar, drawText, fillConvex, fput, gableRoof, gableRoof2, gableWalls, hash2, line3, lineS, plateW, prj, textW, wallBitmap, wallFace, win, winColor } from './01-core.ts';
 import { Lc, QUEUE_CAT, alongSh, antennaAt, artSprite, drawCar, drawChimney, drawHouse, facadePlate, frontVisible, houseGeo, houseLights, part, picket, sideLight, smokeAt, treeSpr, wallBase, type HouseGeo } from './03-buildings-base.ts';
 /* ================= statues ================= */
@@ -253,7 +253,6 @@ export const TYPES: Record<string, BuildingType> = {
     const la = 28, lb = 18, hh = 10, ccp = lot.side === 'ccp';
     const a0 = Math.round(lot.ca - la / 2), a1 = a0 + la, b0 = Math.round(lot.cb - lb / 2), b1 = b0 + lb;
     const body = () => boxS(a0, a1, b0, b1, 0, hh, (u: number, h: number, x: number, y: number, k: number) => {
-      const len = (k & 1) ? lb : la;
       if (k === 0 && u >= 3 && u < 9 && h < 7) return (u < 3.6 || u >= 8.4 || h >= 6.4) ? 1 : ((Math.floor(h) & 1) ? 1 : 0);
       if (h >= 4 && h < 8){ const ph = u % 4; if (ph >= 1 && ph < 3.4) return (hash2(Math.floor(u / 4) + k * 9, seed) < .6) ? ((Math.floor(ph * 2) === 4) ? 0 : 3) : 0; }
       return wallBase(k, x, y);

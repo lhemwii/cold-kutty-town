@@ -1,6 +1,6 @@
 import { store as KV } from '../platform/store.ts';
 import { SH, type Side } from './00-shared.ts';
-import { COLOR, GAME, H, HOOKS, M, N, TAU, W, cam, clamp, fput, hash2, other, state } from './01-core.ts';
+import { COLOR, GAME, H, HOOKS, M, TAU, W, cam, clamp, fput, hash2, other, state } from './01-core.ts';
 import { TYPES } from './04-types.ts';
 import { terPct } from './08-territory.ts';
 import { catPos, type Cat } from './10-town.ts';

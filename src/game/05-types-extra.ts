@@ -1,4 +1,4 @@
-import { SH, type Building, type Light, type Part } from './00-shared.ts';
+import { SH, type Building } from './00-shared.ts';
 import { COLOR, FONT, M, TAU, blit, boxS, bz, cam, clamp, drawFace, flagSmall, fput, hash2, line3, plateW, prj, win, winColor } from './01-core.ts';
 import { Lc, artSprite, drawCar, facadePlate, part, wallBase } from './03-buildings-base.ts';
 import { TYPES } from './04-types.ts';

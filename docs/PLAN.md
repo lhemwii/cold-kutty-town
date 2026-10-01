@@ -208,15 +208,15 @@ Le jeu passe à une base prête pour la haute définition et pour Steam, sans ri
 
 Chaque étape laisse le jeu jouable. L’ordre proposé : d’abord ce qui existe et les bâtiments, puis l’économie et le territoire, puis la carte (brouillard, unités, transports, monde), puis les grands systèmes (recherche, armée, espace, renseignement, commerce), la victoire, l’écran, et l’IA adverse en dernier.
 
-## Étape 1. Fiabiliser ce qui existe
+## Étape 1. Fiabiliser ce qui existe (fait)
 
-- [ ] Jouer une vraie partie à la souris et noter chaque bug d’interface.
-- [ ] Vérifier la sauvegarde et le rechargement sur une partie avancée.
-- [ ] Annuler : couvrir aussi les améliorations et la démolition.
+- [x] Une partie jouée à la souris par un test automatique (route, maison, amélioration, démolition, annuler, sauvegarde). Bug trouvé et corrigé : le bouton Annuler ne répondait qu’à Ctrl+Z.
+- [x] Sauvegarde et rechargement d’une partie avancée (trente bâtiments de tous niveaux et directions) : tout revient à l’identique.
+- [x] Annuler couvre aussi les améliorations (en cours : tout est rendu ; finie : le niveau redescend) et la démolition (le bâtiment revient, la laine rendue repart).
 - [x] Menu : nouvelle partie depuis l’accueil, la partie en cours est sauvegardée avant (étape 0.12).
-- [ ] Mini-carte : ne pas l’afficher avant le choix du camp.
-- [ ] Les chats nommés : vérifier qu’ils apparaissent tous et ne se marchent pas dessus.
-- [ ] Nettoyer les restes de l’ancien code (réglages de lumière, motifs, inspecteur de pixels).
+- [x] Mini-carte : cachée à l’accueil et pendant le choix de la plage.
+- [x] Les chats nommés apparaissent avec leur bâtiment, chacun à sa place devant chez lui.
+- [x] Nettoyage : les restes de l’ancien code étaient partis avec le passage à TypeScript ; imports et variables inutilisés retirés, et le vérificateur de types les refuse désormais (`noUnusedLocals`).
 
 ## Étape 2. Les mêmes bâtiments pour les deux camps (en cours)
 
