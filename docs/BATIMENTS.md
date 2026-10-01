@@ -112,6 +112,11 @@ Proposition à valider, faite à partir de la vision du [PRD](PRD.md).
 | **Université** [existe] P1<br>Coût : 60 laine, 20 ronrons. Entretien : 1 laine, électricité.<br>6 points de recherche par minute. | Campus de briques à clocher. | Université du Peuple à grande tour, flèche et étoile. |
 | **Laboratoire** [existe] P2<br>Coût : 50 laine, 25 ronrons. Recherche : Éducation.<br>10 points de recherche par minute. | Laboratoire à coupole d’observatoire. | Institut du Plan à antenne. |
 | **Centrale nucléaire** [existe] P3<br>Coût : 160 laine, 40 ronrons. Recherche : Centrale nucléaire.<br>Brûle un peu d’uranium : 80 d’électricité. | Tour de refroidissement et son panache. | La même, frappée de l’étoile rouge. |
+| **Usine de chars** [existe] P2<br>Coût : 90 laine, 30 ronrons. Recherche : Blindés.<br>Jeeps et chars. | Hangar kaki à cheminée. | Usine de béton à cheminée rouge. |
+| **Chantier naval** [existe] P2<br>Coût : 90 laine, 30 ronrons. Recherche : Marine. Sur la côte.<br>Destroyers et navires de transport (port militaire). | Grue portique jaune. | Grue portique rouge. |
+| **Aérodrome** [existe] P2<br>Coût : 120 laine, 40 ronrons. Recherche : Aviation.<br>Chasseurs, puis bombardiers. | Piste, hangar en arc, tour de contrôle. | Les mêmes, en béton. |
+| **Bunker, canon côtier, DCA, radar** [existe] P2<br>Défenses : unités à terre (portée 50), navires (95), avions (85) ; le radar voit loin. | Béton et kaki. | Casemate et batterie du Peuple. |
+| **Centre atomique et silo** [existe] P3<br>Recherche : Bombe atomique. Une bombe pour 20 uranium ; le silo la lance. | Bâtiment secret, trèfle jaune. | Combinat atomique secret. |
 | **Ponton de pêche** [existe] P2<br>Coût : 20 laine.<br>Au bord d’une rivière ou d’un étang : 6 croquettes. | Ponton de bois et cabane. | Ponton du kolkhoze. |
 | **Dépôt de bus** [nouveau] P3<br>Coût : 40 laine.<br>Habitants plus mobiles. | Dépôt de bus jaunes. | Dépôt de trolleybus. |
 

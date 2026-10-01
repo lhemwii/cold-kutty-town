@@ -12,6 +12,8 @@ export type Side = 'usc' | 'ccp';
 
 /** Un batiment pose sur la carte (emprise au sol a0..a1, b0..b1 en unites du monde). */
 export interface Building {
+  /** solidite (etape 9) : absente, le batiment est intact */
+  hp?: number;
   id: number;
   type: string;
   side: Side;

@@ -294,13 +294,16 @@ Chaque étape laisse le jeu jouable. L’ordre proposé : d’abord ce qui exist
 - [x] Sauvegardé ; une partie d’avant cette étape reçoit les recherches de ce qu’elle avait déjà (gares, métro, goudron, tunnels, barrage, urbanisme).
 - [ ] À revoir ensemble : le prix de chaque recherche et la vitesse des points, la place de l’écran, des recherches propres à chaque camp.
 
-## Étape 9. L’armée
+## Étape 9. L’armée (fait)
 
-- [ ] Usine de chars, chantier naval, aérodrome ; soldats, véhicules, navires, avions (dont des bombardiers qui détruisent des bâtiments).
-- [ ] Entrer en territoire ennemi : y voler des ressources, y prendre du terrain.
-- [ ] Combat : points de vie, portée, prise d’un bâtiment ; défenses (canon côtier, DCA, bunker, radar).
-- [ ] Le navire de transport remplace la barge : les unités y montent, traversent la mer ou remontent une rivière, et débarquent ailleurs. Port militaire.
-- [ ] La bombe atomique : uranium, centre atomique, silo, au bout de la branche de l’atome.
+- [x] Usine de chars (jeeps, chars), chantier naval sur la côte (destroyers, navires de transport), aérodrome (chasseurs, bombardiers), chacun derrière sa recherche (Blindés, Marine, Aviation, Bombardiers). Les véhicules consomment du pétrole, toutes les unités des croquettes.
+- [x] Combat : points de vie, portée, cadence ; une unité au repos tire sur l’ennemi qui passe ; clic droit sur un ennemi ou un bâtiment ennemi découvert pour l’attaquer. Le bombardier ne vise que les bâtiments, puis rentre à l’aérodrome ; seuls DCA, chasseurs et navires touchent les avions. Tirs et explosions visibles, barres de vie.
+- [x] Les bâtiments ont une solidité ; à zéro, les soldats les prennent (ils changent de camp), les véhicules et les bombardiers les détruisent. Un bâtiment abîmé fume et se répare hors des combats.
+- [x] En territoire ennemi : piller les bâtiments proches (croquettes et laine, la jeep plus vite), et prendre le terrain qu’aucune unité ne défend.
+- [x] Défenses : bunker (unités à terre), canon côtier (navires), DCA (avions), radar (voit loin à travers le brouillard).
+- [x] Navire de transport : clic droit d’unités sur lui pour les embarquer (six au plus, en caisses sur le pont), puis clic droit sur une côte : il y va et les débarque. Le chantier naval sert de port militaire ; le port peut aussi en armer un.
+- [x] La bombe atomique : le centre atomique en fabrique une avec 20 d’uranium, le silo la lance (clic sur la cible, impact dix secondes plus tard) ; elle rase tout dans un grand rayon, des deux camps (les hôtels de ville résistent à peine).
+- [ ] À revoir ensemble : la barge de débarquement reste en début de partie (avant la Marine) ; l’équilibre des unités ; des avions qui patrouillent ; des formations ; un vrai écran de bataille.
 
 ## Étape 10. L’espace et le renseignement
 

@@ -45,7 +45,7 @@ export interface Unit {
   id: number; kind: string; side: Side; a: number; b: number; ang: number;
   path: Vec2[]; pi: number; hp: number; cool: number;
   /** ordre en cours : aller, poser un camp, attaquer une unite ou un batiment */
-  order: null | { kind: 'move' } | { kind: 'camp'; a: number; b: number } | { kind: 'attack'; uid?: number; bid?: number };
+  order: null | { kind: 'move' } | { kind: 'camp'; a: number; b: number } | { kind: 'attack'; uid?: number; bid?: number; auto?: boolean } | { kind: 'board'; ship: number } | { kind: 'unload' } | { kind: 'home' };
   /** a bord d'un navire de transport (id), ou les unites qu'il porte */
   aboard?: number; cargo?: number[];
   /** fin de vie (degats) */
@@ -60,6 +60,7 @@ export function spawnUnit(kind: string, side: Side, a: number, b: number): Unit 
   UNITS.push(u); return u;
 }
 export const unitById = (id: number): Unit | undefined => UNITS.find(u => u.id === id);
+SH.spawnUnit = spawnUnit; SH.sendUnit = (u: Unit, a: number, b: number) => sendUnit(u, a, b); SH.passable = (d: Domain, a: number, b: number) => passable(d, a, b);
 
 /* ---- la grille de passage : une case de 8 unites, terre praticable (ni mer, ni roche, ni pente de montagne) ou mer ---- */
 export const GS8 = 8;
@@ -204,6 +205,7 @@ function arrived(u: Unit){
     SH.startBuilding(l); claimDisc(o.a, o.b, 14, u.side);
     if (u.side === GAME.side){ toast('Les bâtisseurs montent le camp.'); SH.sfx('build', o.a, o.b); }
   } else if (o && o.kind === 'move') u.order = null;
+  else if (typeof SH.unitArrived === 'function') SH.unitArrived(u);
 }
 
 /* ---- brouillard : ce que voit le joueur, deux fois par seconde ---- */
