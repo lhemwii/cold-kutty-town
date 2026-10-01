@@ -124,6 +124,8 @@ export function addMsg(text: string, who: string, extra?: string){
 }
 export function fallbackReply(c: Cat, msg: string){
   const m = msg.toLowerCase();
+  // l'actualite de la partie (35-vie) : famine, frontiere, guerre, traites, fusees, victoire en vue
+  if (c.side !== 'neutre' && !/au revoir|bye/.test(m) && typeof SH.fallbackHook === 'function'){ const sit = SH.fallbackHook(c.side, msg); if (sit) return sit; }
   if (/au revoir|bye|bonne nuit|à plus/.test(m)) return c.side === 'ccp' ? 'Au revoir, camarade. Reviens quand tu veux, la file d’attente t’attendra.' : 'À bientôt ! Et fais attention aux barges, elles ne freinent pas.';
   if (/ça va|ca va|comment/.test(m)) return c.side === 'ccp' ? 'Ça va très bien, comme le dit la Pravdachat. Et toi, camarade ?' : 'Ça va comme un chat au soleil, même la nuit. Et toi ?';
   if (/bonjour|salut|coucou|hello/.test(m)) return c.side === 'ccp' ? 'Bonjour, camarade ! Le peuple te salue, et moi aussi.' : 'Salut ! Belle journée pour agrandir le quartier, non ?';

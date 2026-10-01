@@ -345,12 +345,12 @@ Chaque étape laisse le jeu jouable. L’ordre proposé : d’abord ce qui exist
 - [x] Logo en SVG : une tête de chat mi-bleue mi-rouge, sur l’écran d’accueil.
 - [ ] À revoir ensemble : la place du tutoriel au téléphone (il cache une partie de l’île), la règle du jeu dans l’accueil, une vraie maquette du HUD pour la suite.
 
-## Étape 14. Vie et contenu
+## Étape 14. Vie et contenu (fait)
 
-- [ ] Plus de répliques pour les chats, liées à la situation (pénurie, frontière qui recule, guerre, victoire).
-- [ ] Radio et journal qui parlent des vraies actions de la partie (ville fondée, recherche, espion pris, bataille).
-- [ ] Événements plus nombreux, liés à la frontière, à la mer, au commerce.
-- [ ] Un modèle de langue en option pour les chats et le journal (plus tard).
+- [x] Les chats parlent de l’actualité de la partie (une réplique sur deux, et toujours si on leur demande des nouvelles) : famine, frontière qui recule, combats, trêve, paix, accord commercial, jalons spatiaux, dernière recherche, transfuges, victoire en vue d’un côté ou de l’autre ; ils ne se répètent pas.
+- [x] La radio annonce les vrais événements : villes fondées, recherches, prises de bâtiments, accrochages, espions, traités, transfuges, bombe ; le journal du matin en fait ses unes (nouvelles unes : bombe, traité, prise, bataille, recherche, espionnage, transfuges).
+- [x] Dix nouveaux événements à choix, liés à la frontière (valises au checkpoint, brouillard sur le Rideau, ballon-sonde, troc au pont), à la mer (banc de sardines, cargo en détresse, tempête) et au commerce (foire, plan d’exportation, marché noir).
+- [ ] Un modèle de langue en option pour les chats et le journal (plus tard : les répliques passent déjà par un seul endroit, `fallbackReply` de 21-main).
 
 ## Étape 15. Technique
 

@@ -203,6 +203,7 @@ HOOKS.step.push((dt: number) => {
   if (treatyOn('frontieres')) f *= 2;
   const n = Math.round(f * 2); if (n < 1) return;
   DIP.popAdj[from] -= n; DIP.popAdj[to] += n; DIP.fled[from] += n;
+  if (SH.logDay) SH.logDay(to, 'flee', String(n));
   if (from === GAME.side) toast(n + ' habitant' + (n > 1 ? 's passent' : ' passe') + ' chez l’autre camp, où l’on vit mieux.');
   else toast(n + ' habitant' + (n > 1 ? 's de l’autre camp nous rejoignent.' : ' de l’autre camp nous rejoint.'));
   if (Math.random() < .4) say(from === 'ccp' ? 'Encore des chats de la CCR passés à l’Ouest. Le Bureau du Peuple parle de touristes égarés.' : 'Des chats de l’USC rejoignent le Peuple. Ils disent préférer la soupe au kolkhoze.', to);

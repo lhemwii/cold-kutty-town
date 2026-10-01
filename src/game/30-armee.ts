@@ -146,7 +146,7 @@ function hitUnit(t: Unit, atk: number, by: Side){
   const td = UNIT_DEF[t.kind]; if (!td) return;
   if (SH.onHostile) SH.onHostile(by, t.side, 1);
   t.hp -= atk; t.flash = .2;
-  if (t.hp <= 0){ t.dead = true; boom(t.a, t.b, td.domain === 'mer' ? 10 : 6); if (t.cargo) for (const id of t.cargo){ const c = unitById(id); if (c) c.dead = true; } if (t.side === GAME.side) warn(unitName(t.kind, t.side) + ' perdu' + (td.n && td.n > 1 ? 's' : '') + '.', t.a, t.b); else if (by === GAME.side) SH.sfx('demolish', t.a, t.b); }
+  if (t.hp <= 0){ t.dead = true; boom(t.a, t.b, td.domain === 'mer' ? 10 : 6); if (SH.logDay && GAME.t - lastBattleLog > 60){ lastBattleLog = GAME.t; SH.logDay('both', 'battle', 'un accrochage'); } if (t.cargo) for (const id of t.cargo){ const c = unitById(id); if (c) c.dead = true; } if (t.side === GAME.side) warn(unitName(t.kind, t.side) + ' perdu' + (td.n && td.n > 1 ? 's' : '') + '.', t.a, t.b); else if (by === GAME.side) SH.sfx('demolish', t.a, t.b); }
   else if (t.side === GAME.side) warn('Nos unités sont attaquées.', t.a, t.b);
 }
 // a zero : les soldats prennent le batiment, le reste le detruit ; un hotel de ville tombe, pas plus
@@ -173,7 +173,7 @@ export function destroyBuilding(l: Building){
 }
 SH.destroyBuilding = destroyBuilding;
 SH.rebuildTownAll = () => { rebuildTown(); refreshAccess(); };
-let warnT = -99;
+let warnT = -99, lastBattleLog = -99;
 function warn(msg: string, a: number, b: number){ if (GAME.t - warnT < 8) return; warnT = GAME.t; toast(msg); SH.sfx('click', a, b); SH.lastAlert = [a, b]; }
 
 /* ---- les ordres : clic droit sur un batiment ennemi, embarquer, debarquer ---- */

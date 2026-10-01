@@ -105,7 +105,7 @@ export function deliverPaper(first: boolean){
 export function reporter(side: Side, n: number){ const L = SH.CATS.filter(c => c.side === side); return L.length ? L[n % L.length] : { name: 'la rédaction', job: '' }; }
 export function topOf(log: DayEntry[], side: Side): DayEntry | null {
   const mine = log.filter(e => e.side === side || e.side === 'both');
-  for (const k of ['space', 'wall', 'barge', 'fete', 'event', 'upgrade', 'build', 'short', 'weather']){ for (let i = mine.length - 1; i >= 0; i--) if (mine[i].kind === k) return mine[i]; }
+  for (const k of ['nuke', 'treaty', 'capture', 'space', 'battle', 'tech', 'spy', 'flee', 'wall', 'barge', 'fete', 'event', 'upgrade', 'build', 'short', 'weather']){ for (let i = mine.length - 1; i >= 0; i--) if (mine[i].kind === k) return mine[i]; }
   return null;
 }
 export const WX_WORD: Record<string, string> = { clair: 'grand soleil', pluie: 'averses', neige: 'neige', brouillard: 'brouillard' };
@@ -129,6 +129,20 @@ export function paperTemplate(iss: Issue, side: Side): Edition {
       chapeau = us ? 'On agrandit, on repeint, on inaugure. C’est ça, l’USC.' : 'Le Plan s’élève, comme le moral des travailleurs.'; break;
     case 'build': titre = us ? (fem ? 'Nouvelle ' : 'Nouveau ') + e.txt.toLowerCase() + ' : le quartier fait la fête' : (fem ? 'Une nouvelle ' : 'Un nouveau ') + e.txt.toLowerCase() + ' pour le peuple';
       chapeau = us ? 'Inauguration en grande pompe, cocktail à la sardine offert.' : 'Construit en avance sur le Plan, par des travailleurs médaillés.'; break;
+    case 'nuke': titre = us ? 'L’éclair atomique au-dessus de Kutty' : 'La foudre du Peuple a frappé';
+      chapeau = us ? 'Le monde retient son souffle. Nos abris antiatomiques affichent complet.' : 'Le Bureau du Peuple parle d’un essai scientifique. Les lunettes noires sont distribuées.'; break;
+    case 'treaty': titre = (us ? 'Poignée de pattes au checkpoint : ' : 'Le Peuple tend la patte : ') + e.txt.toLowerCase();
+      chapeau = us ? 'Les diplomates ont signé entre deux milkshakes. On respire.' : 'Le Plan prévoyait cette signature depuis le début.'; break;
+    case 'capture': titre = us ? 'Nos soldats prennent un bâtiment ennemi : ' + e.txt.toLowerCase() : 'Les héros du Peuple libèrent un bâtiment : ' + e.txt.toLowerCase();
+      chapeau = us ? 'Le drapeau étoilé flotte sur un nouveau bâtiment.' : 'L’étoile rouge brille sur un bâtiment de plus.'; break;
+    case 'battle': titre = us ? 'Accrochage à la frontière' : 'Provocation repoussée à la frontière';
+      chapeau = us ? 'Des coups de feu cette nuit. Nos soldats tiennent bon.' : 'L’agresseur a été reçu comme il se doit.'; break;
+    case 'tech': titre = us ? 'Percée de nos savants : ' + e.txt.toLowerCase() : 'La science du Peuple maîtrise ' + e.txt.toLowerCase();
+      chapeau = us ? 'Le progrès, c’est l’USC. Les laboratoires fêtent ça au soda.' : 'Les chercheurs du Plan reçoivent l’ordre du Ronron rouge.'; break;
+    case 'spy': titre = us ? 'Coup d’éclat de nos services' : 'Le Bureau du Peuple veille';
+      chapeau = us ? 'On n’en dira pas plus. Pas un mot, pas un ronron.' : 'Ce qui s’est passé n’a pas eu lieu.'; break;
+    case 'flee': titre = us ? 'Ils passent à l’Ouest' : 'Retour au bercail du Peuple';
+      chapeau = us ? e.txt + ' chats de la CCR ont franchi le Rideau. On leur sert un milkshake.' : e.txt + ' chats égarés de l’USC ont choisi le Plan. Bienvenue au kolkhoze.'; break;
     case 'short': titre = us ? 'Pénurie de croquettes : les épiciers sur le pont' : 'Pause technique dans la distribution de croquettes';
       chapeau = us ? 'Rayons vides ce matin. Les supermarchés promettent un arrivage demain.' : 'La file du Gastronom s’allonge, par pure discipline.'; break;
     default: titre = us ? 'Météo : ' + WX_WORD[S.weather] + ' sur l’USC' : 'Météo : ' + WX_WORD[S.weather] + ', comme prévu par le Plan'; chapeau = us ? 'Sortez les lunettes ou le parapluie, selon votre humeur.' : 'Le temps obéit aux prévisions du Comité.';
