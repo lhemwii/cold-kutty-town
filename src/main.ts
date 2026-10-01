@@ -37,3 +37,4 @@ import './game/32-diplomatie.ts';
 import './game/33-victoire.ts';
 import './game/34-ecran.ts';
 import './game/35-vie.ts';
+import './game/36-ia.ts';

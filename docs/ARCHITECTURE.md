@@ -56,6 +56,7 @@ La conversion depuis l’ancienne portée unique a été faite par un script (an
 | `33-victoire.ts` | Étape 12 : options de la partie (`OPT` : durée du Blitz, victoires cochées ; prises dans le formulaire de nouvelle partie, gardées dans la sauvegarde), progression et seuils de chaque victoire, `SH.checkWin` (appelé chaque seconde par 21-main), score, fin du Blitz, `SH.onCapitulate`, succès, écran de la course aux victoires (`#vic`, clic sur le bloc du territoire ou O). |
 | `34-ecran.ts` | Étape 13 : luxe et Catcoins dans le HUD, écran d’aide (H), tutoriel du premier lancement (clé `ckt-tuto`), dock repliable et appui long au téléphone. |
 | `35-vie.ts` | Étape 14 : l’actualité vue par un chat (`situation`, `SH.fallbackHook` lu par `fallbackReply` de 21-main), la radio des vrais événements (enveloppe autour de `SH.logDay`), dix nouveaux événements ajoutés à `EVENTS`. |
+| `36-ia.ts` | Étape 16 : deuxième couche de l’IA (recherche, stocks, luxe, défense, armée, espace, renseignement, attaque, bombe), difficulté (`RIVAL.level`, choisie dans « Nouvelle partie », gardée dans la sauvegarde). La première couche reste `20-rival.ts`. |
 
 ## Hors des modules numérotés
 
@@ -64,7 +65,7 @@ Ces fichiers ne dépendent d’aucun module du jeu : n’importe quel module peu
 | Fichier | Rôle |
 |---|---|
 | `src/rules/*.ts` | Règles pures (métiers, plages, géométrie, A*, commerce, score) : ni page, ni dessin, ni état ; essayées par `tests/*.test.ts` (Vitest). |
-| `scripts/smoke.mjs`, `scripts/perf.mjs` | Essai de fumée et mesure de performance, sur le site construit (Playwright). |
+| `scripts/smoke.mjs`, `scripts/perf.mjs`, `scripts/ai-duel.mjs` | Essai de fumée et mesure de performance, sur le site construit (Playwright). |
 | `src/gpu/present.ts` | Affichage par PixiJS : mise en couleur de l’image par la palette, dans un shader (voir plus bas). |
 | `src/platform/standalone.ts` | Hors de claude.ai : Claude par `/api/claude`, téléchargements par le navigateur. |
 | `src/platform/store.ts` | Stockage du jeu, une valeur texte par clé : le navigateur sur le web, des fichiers dans la version de bureau. |

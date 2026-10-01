@@ -360,27 +360,73 @@ Chaque étape laisse le jeu jouable. L’ordre proposé : d’abord ce qui exist
 - [~] Séparer l’état, les règles et le dessin : premier pas fait avec `src/rules/`. Reste à réunir l’état de la partie (bâtiments, routes, unités, ressources, recherche, diplomatie) dans un seul objet sérialisable, pour le jeu en ligne (étape 17).
 - [~] Performance : `scripts/perf.mjs` mesure le temps d’une image (moyenne et grande carte, de près et de loin, processeur et carte graphique). Premiers chiffres sans vraie carte graphique (SwiftShader) : 5 à 7 ms de près, 25 à 38 ms tout au loin. Reste à mesurer sur un vrai téléphone et une vraie carte graphique.
 
-## Étape 16. L’IA adverse (en dernier)
+## Étape 16. L’IA adverse (fait, à suivre)
 
-Elle doit savoir faire tout ce que fait le joueur : construire, répartir ses habitants, explorer, rechercher, commercer, espionner, faire la guerre et négocier. Ce qui ne va pas déjà dans l’ébauche actuelle, vu en faisant jouer deux IA l’une contre l’autre :
+Elle doit savoir faire tout ce que fait le joueur : construire, répartir ses habitants, explorer, rechercher, commercer, espionner, faire la guerre et négocier.
 
-- [ ] Elle trace ses routes au hasard ; elles se croisent et bouchent les parcelles. Piste : un plan de rues en grille autour de son hôtel de ville.
-- [ ] Elle manque de laine (une seule bergerie) et accumule des ronrons sans les dépenser.
-- [ ] Elle ne s’améliore presque pas et ne construit pas de prestige.
-- [ ] Niveaux de difficulté (facile, normal, difficile).
-- [ ] Un outil de test qui fait jouer deux IA en accéléré et sort un bilan minute par minute (existe en brouillon, à ranger dans `scripts/`).
+- [x] Les routes : elle avait déjà un plan de rues en grille autour de son QG ; quand la grille est bouchée (eau, bord du territoire), elle trace de courtes rues qui partent des siennes. Ses routes sont des chemins de terre, moitié prix.
+- [x] La laine et les ronrons : elle garde une réserve de laine avant ses barges, ses améliorations et ses loisirs, pose sa bergerie en premier quand la laine manque, et dépense ses ronrons en améliorations quand elle en a beaucoup.
+- [x] Elle fait grandir sa ville dès que la nourriture suit (avant, seulement quand il manquait des bras), et pose château d’eau ou station de pompage quand l’eau manque.
+- [x] Deuxième couche (`36-ia.ts`) : université et laboratoire, entrepôt, conserverie, atelier, banque, caserne, bunkers devant la menace, DCA contre les avions, soldats puis chars, base spatiale (ses lancements partent seuls), agence de renseignement (ses espions agissent seuls), attaque quand elle est nettement plus forte (jamais en Facile), la bombe en dernier recours (Difficile). Elle juge et propose les traités (étape 11) et cherche (étape 8).
+- [x] Niveaux de difficulté dans « Nouvelle partie » : Facile, Normal, Difficile (rythme de réflexion, production, agressivité).
+- [x] `scripts/ai-duel.mjs` : les deux camps joués par l’IA en accéléré, un bilan toutes les cinq minutes. Mesure : 20 minutes de jeu, 22 habitants avant, 54 à 74 après.
+- [ ] Encore faible : la nourriture flanche quand la ville grandit, la recherche démarre tard, elle ne commerce pas au checkpoint et ne construit ni train ni point de passage.
 
 ## Étape 17. Plus tard
 
-- [ ] Parties en ligne (contre un joueur ou contre l’IA), avec un service temps réel.
+- [ ] Parties en ligne (contre un joueur ou contre l’IA), avec un service temps réel. Pas commencé : il faut d’abord l’état de la partie en un seul objet (étape 15). Piste retenue : un serveur qui fait autorité (le même code de règles, `src/rules/` et les modules de jeu sans dessin), les joueurs n’envoient que leurs ordres (poser, tracer, former, envoyer, proposer), le serveur renvoie l’état toutes les secondes et les événements au fil de l’eau ; un hébergement temps réel (par exemple des WebSockets sur un petit serveur Node) ; comptes et salons plus tard.
 
 ## Étape 17.1. Mode espace (extension, plus tard)
 
 Le globe existe déjà dans le code (23-planet.ts), éteint. L’idée : prendre de la hauteur jusqu’à l’espace, puis jouer à l’échelle de la carte du monde.
 
-- [ ] Rallumer le globe (`GLOBE_ON`) : dézoom continu de l’île jusqu’à la planète, tour du globe en glissant.
+- [x] Rallumer le globe, à l’essai : option « La planète vue de l’espace » dans les Options (ou `?globe=1`) ; en dézoomant jusqu’au bout, l’île devient un globe qui tourne en glissant. Reste à soigner le brouillard vu de l’espace (un carré sombre autour de l’île) et le passage du plat au globe.
 - [ ] Lumières des villes sur la face de nuit (bâtiments et lampadaires de l’île, villes des autres continents).
 - [ ] Satellites et fusées visibles en orbite.
 - [ ] Jouer la carte du monde : plusieurs îles, les autres continents.
 - [ ] Choisir sa planète dans le menu (taille, climat, nombre d’îles).
 - [ ] L’espace autour (lune, autres planètes) et passer de l’une à l’autre.
+
+# Étapes à reprendre ensemble
+
+Toutes les étapes de la feuille de route ont été faites d’un trait (étapes 3 à 17.1). Ce qui suit est à regarder, jouer et décider ensemble, dans cet ordre. Chaque point renvoie à son étape.
+
+## Étape 18. Jouer une vraie partie et régler les chiffres
+
+- [ ] Jouer une partie Sans fin moyenne puis un Blitz de 40 minutes, des deux côtés, en notant ce qui est trop lent, trop facile ou incompréhensible.
+- [ ] Coûts et rendements des bâtiments, entretien, capacité des entrepôts (étape 3) ; prix des ponts, tunnels, voies et du goudron (étape 6).
+- [ ] Prix des recherches et vitesse des points (étape 8) ; unités : prix, vie, dégâts, portée (étape 9).
+- [ ] Seuils des victoires sociale, économique et de circonstance, poids du score du Blitz (étape 12) ; prix du marché et rythme des fuites (étape 11).
+
+## Étape 19. Regarder ensemble ce qui a été dessiné
+
+- [ ] Les bâtiments nouveaux, chacun dans ses deux styles (gare, métro, barrage, ponton, université, laboratoire, centrale nucléaire, usine de chars, chantier naval, aérodrome, défenses, centre atomique, silo, agence, station d’écoute, ambassade, points de passage) : lesquels redessiner.
+- [ ] Les véhicules, navires et avions ; les trains ; les ponts et entrées de tunnels ; le logo.
+- [ ] Les rivières (nombre, largeur, méandres), les marais, les pins et les palmiers (étape 7).
+- [ ] La neige qui reste au sol l’hiver : assez visible, trop forte ?
+
+## Étape 20. L’écran
+
+- [ ] Une maquette du HUD avec tout ce qui existe maintenant : ressources et luxe, territoire et espace, dock à trois écrans (Ressources, Recherche, Pourparlers), panneaux des unités et des fiches (étape 13).
+- [ ] Le téléphone : place du tutoriel, dock replié, panneaux plein écran.
+- [ ] Les écrans Recherche, Pourparlers, Course aux victoires et Aide : lisibles, trop chargés ?
+
+## Étape 21. Ce qui a été simplifié, à trancher
+
+- [ ] Brouillard : « déjà vu » montre l’état actuel des bâtiments ennemis, forêts et montagnes visibles sous le brouillard (étape 5).
+- [ ] Voies ferrées seulement droites, un train par paire de gares, liens entre villes simplifiés (moitié de la production si isolée) (étape 6).
+- [ ] La barge reste avant la Marine ; pas de patrouille aérienne ni de formation (étape 9).
+- [ ] Les jalons spatiaux ne se voient pas encore dans le ciel ; missions d’espion peu nombreuses (étape 10).
+- [ ] Habitants importés et transfuges comptés à part des logements (étape 11).
+- [ ] La victoire de circonstance mêle territoire et paix : la garder ainsi, ou en faire deux ? (étape 12)
+
+## Étape 22. L’IA, encore
+
+- [ ] La regarder jouer contre soi en Facile, Normal et Difficile (étape 16) et dire ce qui ne va pas.
+- [ ] Lui apprendre à commercer au checkpoint, à poser ses propres points de passage et à se servir du train et des rivières.
+
+## Étape 23. Ce qui attend
+
+- [ ] L’état de la partie en un seul objet, puis le jeu en ligne (étapes 15 et 17).
+- [ ] Mesures de performance sur un vrai téléphone et une vraie carte graphique (étape 15).
+- [ ] Le mode espace au-delà du globe à l’essai (étape 17.1) ; un modèle de langue pour les chats et le journal (étape 14).

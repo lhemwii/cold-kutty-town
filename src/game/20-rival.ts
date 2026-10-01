@@ -11,13 +11,16 @@ import { BARGE_COST } from './14-hud.ts';
 /** Plan d'urbanisme de l'IA : l'origine de sa grille de rues. */
 export interface Grid { x0: number; y0: number }
 /** L'etat de l'IA d'un camp : temps accumule avant de reflechir, derniers barge et mur, terrain perdu, grille de rues. */
-export interface Brain { acc: number; lastBarge: number; lastWall: number; lost: number; lastCnt: number; think: number; grid?: Grid }
+export interface Brain { last?: string; acc: number; lastBarge: number; lastWall: number; lost: number; lastCnt: number; think: number; grid?: Grid }
 /** Les deux IA, le compteur de tirages, et les camps joues par l'IA. */
-export interface Rival { usc: Brain; ccp: Brain; tries: number; auto: Record<Side, boolean> }
+export type Level = 'facile' | 'normal' | 'difficile';
+export interface Rival { usc: Brain; ccp: Brain; tries: number; auto: Record<Side, boolean>; level: Level }
 /** Un emplacement de batiment : centre (a, b) et orientation. */
 export type Spot = [number, number, number];
 export const newBrain = (): Brain => ({ acc: 0, lastBarge: 0, lastWall: 0, lost: 0, lastCnt: 0, think: 2.6 });
-export const RIVAL: Rival = { usc: newBrain(), ccp: newBrain(), tries: 0, auto: { usc: false, ccp: true } };
+export const RIVAL: Rival = { usc: newBrain(), ccp: newBrain(), tries: 0, auto: { usc: false, ccp: true }, level: 'normal' };
+// la difficulte : l'IA reflechit plus ou moins souvent (et produit plus ou moins : 36-ia)
+export const LEVEL_THINK: Record<Level, number> = { facile: 1.7, normal: 1, difficile: .6 };
 // gouts de chaque camp pour les loisirs et le prestige
 export const RIVAL_FUN: Record<Side, string[]> = { usc: ['parc', 'diner', 'cinema', 'kiosque', 'bowling', 'drivein', 'fontaine', 'panneau', 'motel'], ccp: ['parc', 'statue', 'kiosque', 'cirque', 'bulbes', 'panneau', 'fontaine', 'tribune'] };
 export const RIVAL_BIG: Record<Side, string[]> = { usc: ['radio', 'stade', 'grandmagasin', 'gratteciel', 'fusee', 'supermarche'], ccp: ['radio', 'stade', 'gratteciel', 'fusee', 'grandmagasin', 'usine'] };
@@ -137,9 +140,19 @@ export function rivalRoad(side: Side){
       const e: Vec2 = [p[0] + (q[0] - p[0]) * f, p[1] + (q[1] - p[1]) * f], st = nearRoad(p[0], p[1], 3, side) ? p : q, en: Vec2 = st === p ? e : [q[0] + (p[0] - q[0]) * f, q[1] + (p[1] - q[1]) * f];
       const pts = sampleLine(st, en);
       if (roadProblem(pts, side)) continue;
-      const c = roadCost(pts); if (!SH.canPay(side, c, 0)) return false;
-      SH.pay(side, c, 0); addRoad(pts, side); return true;
+      // des chemins de terre, moitie prix (etape 16) ; on garde de quoi batir
+      const c = roadCost(pts, true); if (!SH.canPay(side, c + 10, 0)) return false;
+      SH.pay(side, c, 0); addRoad(pts, side, true); return true;
     }
+  }
+  // la grille est bouchee (eau, bord du territoire, batiments) : une rue courte qui part d'une rue existante (etape 16)
+  for (let k = 0; k < 24; k++){
+    const r = roads[Math.floor(rnd(k + 70) * roads.length)], p0 = polyAt(r.pts, r.cum, rnd(k + 71) * r.len);
+    const an = p0[2] + (rnd(k + 72) < .5 ? 1 : -1) * Math.PI / 2 + (rnd(k + 73) - .5) * .4, L = 40 + rnd(k + 74) * 40;
+    const st: Vec2 = [p0[0], p0[1]], en: Vec2 = [p0[0] + Math.cos(an) * L, p0[1] + Math.sin(an) * L], pts = sampleLine(st, en);
+    if (roadProblem(pts, side)) continue;
+    const c = roadCost(pts, true); if (!SH.canPay(side, c + 10, 0)) return false;
+    SH.pay(side, c, 0); addRoad(pts, side, true); return true;
   }
   return false;
 }
@@ -148,7 +161,7 @@ export function rivalBuild(type: string, side: Side){
   if (!SH.canAfford(side, pr)) return false;
   const spot = type === 'drapeau' ? rivalFlagSpot(side) : rivalSpot(type, side);
   // pas de place : on prolonge le reseau, le tour n'est pas perdu
-  if (!spot) return !SH.ECO[type].noRoad && rivalRoad(side);
+  if (!spot) return !SH.ECO[type].noRoad && SH.RES[side].laine > 20 && rivalRoad(side);
   SH.pay(side, pr.l, pr.r, pr.c);
   SH.startBuilding(makeBuilding(type, side, spot[0], spot[1], spot[2]));
   return true;
@@ -184,7 +197,8 @@ export function rivalWall(side: Side){
 // une barge vers une cote libre : ilot ou autre versant
 export function rivalBarge(side: Side){
   const port = SH.BLD.find(l => l.side === side && l.type === 'port' && l.done); if (!port) return false;
-  if (!SH.canAfford(side, BARGE_COST)) return false;
+  // la barge attend que la laine ne manque plus a la ville
+  if (!SH.canAfford(side, BARGE_COST) || SH.RES[side].laine < BARGE_COST.l + 100) return false;
   let best: Vec2 | null = null, bs = -1;
   for (let k = 0; k < 60; k++){
     const i = Math.floor(rnd(k) * TER.N); if (!TER.land[i] || TER.own[i]) continue;
@@ -199,7 +213,7 @@ export function rivalBarge(side: Side){
 export function rivalUpgrade(side: Side){
   const list = SH.BLD.filter(l => l.side === side && l.done && !l.upT && SH.upCost(l));
   list.sort((x, y) => (SH.LVL_POP[y.type] ? 2 : 0) - (SH.LVL_POP[x.type] ? 2 : 0) + ((x.lvl || 1) - (y.lvl || 1)));
-  for (const l of list.slice(0, 4)){ const c = SH.upCost(l); if (SH.canPay(side, c.l + 20, c.r)){ SH.upgradeBuilding(l); return true; } }
+  for (const l of list.slice(0, 4)){ const c = SH.upCost(l); if (SH.canPay(side, c.l + 70, c.r)){ SH.upgradeBuilding(l); return true; } }
   return false;
 }
 export function stepRival(dt: number){
@@ -209,26 +223,35 @@ export function stepRival(dt: number){
 // une liste de souhaits, dans l'ordre : le premier qui se pose (ou qui fait tracer une route) consomme le tour
 export function brainStep(side: Side, dt: number){
   const B = RIVAL[side], R = SH.RES[side];
-  B.acc += dt; if (B.acc < B.think) return; B.acc = 0;
+  B.acc += dt; if (B.acc < B.think * LEVEL_THINK[RIVAL.level]) return; B.acc = 0;
   const hq = SH.BLD.find(l => l.side === side && l.type === 'qg'); if (!hq || !hq.done) return;
   const busy = SH.BLD.filter(l => l.side === side && !l.done).length, maxBusy = 2 + Math.floor(R.pop / 35);
-  if (busy >= maxBusy) return;
+  if (busy >= maxBusy){ B.last = 'occupé ' + busy; return; }
   const has = (t: string) => count(side, t);
   const cnt = TER.cnt[side]; if (cnt < B.lastCnt) B.lost += B.lastCnt - cnt; B.lastCnt = cnt; B.lost *= .97;
   const wish: (string | null)[] = [];
-  const food = R.short || R.rc < 3 + R.pop * .06 || R.croq < 50;
-  const wool = R.rl < 8 + R.pop * .15 || R.laine < 40;
+  const food = R.short || R.rc < 3 + R.pop * .08 || R.croq < 50;
+  const wool = R.rl < 6 + R.pop * .12 || R.laine < 40;
+  // les ronrons s'entassaient : quand il y en a beaucoup, on ameliore d'abord (etape 16)
+  if (R.ron > 150 && R.laine > 60 && rivalUpgrade(side)) return;
+  if (wool && has('bergerie') < 2) wish.push('bergerie');
   if (food) wish.push(has('pecherie') < 3 ? 'pecherie' : null, 'kolkhoze', 'epicerie');
-  if (wool) wish.push(has('bergerie') < 4 ? 'bergerie' : null, R.pop >= 20 ? 'usine' : null);
-  if (R.pop < R.jobs + 8 || R.pop < 14) wish.push(side === 'ccp' && R.pop > 30 && rnd(1) < .5 ? 'immeuble' : 'maison');
-  if (R.funRatio < .6 && R.pop > 8){ const L = RIVAL_FUN[side]; wish.push(L[Math.floor(rnd(2) * L.length)]); }
+  if (wool) wish.push(has('bergerie') < 6 ? 'bergerie' : null, has('foret') < 2 ? 'foret' : null, R.pop >= 20 ? 'usine' : null);
+  // la ville grandit des que la nourriture suit, pas seulement quand il manque des bras (etape 16)
+  const grow = R.pop < R.jobs + 8 || R.pop < 14 || (!R.short && R.rc > R.pop * .08);
+  if (grow && rnd(5) < .6) wish.unshift(R.pop > 30 && rnd(1) < .5 ? 'immeuble' : 'maison');
+  else if (grow) wish.push(R.pop > 30 && rnd(1) < .5 ? 'immeuble' : 'maison');
+  if (R.eauCov < .9 && R.pop > 12) wish.push(has('chateau') < 3 ? 'chateau' : 'pompage');
+  if (R.funRatio < .6 && R.pop > 8 && R.laine > 60){ const L = RIVAL_FUN[side]; wish.push(L[Math.floor(rnd(2) * L.length)]); }
   if (TER.lastGain[side] < 2 && rnd(4) < .8) wish.push('drapeau');
   if (!has('port') && R.laine > 80) wish.push('port');
   if (R.laine > 150 && R.pop > 30){ const L = RIVAL_BIG[side]; wish.push(L[Math.floor(rnd(6) * L.length)]); }
   wish.push('maison');
-  for (const type of wish){ if (type && rivalBuild(type, side)) return; }
+  B.last = 'voeux ' + wish.filter(Boolean).join(',') + ' laine ' + Math.round(R.laine);
+  for (const type of wish){ if (type && rivalBuild(type, side)){ B.last += ' -> ' + type; return; } }
   if (B.lost > 25 && GAME.t - B.lastWall > 120){ B.lastWall = GAME.t; if (rivalWall(side)){ B.lost = 0; return; } }
   if (GAME.t - B.lastBarge > 200 && rivalBarge(side)){ B.lastBarge = GAME.t; return; }
   if (R.laine > 100 && rivalUpgrade(side)) return;
-  rivalRoad(side);
+  if (R.laine > 30) rivalRoad(side);
 }
+SH.rivalSpot = rivalSpot; SH.rivalBuild = rivalBuild;

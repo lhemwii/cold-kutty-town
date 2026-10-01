@@ -77,6 +77,10 @@ HOOKS.step.push((dt: number) => {
 });
 SH.tutoReset = () => { tutoStep = 0; store.set(TUTO_KEY, '0'); };
 
+/* ---- la planete vue de l'espace, a l'essai (etape 17.1) : l'option recharge la page ---- */
+{ const on = (() => { try { return localStorage.getItem('ckt-globe') === '1'; } catch (_) { return false; } })();
+  for (const b of $('optGlobe').children) if (b instanceof HTMLElement){ b.setAttribute('aria-checked', String((b.dataset.v === '1') === on)); b.addEventListener('click', () => { const v = b.dataset.v === '1'; if (v === on) return; try { localStorage.setItem('ckt-globe', v ? '1' : '0'); } catch (_) {} SH.saveNow && SH.saveNow(); location.reload(); }); } }
+
 /* ---- au telephone : dock repliable, appui long ---- */
 $('dockFold').addEventListener('click', () => { const d = $('dock'), open = !d.classList.contains('open'); d.classList.toggle('open', open); $('dockFold').setAttribute('aria-expanded', String(open)); SH.sfx('click'); });
 // un appui long sans bouger : comme un clic droit (envoyer les unites, arreter un trace)

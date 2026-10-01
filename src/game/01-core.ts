@@ -151,7 +151,8 @@ export const CAMP_SHORT: Record<Side, string> = { usc: 'USC', ccp: 'CCR' };
 // le rayon de la planete RP tout au bout). CURV va de 0 (plat) a 1 (la planete entiere). Le jeu se dessine toujours a plat (prj, unprj) ;
 // une derniere passe (planetWarp, 23-planet.js) pose l'image sur la sphere. geoCast et geoProj font le lien entre l'ecran et la sphere.
 // GLOBE_ON : le globe est garde pour le futur mode espace (voir docs/PLAN.md), mais eteint pour l'instant : le jeu reste a plat.
-export const GLOBE_ON = false;
+// (etape 17.1) : on peut l'allumer, a l'essai, dans les options (cle ckt-globe) ou par ?globe=1 dans l'adresse ; lu au chargement
+export const GLOBE_ON: boolean = (() => { try { return new URLSearchParams(location.search).get('globe') === '1' || localStorage.getItem('ckt-globe') === '1'; } catch (_) { return false; } })();
 export const RP = 2600, SQ3 = Math.sqrt(3);
 SH.CURV = 0; SH.GR = Infinity;
 // oy : de combien (en unites du monde) le point vise remonte a l'ecran, pour que la planete finisse centree
