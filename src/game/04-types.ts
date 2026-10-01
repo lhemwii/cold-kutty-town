@@ -1,6 +1,6 @@
 import { SH, type Building, type BuiltParts, type Light, type Part } from './00-shared.ts';
-import { COLOR, CONST_SH, M, TAU, UP, blitAt, boxS, bz, clamp, dep, drawFace, drawFlagPole, drawStar, drawText, fillConvex, fput, gableRoof, hash2, line3, lineS, plateW, prj, textW, wallBitmap, wallFace, win, winColor } from './01-core.ts';
-import { Lc, QUEUE_CAT, alongSh, antennaAt, artSprite, drawCar, drawChimney, drawHouse, facadePlate, frontVisible, houseGeo, houseLights, part, picket, sideLight, smokeAt, treeSpr, wallBase } from './03-buildings-base.ts';
+import { COLOR, CONST_SH, M, TAU, UP, blitAt, boxS, bz, clamp, dep, drawFace, drawFlagPole, drawStar, drawText, fillConvex, fput, gableRoof, gableRoof2, gableWalls, hash2, line3, lineS, plateW, prj, textW, wallBitmap, wallFace, win, winColor } from './01-core.ts';
+import { Lc, QUEUE_CAT, alongSh, antennaAt, artSprite, drawCar, drawChimney, drawHouse, facadePlate, frontVisible, houseGeo, houseLights, part, picket, sideLight, smokeAt, treeSpr, wallBase, type HouseGeo } from './03-buildings-base.ts';
 /* ================= statues ================= */
 export const STATUE_CCP = artSprite([
   '  # #        ',
@@ -50,26 +50,7 @@ export function seedOf(lot: Building){ return Math.abs(Math.round(lot.ca * 7 + l
 export interface BuildingType { name: string; nameCCP?: string; fem: boolean; coast?: boolean; build: (lot: Building, seed: number) => BuiltParts }
 export const TYPES: Record<string, BuildingType> = {
   maison: { name: 'Maison', fem: true, build(lot: Building, seed: number){
-    const lv = lot.lvl || 1;
-    const la = 14 + (seed % 3) * 2 + (lv === 3 ? 6 : 0), lb = 12 + (lv === 3 ? 2 : 0), hh = 8 + (seed % 2) + (lv >= 2 ? 5 : 0), rh = 6;
-    const g = houseGeo(lot.ca, lot.cb - 2, la, lb, hh, rh, seed, 'a', 0);
-    const usc = lot.side === 'usc', chim = seed % 3 === 0;
-    const parts = [part(g.ca, g.cb, 0, (t) => { drawHouse(g); if (!chim) antennaAt(g); })];
-    if (chim) parts.push(part(g.ca, g.cb, .5, (t) => drawChimney(g, t, seed)));
-    const decals = [];
-    if (lv === 3){
-      // piscine a l'ouest, potager a l'est
-      const pa0 = lot.a0 + 3, pb0 = lot.b1 - 9;
-      decals.push(() => { const sv = SH.CUR; SH.CUR = usc ? M.WATER : M.FIELD; drawFace([pa0, pb0, 0, pa0 + 8, pb0, 0, pa0 + 8, pb0 + 5, 0, pa0, pb0 + 5, 0], UP, usc ? ((x: number, y: number) => bz(x, y) < 3 ? 1 : 0) : ((x: number, y: number) => (x + y) & 1), usc ? 1 : 0); SH.CUR = sv; });
-    }
-    if (usc){
-      const fb0 = lot.b1 - 2;
-      parts.push(part(lot.ca, fb0, 0, () => { picket(lot.a0 + 3, fb0, lot.ca - 2, fb0); picket(lot.ca + 2, fb0, lot.a1 - 3, fb0); }));
-      if (seed % 2 === 0) parts.push(part(lot.a1 - 5, lot.cb + 9, 0, () => drawCar(lot.a1 - 5, lot.cb + 9, 'b', 1, 'usc')));
-    } else {
-      decals.push(() => { for (let r = 0; r < 4; r++){ const b = g.b1 + 3 + r * 1.6; for (let a = g.a0; a <= g.a1; a += 1){ if ((Math.round(a) + r) & 1) continue; const p = prj(a, b, 0); fput(Math.round(p[0]), Math.round(p[1]), 1); } } });
-    }
-    return { parts, decals, lights: houseLights(g) };
+    return lot.side === 'ccp' ? maisonCCR(lot, seed, lot.lvl || 1) : maisonUSC(lot, seed, lot.lvl || 1);
   } },
   mairie: { name: 'Mairie', fem: true, build(lot: Building, seed: number){
     const g = houseGeo(lot.ca, lot.cb - 2, 26, 18, 12, 8, seed, 'a', 0);
@@ -246,29 +227,7 @@ export const TYPES: Record<string, BuildingType> = {
     return { parts, lights: [] };
   } },
   immeuble: { name: 'Immeuble', fem: false, build(lot: Building, seed: number){
-    const lv = lot.lvl || 1, la = 28, lb = 13, hh = [22, 32, 44][lv - 1];
-    const a0 = Math.round(lot.ca - la / 2), a1 = a0 + la, b0 = Math.round(lot.cb - lb / 2), b1 = b0 + lb;
-    const litW = (k: number, col: number, fl: number) => hash2(seed * 7 + k * 31 + col, fl * 13 + 5) < .34;
-    const body = () => boxS(a0, a1, b0, b1, 0, hh, (u: number, h: number, x: number, y: number, k: number) => {
-      const len = (k & 1) ? lb : la;
-      if (k === 0 && u >= len / 2 - 2 && u < len / 2 + 2 && h < 4) return (u < len / 2 - 1.4 || u >= len / 2 + 1.4 || h >= 3.5) ? 1 : 0;
-      if (h >= 1 && h < hh - 1.5){
-        const fl = Math.floor((h - 1) / 3.5), fh = (h - 1) - fl * 3.5;
-        if (fh < .5) return bz(x, y) < 5 ? 1 : 0;
-        const nC = Math.floor((len - 2) / 3.5), off = (len - nC * 3.5) / 2, cu = u - off;
-        if (cu >= 0 && fh >= 1 && fh < 2.9){ const col = Math.floor(cu / 3.5), cx = cu - col * 3.5; if (col < nC && cx >= .9 && cx < 2.7) return litW(k, col, fl) ? 3 : (bz(x, y) < 3 ? 1 : 0); }
-      }
-      return wallBase(k, x, y);
-    }, 0);
-    const roof = () => {
-      const p = prj(lot.ca, lot.cb, hh), x = Math.round(p[0]), y = Math.round(p[1]);
-      if (seed % 4 === 0){ for (let k = 0; k < 7; k++) fput(x, y - k, 1); drawStar(fput, x - 3, y - 14, 1, true); }
-      else if (seed % 4 === 1){ line3(lot.ca - 5, lot.cb, hh, lot.ca - 5, lot.cb, hh + 2, 1); line3(lot.ca + 5, lot.cb, hh, lot.ca + 5, lot.cb, hh + 2, 1); plateW('CCR', lot.ca, lot.cb, hh + 2, { inv: true }); }
-      else boxS(lot.ca + 4, lot.ca + 8, lot.cb - 3, lot.cb + 1, hh, hh + 3, (u: number, h: number, xx: number, yy: number, k: number) => wallBase(k, xx, yy), 0);
-    };
-    const lights = [];
-    for (const k of [seed % 4, (seed + 2) % 4]) lights.push(sideLight(a0, a1, b0, b1, k, 7, .9));
-    return { parts: [part(lot.ca, lot.cb, 0, body), part(lot.ca, lot.cb, .5, roof)], lights };
+    return lot.side === 'ccp' ? immeubleCCR(lot, seed, lot.lvl || 1) : immeubleUSC(lot, seed, lot.lvl || 1);
   } },
   peuple: { name: 'Palais du Peuple', fem: false, build(lot: Building, seed: number){
     const ca = lot.ca, cb = lot.cb;
@@ -338,3 +297,250 @@ export const TYPES: Record<string, BuildingType> = {
     return { parts: [part(ca, cb, 0, draw)], lights: [Lc(ca, cb + 7, 14, 1.5)] };
   } }
 };
+
+/* ================= l'immeuble, a la maniere de chaque camp (etape 2) ================= */
+// fenetres en grille sur une face : colonnes de largeur cw centrees, etages de hauteur fh a partir de z0 ; null hors des fenetres
+function gridWin(u: number, h: number, len: number, z0: number, fh: number, cw: number, ww: number, wh: number, lit: (c: number, f: number) => boolean, x: number, y: number): number | null {
+  if (h < z0) return null;
+  const f = Math.floor((h - z0) / fh), fz = (h - z0) - f * fh;
+  const nC = Math.floor((len - 1) / cw), off = (len - nC * cw) / 2, cu = u - off;
+  if (cu < 0 || cu >= nC * cw) return null;
+  const col = Math.floor(cu / cw), cx = cu - col * cw;
+  const kk = win(cx, fz, (cw - ww) / 2, (fh - wh) / 2, ww, wh);
+  return kk ? winColor(kk, lit(col, f), x, y) : null;
+}
+// toit plat goudronne, sombre
+function roofTar(a0: number, a1: number, b0: number, b1: number, z: number){
+  const sv = SH.CUR; SH.CUR = M.ROAD;
+  drawFace([a0, b0, z, a1, b0, z, a1, b1, z, a0, b1, z], UP, 0, -1);
+  SH.CUR = sv;
+}
+// petit toit en pyramide (reservoir, couronne)
+export function pyramid(ca: number, cb: number, hw: number, z0: number, z1: number, edge: number){
+  const dz = z1 - z0, A = [ca - hw, cb + hw], B = [ca + hw, cb + hw], C = [ca + hw, cb - hw], D = [ca - hw, cb - hw];
+  const faces: [number[], number[], number[]][] = [[A, B, [0, dz, hw]], [B, C, [dz, 0, hw]], [C, D, [0, -dz, hw]], [D, A, [-dz, 0, hw]]];
+  for (const [p, q, n] of faces) drawFace([p[0], p[1], z0, q[0], q[1], z0, ca, cb, z1], n, (x: number, y: number) => bz(x, y) < 4 ? 1 : 0, edge);
+}
+// USC : immeuble de briques a escaliers de secours, puis plus haut avec un reservoir d'eau, puis gratte-ciel
+function immeubleUSC(lot: Building, seed: number, lv: number): BuiltParts {
+  const nf = lv === 1 ? 4 : 6, fh = 4, la = 24, lb = 14, hh = nf * fh + 1.5;
+  const a0 = Math.round(lot.ca - la / 2), a1 = a0 + la, b0 = Math.round(lot.cb - lb / 2), b1 = b0 + lb;
+  const litW = (k: number) => (col: number, f: number) => hash2(seed * 7 + k * 31 + col, f * 13 + 5) < .34;
+  const body = () => {
+    SH.CUR = M.BRICK;
+    boxS(a0, a1, b0, b1, 0, hh, (u: number, h: number, x: number, y: number, k: number) => {
+      const len = (k & 1) ? lb : la, mid = len / 2;
+      if (k === 0 && u >= mid - 1.8 && u < mid + 1.8 && h < 3.4) return (u < mid - 1.2 || u >= mid + 1.2 || h >= 2.9) ? 1 : 0;
+      if (h < 1) return 1;
+      if (h >= hh - 1.2) return (Math.floor(u * 1.5) & 1) ? 1 : 0;
+      const w = gridWin(u, h, len, 1, fh, 3, 1.8, 2.6, litW(k), x, y); if (w != null) return w;
+      return wallBase(k, x, y);
+    }, null);
+    roofTar(a0, a1, b0, b1, hh);
+    // corniche de pierre claire, en anneau autour du toit
+    SH.CUR = M.SANDSTONE;
+    boxS(a0 - .6, a1 + .6, b0 - .6, b1 + .6, hh, hh + 1.2, (u: number) => (Math.floor(u * 2) & 1) ? 1 : 0, null);
+  };
+  // escaliers de secours en fer, sur les deux grandes faces (chacun dessine seulement s'il se voit)
+  const escape = (face: number) => () => {
+    if (!frontVisible(face)) return;
+    const bb = face === 0 ? b1 + 1.4 : b0 - 1.4, A0 = face === 0 ? a0 + 3 : a1 - 10, A1 = A0 + 7;
+    SH.CUR = M.METAL;
+    for (let f = 1; f < nf; f++){
+      const z = 1 + f * fh;
+      line3(A0, bb, z, A1, bb, z, 0); line3(A0, bb, z + 1.4, A1, bb, z + 1.4, 0);
+      line3(A0, bb, z, A0, bb, z + 1.4, 0); line3(A1, bb, z, A1, bb, z + 1.4, 0);
+      if (f < nf - 1) line3((f & 1) ? A0 + 1 : A1 - 1, bb, z, (f & 1) ? A1 - 1 : A0 + 1, bb, z + fh, 0);
+    }
+    line3(A0 + 1, bb, 1 + fh, A0 + 1, bb, 2, 0);
+  };
+  const parts: Part[] = [part(lot.ca, lot.cb, 0, body), part(a0 + 6, b1 + 1.4, .2, escape(0)), part(a1 - 6, b0 - 1.4, .2, escape(2))];
+  if (lv === 2){
+    // le reservoir d'eau en bois sur le toit, sur ses pieds
+    const ta = a1 - 6, tb = lot.cb, z0 = hh + 1.2;
+    parts.push(part(ta, tb, .6, () => {
+      SH.CUR = M.METAL; for (const [da, db] of [[-1.6, -1.6], [1.6, -1.6], [1.6, 1.6], [-1.6, 1.6]]) line3(ta + da, tb + db, z0, ta + da, tb + db, z0 + 3, 0);
+      SH.CUR = M.PIER; boxS(ta - 2, ta + 2, tb - 2, tb + 2, z0 + 3, z0 + 7, (u: number) => (Math.floor(u * 1.5) & 1) ? 1 : 0, null);
+      pyramid(ta, tb, 2.2, z0 + 7, z0 + 9, 1);
+    }));
+  }
+  if (lv === 3) return gratteCielUSC(lot, seed, a0, a1, b0, b1, hh, parts);
+  return { parts, lights: [sideLight(a0, a1, b0, b1, seed % 4, 7, .9), sideLight(a0, a1, b0, b1, (seed + 2) % 4, 7, .9)] };
+}
+// niveau 3 cote USC : la tour de pierre en retrait au-dessus des briques, couronne a gradins et fleche
+function gratteCielUSC(lot: Building, seed: number, a0: number, a1: number, b0: number, b1: number, hh: number, parts: Part[]): BuiltParts {
+  const t0 = hh + 1.2, t1 = t0 + 30, ta0 = a0 + 5, ta1 = a1 - 5, tb0 = b0 + 3, tb1 = b1 - 3;
+  const lit = (k: number) => (col: number, f: number) => hash2(seed * 11 + k * 7 + col, f * 5 + 1) < .4;
+  parts.push(part(lot.ca, lot.cb, .5, (t: number) => {
+    SH.CUR = M.SANDSTONE;
+    boxS(ta0, ta1, tb0, tb1, t0, t1, (u: number, h: number, x: number, y: number, k: number) => {
+      const len = (k & 1) ? tb1 - tb0 : ta1 - ta0;
+      if ((u % 2) < .6) return 1;
+      const w = gridWin(u, h, len, .5, 3, 2, 1.2, 2.2, lit(k), x, y); if (w != null) return w;
+      return wallBase(k, x, y);
+    }, (x: number, y: number) => bz(x, y) < 3 ? 1 : 0);
+    boxS(ta0 + 2, ta1 - 2, tb0 + 1.5, tb1 - 1.5, t1, t1 + 4, (u: number) => (u % 1.5) < .5 ? 1 : 0, 0);
+    boxS(ta0 + 4, ta1 - 4, tb0 + 2.5, tb1 - 2.5, t1 + 4, t1 + 7, 1, 0);
+    SH.CUR = M.METAL; line3(lot.ca, lot.cb, t1 + 7, lot.ca, lot.cb, t1 + 15, 1);
+    // feu d'obstacle qui clignote au sommet
+    const p = prj(lot.ca, lot.cb, t1 + 15); SH.CUR = M.REDLIGHT; if ((t % 1.4) < .5) fput(Math.round(p[0]), Math.round(p[1]) - 1, 1);
+  }));
+  return { parts, lights: [sideLight(a0, a1, b0, b1, seed % 4, 8, 1), sideLight(a0, a1, b0, b1, (seed + 2) % 4, 8, 1)] };
+}
+// CCR : barre de beton en panneaux, puis barre plus haute avec son slogan a etoile, puis tour du Peuple a etoile rouge
+function immeubleCCR(lot: Building, seed: number, lv: number): BuiltParts {
+  if (lv === 3) return tourCCR(lot, seed);
+  const nf = lv === 1 ? 5 : 9, fh = 3.5, la = 30, lb = 12, hh = nf * fh + 1.5;
+  const a0 = Math.round(lot.ca - la / 2), a1 = a0 + la, b0 = Math.round(lot.cb - lb / 2), b1 = b0 + lb;
+  const litW = (k: number) => (col: number, f: number) => hash2(seed * 5 + k * 17 + col, f * 11 + 3) < .3;
+  const body = () => {
+    SH.CUR = M.CONCRETE; const acc = SH.ACC; SH.ACC = M.METAL;
+    boxS(a0, a1, b0, b1, 0, hh, (u: number, h: number, x: number, y: number, k: number) => {
+      const len = (k & 1) ? lb : la;
+      // trois entrees sous auvent
+      if (k === 0 && h < 2.8) for (const e of [len / 4, len / 2, 3 * len / 4]) if (u >= e - 1.2 && u < e + 1.2) return 5;
+      if (h < 1.5) return 1;
+      const z = h - 1.5, f = Math.floor(z / fh), fz = z - f * fh;
+      if (fz < .5) return 1;
+      const w = gridWin(u, h, len, 1.5, fh, 3.5, 2, 2, litW(k), x, y); if (w != null) return w === 1 ? 0 : w;
+      return wallBase(k, x, y);
+    }, null);
+    SH.ACC = acc;
+    roofTar(a0, a1, b0, b1, hh);
+    // les auvents et les cages d'ascenseur sur le toit
+    if (frontVisible(0)) for (const e of [la / 4, la / 2, 3 * la / 4]) boxS(a0 + e - 1.6, a0 + e + 1.6, b1, b1 + 1.6, 2.8, 3.3, 1, 1);
+    boxS(a0 + 5, a0 + 9, lot.cb - 2, lot.cb + 2, hh, hh + 2.5, 0, 1);
+    boxS(a1 - 9, a1 - 5, lot.cb - 2, lot.cb + 2, hh, hh + 2.5, 0, 1);
+  };
+  const parts: Part[] = [part(lot.ca, lot.cb, 0, body)];
+  if (lv === 2) parts.push(part(lot.ca, lot.cb, .6, () => {
+    // panneau rouge a etoile sur le toit, entre deux montants (dessine a plat puis pose debout : il tourne avec la ville)
+    SH.CUR = M.METAL; line3(lot.ca - 6, lot.cb, hh, lot.ca - 6, lot.cb, hh + 3, 0); line3(lot.ca + 6, lot.cb, hh, lot.ca + 6, lot.cb, hh + 3, 0);
+    SH.CUR = M.SIGN_CCP;
+    const w = 21, h = 9, pix = new Int8Array(w * h);
+    for (let yy = 0; yy < h; yy++) for (let xx = 0; xx < w; xx++) pix[yy * w + xx] = (xx === 0 || yy === 0 || xx === w - 1 || yy === h - 1) ? 1 : 0;
+    drawStar((x: number, y: number, v: number) => { if (x >= 0 && y >= 0 && x < w && y < h) pix[y * w + x] = v; }, 7, 1, 1, true);
+    for (const xx of [2, 4, 16, 18]) for (let yy = 3; yy < 6; yy++) pix[yy * w + xx] = 1;
+    wallBitmap(lot.ca, lot.cb, hh + 3, 1, 0, w, h, pix);
+  }));
+  return { parts, lights: [sideLight(a0, a1, b0, b1, seed % 4, 7, .9), sideLight(a0, a1, b0, b1, (seed + 2) % 4, 7, .9)] };
+}
+// niveau 3 cote CCR : la tour du Peuple, bandes de balcons, fleche et grande etoile rouge
+function tourCCR(lot: Building, seed: number): BuiltParts {
+  const la = 16, lb = 14, nf = 15, fh = 3.5, hh = nf * fh + 1.5;
+  const a0 = Math.round(lot.ca - la / 2), a1 = a0 + la, b0 = Math.round(lot.cb - lb / 2), b1 = b0 + lb;
+  const lit = (k: number) => (col: number, f: number) => hash2(seed * 3 + k * 13 + col, f * 7 + 2) < .32;
+  const body = () => {
+    SH.CUR = M.CONCRETE;
+    boxS(a0, a1, b0, b1, 0, hh, (u: number, h: number, x: number, y: number, k: number) => {
+      const len = (k & 1) ? lb : la, mid = len / 2;
+      if (k === 0 && u >= mid - 2 && u < mid + 2 && h < 4) return (u < mid - 1.4 || u >= mid + 1.4 || h >= 3.5) ? 1 : 0;
+      if (h < 2) return 1;
+      const z = h - 2, f = Math.floor(z / fh), fz = z - f * fh;
+      // bande verticale de balcons au milieu de chaque face
+      if (Math.abs(u - mid) < 2.2) return fz < 1 ? 1 : (bz(x, y) < 6 ? 1 : 0);
+      if (fz < .35) return 1;
+      const w = gridWin(u, h, len, 2, fh, 2.6, 1.4, 1.8, lit(k), x, y); if (w != null) return w;
+      return wallBase(k, x, y);
+    }, (x: number, y: number) => bz(x, y) < 2 ? 1 : 0);
+    boxS(a0 + 3, a1 - 3, b0 + 3, b1 - 3, hh, hh + 4, (u: number) => (u % 2) < .6 ? 1 : 0, 1);
+  };
+  const spire = (t: number) => {
+    SH.CUR = M.METAL; line3(lot.ca, lot.cb, hh + 4, lot.ca, lot.cb, hh + 14, 1);
+    const p = prj(lot.ca, lot.cb, hh + 14), x = Math.round(p[0]), y = Math.round(p[1]);
+    SH.CUR = M.SIGN_CCP; drawStar(fput, x - 3, y - 7, 0, true);
+    if (Math.sin(t * 1.3) > .8) drawStar(fput, x - 3, y - 7, 1, true);
+  };
+  return { parts: [part(lot.ca, lot.cb, 0, body), part(lot.ca, lot.cb, .7, spire)],
+    lights: [sideLight(a0, a1, b0, b1, seed % 4, 8, 1), sideLight(a0, a1, b0, b1, (seed + 2) % 4, 8, 1)] };
+}
+
+/* ================= la maison, a la maniere de chaque camp (etape 2) ================= */
+// murs d'une maison a pignon : porte sur la face g.door, fenetres sur un ou deux etages ; skin donne le motif du mur (planches, rondins)
+// et frame la valeur de l'encadrement des fenetres (1 clair, 5 la couleur d'accent : volets bleus de l'isba)
+function houseWalls(g: HouseGeo, skin: (u: number, h: number, len: number, x: number, y: number, k: number) => number, frame: number){
+  const { a0, a1, b0, b1, hh, rh, axis, lit, door } = g, L = [a1 - a0, b1 - b0, a1 - a0, b1 - b0], two = hh >= 11;
+  gableWalls(a0, a1, b0, b1, hh, rh, axis, (u: number, h: number, x: number, y: number, k: number) => {
+    const len = L[k];
+    if (h < hh){
+      if (k === door){ const d0 = len / 2 - 1.5; if (u >= d0 && u < d0 + 3 && h < 5.5) return (u < d0 + .6 || u >= d0 + 2.4 || h >= 5) ? 1 : 0; }
+      for (const h0 of two ? [2.5, 8] : [2.5]){
+        const cols = len >= 12 ? [2, len - 5] : [len / 2 - 1.5];
+        if (len >= 18) cols.push(len / 2 - 1.5);
+        for (const u0 of cols){
+          if (k === door && h0 < 5 && Math.abs(u0 + 1.5 - len / 2) < 2) continue;
+          const kk = win(u, h, u0, h0, 3, 3.6);
+          if (kk) return kk === 'frame' ? frame : winColor(kk, lit[k], x, y);
+        }
+      }
+    } else {
+      const kk = win(u, h, len / 2 - 1, hh + 1.2, 2, 2); if (kk) return kk === 'in' ? (lit[k] ? 3 : 0) : frame;
+    }
+    return skin(u, h, len, x, y, k);
+  });
+}
+// USC : maison de bois a planches et porche, puis pavillon a garage, puis villa a deux etages et piscine
+function maisonUSC(lot: Building, seed: number, lv: number): BuiltParts {
+  const la = lv === 1 ? 14 : lv === 2 ? 16 : 20, lb = 11, hh = lv === 3 ? 13 : 8, rh = 5;
+  const g = houseGeo(lot.ca - (lv >= 2 ? 3 : 0), lot.cb - 3, la, lb, hh, rh, seed, 'a', 0);
+  const planks = (u: number, h: number, len: number, x: number, y: number, k: number) => (h % 2.4) < .35 ? 1 : wallBase(k, x, y);
+  const parts: Part[] = [part(g.ca, g.cb, 0, () => { houseWalls(g, planks, 1); gableRoof(g.a0, g.a1, g.b0, g.b1, hh, rh, 'a', 1, 7, 1); antennaAt(g); })];
+  // porche : plancher, deux poteaux blancs et un auvent
+  const pa0 = lv === 3 ? g.ca - 4 : g.a0 + 1, pa1 = lv === 3 ? g.ca + 4 : g.a1 - 1, pb = g.b1 + 3.2, pz = lv === 3 ? 5.5 : 5;
+  parts.push(part((pa0 + pa1) / 2, g.b1 + 1.6, .2, () => {
+    const sv = SH.CUR; SH.CUR = M.NEUTRAL;
+    boxS(pa0, pa1, g.b1, pb, 0, .7, 1, 0);
+    line3(pa0 + .5, pb - .5, .7, pa0 + .5, pb - .5, pz, 1); line3(pa1 - .5, pb - .5, .7, pa1 - .5, pb - .5, pz, 1);
+    SH.CUR = sv; const rm = SH.CUR; SH.CUR = M.ROOF_USC;
+    drawFace([pa0, g.b1, pz + 1.5, pa1, g.b1, pz + 1.5, pa1, pb + .3, pz, pa0, pb + .3, pz], [0, 1.5, 3.3], (x: number, y: number) => bz(x, y) < 6 ? 1 : 0, 1);
+    SH.CUR = rm;
+  }));
+  if (lv >= 2){
+    // garage accole, porte a lames
+    const ga0 = g.a1, ga1 = g.a1 + 7, gb0 = g.b0 + 2, gb1 = g.b1;
+    parts.push(part((ga0 + ga1) / 2, (gb0 + gb1) / 2, 0, () => boxS(ga0, ga1, gb0, gb1, 0, 6, (u: number, h: number, x: number, y: number, k: number) => {
+      if (k === 0 && u >= 1 && u < 6 && h < 4.6) return (Math.floor(h * 1.4) & 1) ? 1 : 0;
+      return (h % 2) < .45 ? 1 : wallBase(k, x, y);
+    }, (x: number, y: number) => bz(x, y) < 3 ? 1 : 0)));
+  }
+  const fb0 = lot.b1 - 2, decals: (() => void)[] = [];
+  parts.push(part(lot.ca, fb0, 0, () => { picket(lot.a0 + 3, fb0, lot.ca - 2, fb0); picket(lot.ca + 2, fb0, lot.a1 - 3, fb0); }));
+  if (lv >= 2 || seed % 2 === 0) parts.push(part(lot.a1 - 5, lot.cb + 9, 0, () => drawCar(lot.a1 - 5, lot.cb + 9, 'b', 1, 'usc')));
+  if (lv === 3){
+    const qa = lot.a0 + 2, qb = lot.b1 - 7;
+    decals.push(() => { const sv = SH.CUR; SH.CUR = M.WATER; drawFace([qa, qb, 0, qa + 8, qb, 0, qa + 8, qb + 4, 0, qa, qb + 4, 0], UP, (x: number, y: number) => bz(x, y) < 3 ? 1 : 0, 1); SH.CUR = sv; });
+  }
+  return { parts, decals, lights: houseLights(g) };
+}
+// CCR : isba en rondins aux volets bleus, puis datcha verte a veranda vitree, puis datcha de ministre a etage, avec sa voiture noire
+function maisonCCR(lot: Building, seed: number, lv: number): BuiltParts {
+  const la = lv === 1 ? 13 : lv === 2 ? 16 : 20, lb = 11, hh = lv === 1 ? 7 : lv === 2 ? 8 : 13, rh = lv === 1 ? 7 : 6;
+  const g = houseGeo(lot.ca, lot.cb - 3, la, lb, hh, rh, seed, 'a', 0);
+  const mat = lv === 1 ? M.PIER : lv === 2 ? M.USC2 : M.CCP3;
+  // rondins couches, bouts qui depassent aux angles ; ou planches verticales peintes
+  const logs = (u: number, h: number, len: number, x: number, y: number, k: number) => (h % 1.5) < .5 ? 1 : ((u < .7 || u > len - .7) ? ((Math.floor(h / 1.5) & 1) ? 1 : 0) : wallBase(k, x, y));
+  const boards = (u: number, h: number, len: number, x: number, y: number, k: number) => (u % 2) < .45 ? 1 : wallBase(k, x, y);
+  const parts: Part[] = [part(g.ca, g.cb, 0, (t: number) => {
+    SH.CUR = mat; const acc = SH.ACC; SH.ACC = M.FLAG_BLUE;
+    houseWalls(g, lv === 1 ? logs : boards, lv === 1 ? 5 : 1);
+    SH.ACC = acc;
+    SH.CUR = lv === 2 ? M.ROOF_CCP : M.ROOF_USC; gableRoof2(g.a0, g.a1, g.b0, g.b1, hh, rh, 'a', 1, 7, 1);
+    SH.CUR = mat;
+  }), part(g.ca, g.cb, .5, (t: number) => { SH.CUR = M.BRICK; drawChimney(g, t, seed); })];
+  if (lv >= 2){
+    // veranda vitree devant la porte
+    const va0 = g.ca - (lv === 3 ? 6 : 5), va1 = g.ca + (lv === 3 ? 6 : 5), vb1 = g.b1 + 4;
+    parts.push(part(g.ca, g.b1 + 2, .2, () => {
+      SH.CUR = M.NEUTRAL;
+      boxS(va0, va1, g.b1, vb1, 0, 5, (u: number, h: number, x: number, y: number) => (h < 1.2 || h > 4.4 || (u % 2) < .5) ? 1 : (COLOR && SH.DAY ? 3 : (bz(x, y) < 4 ? 3 : 0)), (x: number, y: number) => bz(x, y) < 5 ? 1 : 0);
+    }));
+  }
+  const decals: (() => void)[] = [() => { for (let r = 0; r < 4; r++){ const b = g.b1 + 6 + r * 1.6; for (let a = g.a0 - 4; a <= g.a0 + 4; a += 1){ if ((Math.round(a) + r) & 1) continue; const p = prj(a, b, 0); fput(Math.round(p[0]), Math.round(p[1]), 1); } } }];
+  if (lv === 3){
+    // palissade et la voiture noire du ministre
+    const fb0 = lot.b1 - 2;
+    parts.push(part(lot.ca, fb0, 0, () => { SH.CUR = M.CCP3; wallFace(lot.a0 + 3, fb0, lot.ca - 3, fb0, 0, 2.4, (u: number) => (u % 1.2) < .5 ? 1 : 0, 1) || wallFace(lot.ca - 3, fb0, lot.a0 + 3, fb0, 0, 2.4, 0, 1); }));
+    parts.push(part(lot.a1 - 5, lot.cb + 9, 0, () => drawCar(lot.a1 - 5, lot.cb + 9, 'b', 1, 'ccp')));
+  }
+  return { parts, decals, lights: houseLights(g) };
+}

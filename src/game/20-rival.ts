@@ -20,7 +20,7 @@ export const newBrain = (): Brain => ({ acc: 0, lastBarge: 0, lastWall: 0, lost:
 export const RIVAL: Rival = { usc: newBrain(), ccp: newBrain(), tries: 0, auto: { usc: false, ccp: true } };
 // gouts de chaque camp pour les loisirs et le prestige
 export const RIVAL_FUN: Record<Side, string[]> = { usc: ['parc', 'diner', 'cinema', 'kiosque', 'bowling', 'drivein', 'fontaine', 'panneau', 'motel'], ccp: ['parc', 'statue', 'kiosque', 'cirque', 'bulbes', 'panneau', 'fontaine', 'tribune'] };
-export const RIVAL_BIG: Record<Side, string[]> = { usc: ['radio', 'stade', 'grandmagasin', 'artdeco', 'fusee', 'supermarche'], ccp: ['radio', 'stade', 'stalinien', 'fusee', 'grandmagasin', 'usine'] };
+export const RIVAL_BIG: Record<Side, string[]> = { usc: ['radio', 'stade', 'grandmagasin', 'gratteciel', 'fusee', 'supermarche'], ccp: ['radio', 'stade', 'gratteciel', 'fusee', 'grandmagasin', 'usine'] };
 export const count = (side: Side, type: string) => SH.BLD.filter(l => l.side === side && l.type === type).length;
 export const rnd = (k: number) => hash2(Math.floor(GAME.t * 10) + k * 17, RIVAL.tries++);
 

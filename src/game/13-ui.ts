@@ -7,7 +7,7 @@ import { typeName } from './05-types-extra.ts';
 import { GRAFFITI, cutTreesAlong, drawWallPiece, vestAt, type Vestige } from './07-world.ts';
 import { TER, influenceOf, rebuildLocks, sideAt } from './08-territory.ts';
 import { RW, addRoad, nearRoad, removeRoad, roadCost, roadProblem, sampleCurve, sampleLine, segDist, snapRoadPoint } from './09-roads.ts';
-import { bldAt, buildParts, coastDir, makeBuilding, placeProblem, rebuildTown, type Cat } from './10-town.ts';
+import { NDIR, bldAt, buildParts, coastDir, makeBuilding, placeProblem, rebuildTown, type Cat } from './10-town.ts';
 import { CLOCK, OV_ON, WEATHER, ZMIN, clampCam, mapDirtyAll, scene, screenToWorld, setZNow, setZoom, snapZoom, zoomStep } from './11-render.ts';
 import type { EcoDef, Price, Resources } from './15-economy.ts';
 import { ACHIEVEMENTS, unlock, type AchievementId } from '../platform/achievements.ts';
@@ -116,7 +116,7 @@ export function progress(f: number): string { const p = Math.floor(clamp(f, 0, 1
 state.tool = 'walk'; state.buildType = 'maison'; state.sel = null;
 export const HINTS: Record<string, string> = {
   walk: 'Glisse pour te déplacer, molette pour zoomer, clic droit glissé pour tourner. Clique sur un bâtiment ou un chat.',
-  build: 'Choisis un bâtiment puis clique dans ton territoire. Clic droit glissé ou T pour le tourner. Les bâtiments de la mer se posent face à l’eau.',
+  build: 'Choisis un bâtiment puis clique dans ton territoire. Clic droit glissé ou T pour le tourner (Maj+T dans l’autre sens), seize directions. Les bâtiments de la mer se posent face à l’eau.',
   road: 'Clique le départ, puis l’arrivée. La route continue depuis son bout : clic droit ou Échap pour arrêter.',
   curve: 'Clique le départ, puis le point qui tire la courbe, puis l’arrivée.',
   wall: 'Clique le début du Rideau de Laine puis sa fin. Il fige ta frontière. 3 laine tous les 10 pas.',
@@ -402,7 +402,7 @@ export function catUnder(lx: number, ly: number){
   return best;
 }
 // batiment sous le curseur : on remonte le long de la verticale pour attraper les facades
-export const TIP_H: Record<string, number> = { maison: 13, immeuble: 22, artdeco: 50, stalinien: 50, stade: 8, parc: 3, fontaine: 5, usine: 22, bulbes: 28, fusee: 40, radio: 48, cirque: 16, tribune: 10, statue: 22, panneau: 29, chateau: 32, qg: 24, supermarche: 11, grandmagasin: 20, kolkhoze: 12, kiosque: 10, cinema: 15, bowling: 11, drivein: 12, diner: 9, motel: 12, station: 9, epicerie: 10, port: 12, pecherie: 8, bergerie: 10, phare: 44, drapeau: 26, checkpoint: 8 };
+export const TIP_H: Record<string, number> = { maison: 13, immeuble: 22, gratteciel: 50, artdeco: 50, stalinien: 50, stade: 8, parc: 3, fontaine: 5, usine: 22, bulbes: 28, fusee: 40, radio: 48, cirque: 16, tribune: 10, statue: 22, panneau: 29, chateau: 32, qg: 24, supermarche: 11, grandmagasin: 20, kolkhoze: 12, kiosque: 10, cinema: 15, bowling: 11, drivein: 12, diner: 9, motel: 12, station: 9, epicerie: 10, port: 12, pecherie: 8, bergerie: 10, phare: 44, drapeau: 26, checkpoint: 8 };
 export function bldPick(lx: number, ly: number){
   for (let z = 50; z >= 0; z -= 1){
     const [a, b] = unprj(lx + .5, ly + .5 + z), l = bldAt(a, b);
@@ -446,7 +446,7 @@ scene.addEventListener('pointermove', e => {
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
     if (!drag.moved && Math.hypot(dx, dy) > 5){ drag.moved = true; scene.classList.add(drag.turn || drag.spin ? 'turning' : 'panning'); cam.target = null; cam.follow = null; }
     if (drag.moved){
-      if (drag.spin){ const nd = ((drag.dir0 + Math.round(dx / 50)) % 4 + 4) % 4; if (nd !== (state.buildDir || 0)){ state.buildDir = nd; SH.ghost = null; SH.sfx('click'); } }
+      if (drag.spin){ const nd = ((drag.dir0 + Math.round(dx / 24)) % NDIR + NDIR) % NDIR; if (nd !== (state.buildDir || 0)){ state.buildDir = nd; SH.ghost = null; SH.sfx('click'); } }
       else if (drag.turn){ cam.phi = drag.phi + dx * 0.008; cam.phiT = null; }
       else {
         const s = SH.DPR / SH.Z, sv = { a: cam.a, b: cam.b };
@@ -516,7 +516,7 @@ window.addEventListener('keydown', e => {
   if (GAME.mode !== 'play'){ if (k === '+' || k === '=') zoomStep(1); else if (k === '-' || k === '_') zoomStep(-1); return; }
   if (k === 'b') setTool(state.tool === 'build' ? 'walk' : 'build');
   else if (k === 'r') setTool('road');
-  else if (k === 't' && state.tool === 'build'){ state.buildDir = ((state.buildDir || 0) + 1) % 4; SH.ghost = null; SH.sfx('click'); }
+  else if (k === 't' && state.tool === 'build'){ state.buildDir = ((state.buildDir || 0) + (e.shiftKey ? NDIR - 1 : 1)) % NDIR; SH.ghost = null; SH.sfx('click'); }
   else if (k === 'c') setTool('curve');
   else if (k === 'm') setTool('wall');
   else if (k === 'x') setTool('demolish');

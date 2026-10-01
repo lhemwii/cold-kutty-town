@@ -55,8 +55,7 @@ export const ECO: Record<string, EcoDef> = {
   stade: bdef('prestige', 110, { r: 9, l: -2, jobs: 6, fun: 30, rad: 42, up: true, desc: 'Matchs le soir. Beaucoup de ronrons.' }),
   grandmagasin: bdef('prestige', 90, { c: 6, r: 4, l: -2, jobs: 10, fun: 12, rad: 36, up: true, desc: 'Vitrines, escalators et croquettes.' }),
   tribune: bdef('prestige', 60, { r: 6, fun: 10, rad: 40, desc: 'Pour les grands discours.' }),
-  artdeco: bdef('prestige', 120, { l: 6, r: 3, c: -2, pop: 16, jobs: 12, rad: 44, up: true, desc: 'Un gratte-ciel de bureaux et d’appartements.' }),
-  stalinien: bdef('prestige', 120, { l: 6, r: 3, c: -2, pop: 16, jobs: 12, rad: 44, up: true, desc: 'Un gratte-ciel monumental.' }),
+  gratteciel: bdef('prestige', 120, { l: 6, r: 3, c: -2, pop: 16, jobs: 12, rad: 44, up: true, desc: 'Un gratte-ciel de bureaux et d’appartements, la fierté de la ville.' }),
   fusee: bdef('prestige', 150, { costR: 60, l: -3, jobs: 8, rad: 40, desc: 'La course à l’espace : chaque lancement rapporte des ronrons.' }),
   port: bdef('mer', 40, { c: 6, l: -.5, jobs: 5, rad: 48, up: true, coast: true, noRoad: true, time: 14, desc: 'Ponton, puis quai, puis grand port. Lance des barges et des chalutiers.' }),
   phare: bdef('mer', 40, { r: 3, l: -.5, rad: 54, coast: true, noRoad: true, desc: 'Éclaire la côte la nuit. Bonne influence.' }),
@@ -67,15 +66,15 @@ export const CATS_MENU: [Cat, string][] = [['logement', 'Logement'], ['nourritur
 // chaque camp a ses gouts : un diner fait plus ronronner l'ouest, une usine fache moins l'est
 export const CAMP_VAL: Record<string, [number, number]> = {
   maison: [2, 1], immeuble: [1, 3], diner: [5, 1], cinema: [5, 2], drivein: [6, 1], motel: [3, 1], bowling: [5, 1], station: [3, 2],
-  epicerie: [3, 3], supermarche: [7, 1], grandmagasin: [6, 4], artdeco: [6, 2], stalinien: [2, 7], usine: [1, 8],
+  epicerie: [3, 3], supermarche: [7, 1], grandmagasin: [6, 4], gratteciel: [6, 7], usine: [1, 8],
   kolkhoze: [1, 7], bulbes: [2, 4], stade: [7, 5], radio: [3, 4], fusee: [5, 7], cirque: [3, 5], statue: [2, 4], panneau: [3, 3],
   fontaine: [2, 2], chateau: [2, 2], kiosque: [3, 2], parc: [2, 1], tribune: [2, 6]
 };
 export const taste = (type: string, side: Side): number => { const v = CAMP_VAL[type]; return v ? .55 + v[side === 'usc' ? 0 : 1] / 7 : 1; };
 export const LVL_POP: Record<string, number[]> = { maison: [5, 8, 12], immeuble: [14, 22, 34] };
 export const LVL_MULT = [1, 1.7, 2.5];
-export const LVL_NAME: Record<string, string[]> = { maison: ['Maison', 'Pavillon', 'Villa'], immeuble: ['Immeuble', 'Barre', 'Tour'], port: ['Ponton', 'Quai', 'Grand port'] };
-export const LVL_NAME_CCP: Record<string, string[]> = { maison: ['Isba', 'Datcha', 'Datcha de ministre'], immeuble: ['Immeuble', 'Barre du Plan', 'Tour du Peuple'], port: ['Ponton', 'Quai du Peuple', 'Port du Peuple'] };
+export const LVL_NAME: Record<string, string[]> = { maison: ['Maison', 'Pavillon', 'Villa'], immeuble: ['Immeuble', 'Grand immeuble', 'Gratte-ciel'], port: ['Ponton', 'Quai', 'Grand port'] };
+export const LVL_NAME_CCP: Record<string, string[]> = { maison: ['Isba', 'Datcha', 'Datcha de ministre'], immeuble: ['Barre', 'Grande barre', 'Tour du Peuple'], port: ['Ponton', 'Quai du Peuple', 'Port du Peuple'] };
 export function lvlName(l: Building): string { const L = (l.side === 'ccp' ? LVL_NAME_CCP : LVL_NAME)[l.type]; return L ? L[(l.lvl || 1) - 1] : typeName(l.type, l.side); }
 export const costOf = (type: string): number => (ECO[type] ? ECO[type].cost : 20);
 // prix complet d'un batiment pour un camp : laine, croquettes, ronrons (les avant-postes coutent de plus en plus cher)

@@ -1,7 +1,7 @@
 import { SH, type Building, type Light, type Part } from './00-shared.ts';
-import { COLOR, FONT, M, TAU, UP, boxS, bz, cam, clamp, dep, drawFace, drawFlagPole, drawStar, fput, gableRoof, gableWalls, hash2, line3, lineS, plateW, prj, wallFace } from './01-core.ts';
-import { Lc, alongSh, bobZ, drawCar, drawHull, facadePlate, houseGeo, part, pennant, rbox, rot2, sideLight, wallBase } from './03-buildings-base.ts';
-import { TYPES } from './04-types.ts';
+import { COLOR, FONT, M, TAU, UP, boxS, bz, cam, clamp, dep, drawFace, drawFlagPole, drawStar, fput, gableRoof, gableRoof2, gableWalls, hash2, line3, lineS, plateW, prj, wallFace } from './01-core.ts';
+import { Lc, alongSh, bobZ, drawCar, drawHull, facadePlate, frontVisible, houseGeo, part, pennant, rbox, rot2, sideLight, wallBase } from './03-buildings-base.ts';
+import { TYPES, pyramid } from './04-types.ts';
 /* ================= encore des batiments : gratte-ciel, kolkhoze, bulbes, metro... ================= */
 // dome en bulbe dessine au pixel, rayures qui tournent avec la vue
 export function drawDome(a: number, b: number, z0: number, r: number, hgt: number, mat: number, t: number, swirl: boolean){
@@ -81,7 +81,16 @@ Object.assign(TYPES, {
       drawFace([fa0, fb0, 0, fa1, fb0, 0, fa1, fb1, 0, fa0, fb1, 0], UP, alongSh(fa0, fb0, 0, fa0, fb1, 0, fb1 - fb0, (u, x, y) => (Math.floor(u / 1.4) & 1) ? 1 : 0), -1);
     };
     const g = houseGeo(lot.a1 - 8, lot.cb - 4, 10, 14, 7, 6, seed, 'b', 3);
-    const barn = () => { SH.CUR = M.BRICK; gableWalls(g.a0, g.a1, g.b0, g.b1, g.hh, g.rh, 'b', (u, h, x, y, k) => { if (k === 3 && Math.abs(u - 7) < 2.2 && h < 5) return (Math.abs(u - 7) > 1.8 || h > 4.6) ? 1 : ((Math.floor(u + h) & 1) ? 1 : 0); return (Math.floor(u * 1.2) % 3 === 0) ? 1 : 0; }); gableRoof(g.a0, g.a1, g.b0, g.b1, g.hh, g.rh, 'b', 1, 6, 1); };
+    // USC : grange rouge a planches blanches et porte en croix ; CCR : etable blanchie a la chaux, etoile rouge au pignon
+    const barn = () => {
+      SH.CUR = ccp ? M.CONCRETE : M.FLAG_RED;
+      gableWalls(g.a0, g.a1, g.b0, g.b1, g.hh, g.rh, 'b', (u, h, x, y, k) => {
+        if (k === 3 && Math.abs(u - 7) < 2.2 && h < 5) return (Math.abs(u - 7) > 1.8 || h > 4.6) ? 1 : (!ccp && Math.abs(Math.abs(u - 7) - (4.6 - h) * .45) < .45 ? 1 : 0);
+        return ccp ? wallBase(k, x, y) : ((Math.floor(u * 1.2) % 4 === 0) ? 1 : 0);
+      });
+      SH.CUR = ccp ? M.ROOF_USC : M.ROOF_CCP; gableRoof2(g.a0, g.a1, g.b0, g.b1, g.hh, g.rh, 'b', 1, 6, 1);
+      if (ccp && frontVisible(0)){ const p = prj(g.ca, g.b1, g.hh + 2.5); SH.CUR = M.SIGN_CCP; drawStar(fput, Math.round(p[0]) - 3, Math.round(p[1]) - 3, 0, true); }
+    };
     const silo = () => { SH.CUR = M.METAL; drawCyl(lot.a1 - 5, lot.b1 - 6, 0, 3, 18, true); };
     const tractor = (t: number) => {
       const p = (Math.sin(t * .18 + seed) + 1) / 2, ta = fa0 + 2 + p * (fa1 - fa0 - 4), tb = fb0 + 3 + ((Math.floor(t * .06 + seed) % 5) * (fb1 - fb0 - 6) / 4);
@@ -94,6 +103,7 @@ Object.assign(TYPES, {
       lights: [Lc(lot.a1 - 8, lot.cb + 6, 8, 1.1)], shadowPts: SH.circ(lot.a1 - 5, lot.b1 - 6, 3, 21, 8) };
   } },
   bulbes: { name: 'Chapelle', nameCCP: 'Musée à bulbes', fem: false, build(lot: Building, seed: number){
+    if (lot.side !== 'ccp') return chapelleUSC(lot, seed);
     const ca = lot.ca, cb = lot.cb;
     const base = () => boxS(ca - 8, ca + 8, cb - 8, cb + 8, 0, 10, (u: number, h: number, x: number, y: number, k: number) => {
       if (h > 8.8) return 1;
@@ -434,3 +444,28 @@ Object.assign(TYPES, {
     return { parts: [part(ca - 4, cb - 1, 0, booth), part(ca + 2, cb, .2, barrier), part(ca + 6, cb + 5, 0, (t) => drawFlagPole(ca + 6, cb + 5, 0, 18, side, t))], lights: [Lc(ca, cb, 12, 1.3)] };
   } }
 });
+
+/* ================= etape 2 : un seul type par batiment, habille par camp ================= */
+// le gratte-ciel : tour art deco a l'USC, tour monumentale a etoile a la CCR (les deux anciens types restent pour le dessin)
+TYPES.gratteciel = { name: 'Gratte-ciel', nameCCP: 'Gratte-ciel du Peuple', fem: false, build(lot: Building, seed: number){ return (lot.side === 'ccp' ? TYPES.stalinien : TYPES.artdeco).build(lot, seed); } };
+// la chapelle de l'USC : bois blanc a planches, fenetres hautes, clocher et fleche a l'avant
+function chapelleUSC(lot: Building, seed: number){
+  const ca = lot.ca, g = houseGeo(ca, lot.cb + 1, 10, 16, 9, 5, seed, 'b', 0), lb = g.b1 - g.b0, la = g.a1 - g.a0;
+  const body = () => {
+    SH.CUR = M.USC5;
+    gableWalls(g.a0, g.a1, g.b0, g.b1, g.hh, g.rh, 'b', (u: number, h: number, x: number, y: number, k: number) => {
+      const len = (k & 1) ? lb : la;
+      if (k === 0 && Math.abs(u - len / 2) < 1.6 && h < 5.5) return (Math.abs(u - len / 2) > 1.1 || h > 5) ? 1 : 0;
+      if (k & 1){ const cu = u % 4; if (cu > 1.3 && cu < 2.9 && h > 2.5 && h < 7 - Math.abs(cu - 2.1) * 1.2) return 3; }
+      return (u % 1.8) < .4 ? 1 : wallBase(k, x, y);
+    });
+    SH.CUR = M.ROOF_USC; gableRoof2(g.a0, g.a1, g.b0, g.b1, g.hh, g.rh, 'b', 1, 7, 1);
+  };
+  const steeple = () => {
+    const sb = g.b1 - 3;
+    SH.CUR = M.USC5; boxS(ca - 2.5, ca + 2.5, sb - 2.5, sb + 2.5, g.hh, g.hh + 8, (u: number, h: number) => (h > 3 && h < 6 && u > 1.5 && u < 3.5) ? ((Math.floor(h * 2) & 1) ? 1 : 0) : ((u % 1.8) < .4 ? 1 : 0), 1);
+    SH.CUR = M.ROOF_USC; pyramid(ca, sb, 2.9, g.hh + 8, g.hh + 17, 1);
+    SH.CUR = M.METAL; line3(ca, sb, g.hh + 17, ca, sb, g.hh + 20, 1); line3(ca - 1, sb, g.hh + 19, ca + 1, sb, g.hh + 19, 1);
+  };
+  return { parts: [part(ca, g.cb, 0, body), part(ca, g.b1 - 3, .5, steeple)], lights: [Lc(ca, g.b1 + 5, 11, 1.2)], shadowPts: [ca, g.b1 - 3, g.hh + 20] };
+}

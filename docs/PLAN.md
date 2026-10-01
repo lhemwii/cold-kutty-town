@@ -218,12 +218,14 @@ Chaque étape laisse le jeu jouable. L’ordre proposé : d’abord ce qui exist
 - [ ] Les chats nommés : vérifier qu’ils apparaissent tous et ne se marchent pas dessus.
 - [ ] Nettoyer les restes de l’ancien code (réglages de lumière, motifs, inspecteur de pixels).
 
-## Étape 2. Les mêmes bâtiments pour les deux camps
+## Étape 2. Les mêmes bâtiments pour les deux camps (en cours)
 
-- [ ] Un seul type par bâtiment, avec un habillage USC et un habillage CCR : fusionner ce qui existe en double (ferme et kolkhoze, les deux gratte-ciel, chapelle et musée à bulbes...).
-- [ ] Corriger l’immeuble : côté USC, il porte aujourd’hui les signes de la CCR.
-- [ ] Dessiner le style qui manque à chaque bâtiment (le diner devient la Cantine du Peuple côté CCR, le bowling un club ouvrier, etc.), d’après [BATIMENTS.md](BATIMENTS.md).
-- [ ] Seize orientations (pas de 22,5 degrés), au minimum huit si seize ne rend pas bien en pixel art ; les routes suivent. L’alignement automatique face à la route la plus proche.
+- [~] Un seul type par bâtiment, avec un habillage USC et un habillage CCR. Fait : les deux gratte-ciel n’en font plus qu’un (art déco à l’USC, monumental à la CCR ; les anciennes sauvegardes sont converties) ; la ferme (grange rouge à l’USC, étable blanchie à étoile rouge à la CCR) ; la chapelle de bois blanc à clocher à l’USC, le musée à bulbes à la CCR. Reste les autres bâtiments d’un seul style (voir [BATIMENTS.md](BATIMENTS.md)).
+- [x] L’immeuble redessiné pour chaque camp, sans plus aucun signe de la CCR côté USC. USC : briques à escaliers de secours et corniche, puis plus haut avec un réservoir d’eau en bois sur le toit, puis gratte-ciel de pierre en retrait au-dessus des briques. CCR : barre de béton de cinq étages, puis de neuf avec un panneau rouge à étoile sur le toit, puis tour du Peuple à grande étoile rouge.
+- [x] La maison redessinée pour chaque camp. USC : maison de bois à planches et porche, puis pavillon à garage, puis villa à étage et piscine. CCR : isba en rondins aux volets bleus, puis datcha verte à véranda vitrée, puis datcha de ministre à étage, palissade et voiture noire.
+- [ ] Dessiner le style qui manque aux autres bâtiments (le diner devient la Cantine du Peuple côté CCR, le bowling un club ouvrier, le cinéma, etc.), d’après [BATIMENTS.md](BATIMENTS.md).
+- [x] Seize orientations : T tourne le bâtiment de 22,5 degrés (Maj+T dans l’autre sens), le clic droit glissé aussi ; son emprise au sol suit. Les bâtiments de la côte gardent leurs quatre directions, face à la mer. Les sauvegardes d’avant sont converties.
+- [ ] Les routes dans les seize directions, et l’alignement automatique face à la route la plus proche.
 - [ ] Améliorer change le bâtiment à l’écran pour tous les bâtiments améliorables, avec un chantier visible (échafaudages, grue).
 - [ ] Aperçu du prix et de l’effet au survol, dans le fantôme du bâtiment ; ce que l’amélioration va rapporter, dans le panneau.
 - [ ] Défrichage visible : souches et chantier quand on coupe une forêt.

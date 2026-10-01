@@ -14,16 +14,16 @@ Proposition à valider, faite à partir de la vision du [PRD](PRD.md).
 
 | Bâtiment et ses règles | USC | CCR |
 |---|---|---|
-| **Maison** [existe] P1<br>Coût : 20 laine.<br>Loge 5 habitants, puis 8, puis 12.<br>Niveau 3 : demande du pâté. | Maison de bois à porche, puis pavillon à garage, puis villa à piscine. | Isba en rondins, puis datcha à véranda, puis datcha de ministre. |
-| **Immeuble** [à habiller] P1<br>Coût : 45 laine. Entretien : 1 laine.<br>Loge 14 habitants, puis 22, puis 34.<br>Niveau 3 : demande du tricot et de l’électricité. | Immeuble de briques à escaliers de secours, puis immeuble à corniche et château d’eau sur le toit, puis gratte-ciel de bureaux et d’appartements. | Barre de béton de cinq étages, puis barre de neuf étages, puis tour du Peuple à étoile rouge. |
-| **Gratte-ciel** [à habiller] P2<br>Coût : 120 laine, 20 tricot. Entretien : 2 croquettes.<br>Loge 16 habitants, 12 emplois, produit 6 laine et 3 ronrons.<br>Grande influence. | Tour art déco à flèche d’acier. | Tour monumentale à étages en gradins et étoile au sommet. |
+| **Maison** [existe, habillée par camp] P1<br>Coût : 20 laine.<br>Loge 5 habitants, puis 8, puis 12.<br>Niveau 3 : demande du pâté. | Maison de bois à porche, puis pavillon à garage, puis villa à piscine. | Isba en rondins, puis datcha à véranda, puis datcha de ministre. |
+| **Immeuble** [existe, habillé par camp] P1<br>Coût : 45 laine. Entretien : 1 laine.<br>Loge 14 habitants, puis 22, puis 34.<br>Niveau 3 : demande du tricot et de l’électricité. | Immeuble de briques à escaliers de secours, puis immeuble à corniche et château d’eau sur le toit, puis gratte-ciel de bureaux et d’appartements. | Barre de béton de cinq étages, puis barre de neuf étages, puis tour du Peuple à étoile rouge. |
+| **Gratte-ciel** [existe, habillé par camp] P2<br>Coût : 120 laine, 20 tricot. Entretien : 2 croquettes.<br>Loge 16 habitants, 12 emplois, produit 6 laine et 3 ronrons.<br>Grande influence. | Tour art déco à flèche d’acier. | Tour monumentale à étages en gradins et étoile au sommet. |
 
 ## Nourriture
 
 | Bâtiment et ses règles | USC | CCR |
 |---|---|---|
 | **Pêcherie** [existe] P1<br>Coût : 25 laine. Entretien : 0,5 laine.<br>Produit 12 croquettes, 4 emplois. Sur la côte ou au bord d’une rivière.<br>Arme un chalutier par niveau. | Cabane de pêche et ponton en bois, puis criée, puis conserverie de poisson. | Coopérative de pêche, puis combinat de pêche, puis flottille du Peuple. |
-| **Ferme** [à habiller] P1<br>Coût : 35 laine. Entretien : 1 laine.<br>Produit 16 croquettes, 6 emplois. Meilleure en prairie. | Ferme rouge et silo, puis ferme à tracteur, puis grande exploitation. | Kolkhoze et son tracteur, puis kolkhoze modèle, puis sovkhoze géant. |
+| **Ferme** [existe, habillée par camp] P1<br>Coût : 35 laine. Entretien : 1 laine.<br>Produit 16 croquettes, 6 emplois. Meilleure en prairie. | Grange rouge à planches blanches, silo et tracteur vert ; puis ferme à tracteur, puis grande exploitation. | Étable blanchie à la chaux, étoile rouge au pignon, tracteur rouge ; puis kolkhoze modèle, puis sovkhoze géant. |
 | **Épicerie** [existe] P1<br>Coût : 25 laine.<br>Produit 5 croquettes et 1 ronron, 3 emplois. | Épicerie du coin à auvent rayé. | Gastronom à vitrine. |
 | **Supermarché** [existe] P2<br>Coût : 70 laine. Entretien : 2 laine.<br>Produit 14 croquettes et 2 ronrons, 8 emplois. Demande de l’électricité. | Supermarché à néons et parking. | Univermag. |
 | **Conserverie** [nouveau] P1<br>Coût : 50 laine. Électricité.<br>Transforme 6 croquettes en 2 pâtés, 6 emplois. | Usine à pâté à grande étiquette peinte. | Combinat du pâté à cheminée. |
@@ -93,7 +93,7 @@ Proposition à valider, faite à partir de la vision du [PRD](PRD.md).
 | **Salle de jeux** [à habiller] P2<br>Coût : 45 laine.<br>5 ronrons, loisirs. | Bowling à néons. | Club ouvrier, tables d’échecs. |
 | **Cirque** [existe] P2<br>Coût : 55 laine. Entretien : 1 croquette.<br>6 ronrons, beaucoup de loisirs. | Cirque. | Cirque du Peuple. |
 | **Hôtel** [existe] P2<br>Coût : 35 laine. Entretien : 1 croquette.<br>4 ronrons, visiteurs. | Motel. | Hôtel du Peuple. |
-| **Monument** [existe] P2<br>Coût : 60 laine.<br>5 ronrons, influence. | Chapelle blanche. | Musée à bulbes. |
+| **Monument** [existe, habillé par camp] P2<br>Coût : 60 laine.<br>5 ronrons, influence. | Chapelle de bois blanc à clocher. | Musée à bulbes dorés. |
 | **Tour radio** [existe] P1<br>Coût : 55 laine. Entretien : 1 laine.<br>6 ronrons, très grande influence ; sa radio s’entend de l’autre côté du Rideau. | Antenne et néons. | Antenne à étoile. |
 | **Stade** [existe] P2<br>Coût : 110 laine. Entretien : 2 laine.<br>9 ronrons, beaucoup de loisirs. | Stade de baseball. | Stade du Peuple. |
 | **Grand magasin** [existe] P2<br>Coût : 90 laine. Entretien : 2 laine.<br>6 croquettes, 4 ronrons. | Grand magasin à escalators. | Grand Magasin du Peuple. |

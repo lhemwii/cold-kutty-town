@@ -30,7 +30,7 @@ La conversion depuis l’ancienne portée unique a été faite par un script (an
 | `07-world.ts` | Forêts et montagnes rangées par cases, Rideau de Laine en pans libres, miradors, phare, lampadaires, voilier, vestiges catzi (`VEST`, `VEST_DEF`). |
 | `08-territory.ts` | Territoires : grille de cases de 4 unités, influence des bâtiments, expansion en direct, pression aux frontières, verrous. |
 | `09-roads.ts` | Routes droites et courbes : peinture au sol, graphe, raccords, accès au QG, voitures. |
-| `10-town.ts` | Bâtiments posés (`BLD`), règles de pose, chats nommés qui arrivent avec leur bâtiment, reconstruction de la scène. Bâtiments tournés d’un quart de tour (`buildParts`, `turnDraw`). |
+| `10-town.ts` | Bâtiments posés (`BLD`), règles de pose, chats nommés qui arrivent avec leur bâtiment, reconstruction de la scène. Bâtiments tournés dans seize directions (`dirAngle`, `turnedFoot`, `buildParts`, `turnDraw`) ; ceux de la côte en quatre, face à la mer. |
 | `11-render.ts` | Palette jour et nuit, météo, zoom, vue de loin en direct, rendu du sol avec territoires, objets, ombres. |
 | `12-portrait.ts` | Portrait détaillé du chat dans la fenêtre de discussion. |
 | `13-ui.ts` | Outils : observer, construire, routes, Rideau, démolir, annuler ; souris, tactile, clavier ; pause et vitesse. |

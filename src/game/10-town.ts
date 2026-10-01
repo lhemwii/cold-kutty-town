@@ -16,8 +16,19 @@ SH.BLD = []; export let BLD_ID = 1;
 export const FOOT: Record<string, [number, number]> = { statue: [16, 16], fontaine: [32, 32], panneau: [46, 10], drapeau: [18, 16], parc: [32, 28], kiosque: [32, 30], chateau: [18, 18],
   phare: [18, 18], port: [32, 32], pecherie: [28, 28], checkpoint: [22, 18], maison: [28, 26], radio: [30, 28], epicerie: [26, 24], diner: [32, 22] };
 export const footOf = (type: string): [number, number] => FOOT[type] || [36, 31];
+// direction d'un batiment (l.dir) : pour ceux de la cote, de 0 a 3, face a la mer ; pour les autres, de 0 a 15, par pas de 22,5 degres
+export const NDIR = 16;
+export const dirAngle = (d: number): number => -d * Math.PI / 8;
+export const selfTurning = (type: string): boolean => !!SELF_DIR[type] || !!(SH.ECO[type] && SH.ECO[type].coast);
+// emprise au sol (a, b) d'un batiment tourne : la boite qui contient son emprise tournee
+export function turnedFoot(type: string, dir: number): [number, number] {
+  const [fa, fb] = footOf(type);
+  if (selfTurning(type)) return (dir === 1 || dir === 3) && FOOT[type] ? [fb, fa] : [fa, fb];
+  const th = dirAngle(dir || 0), c = Math.abs(Math.cos(th)), s = Math.abs(Math.sin(th));
+  return [Math.round(fa * c + fb * s), Math.round(fa * s + fb * c)];
+}
 export function makeBuilding(type: string, side: Side, ca: number, cb: number, dir?: number): Building {
-  const [fa, fb] = (dir === 1 || dir === 3) && FOOT[type] ? [footOf(type)[1], footOf(type)[0]] : footOf(type);
+  const [fa, fb] = turnedFoot(type, dir || 0);
   const l: Building = { id: BLD_ID++, type, side, ca, cb, a0: ca - fa / 2, a1: ca + fa / 2, b0: cb - fb / 2, b1: cb + fb / 2, lvl: 1, dir: dir || 0, done: false, buildT: 0, bdur: 0, upT: 0, active: true };
   return l;
 }
@@ -304,10 +315,9 @@ export function levelBadge(l: Building): void {
   SH.CUR = M.ICON_Y;
   for (let k = 0; k < l.lvl - 1; k++) for (let d = 0; d < 3; d++){ fput(x + k * 6 + d, y - d, 1); fput(x + k * 6 + 4 - d, y - d, 1); }
 }
-/* ---- batiments tournes : on les construit face a +b, puis on les tourne d'un quart de tour autour de leur centre ---- */
+/* ---- batiments tournes : on les construit face a +b, puis on les tourne autour de leur centre (seize directions) ---- */
 // le port et la pecherie gerent eux-memes leur direction (face a la mer)
 export const SELF_DIR: Record<string, number> = { port: 1, pecherie: 1 };
-export const DIR_ROT = [0, -Math.PI / 2, Math.PI, Math.PI / 2];
 // dessin tourne : meme centre a l'ecran, projection tournee de l'angle, soleil et lune ramenes dans le repere du batiment
 export function turnDraw(ca: number, cb: number, th: number, fn: (t: number) => void): (t: number) => void {
   const c = Math.cos(th), s = Math.sin(th);
@@ -329,7 +339,7 @@ export const turnsItself = (l: Building): boolean => !l.dir || SELF_DIR[l.type] 
 // construit le dessin d'un batiment dans sa direction
 export function buildParts(l: Building, seed: number): BuiltParts {
   if (turnsItself(l)) return TYPES[l.type].build(l, seed);
-  const [fa, fb] = footOf(l.type), th = DIR_ROT[l.dir], c = Math.cos(th), s = Math.sin(th), ca = l.ca, cb = l.cb;
+  const [fa, fb] = footOf(l.type), th = dirAngle(l.dir), c = Math.cos(th), s = Math.sin(th), ca = l.ca, cb = l.cb;
   const lot = Object.assign({}, l, { a0: ca - fa / 2, a1: ca + fa / 2, b0: cb - fb / 2, b1: cb + fb / 2, dir: 0 });
   const r = TYPES[l.type].build(lot, seed);
   const R = (a: number, b: number): [number, number] => [ca + (a - ca) * c - (b - cb) * s, cb + (a - ca) * s + (b - cb) * c];

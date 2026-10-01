@@ -7,11 +7,11 @@ import { DIR_V } from './06-types-more.ts';
 import { LAMP_POS, PEAKS, TREES, VEST, buildForests, buildMountains, buildVestiges } from './07-world.ts';
 import { SNAME, TER, claimDisc, initTerritory, rebuildLocks, stepTerritory, terBoxRebuild, terPct } from './08-territory.ts';
 import { CARS, RW, RWS, addRoad, buildGraph, makeRoad, repaintAllRoads, reseatCars, roadProblem, sampleCurve, sampleLine, stepCars } from './09-roads.ts';
-import { catPos, findSpot, makeBuilding, placeProblem, rebuildTown, type Cat } from './10-town.ts';
+import { catPos, findSpot, makeBuilding, placeProblem, rebuildTown, selfTurning, NDIR, type Cat } from './10-town.ts';
 import { CLOCK, FAR, MAPV, OV_ON, WEATHER, ZLEVELS, ZMIN, centerOn, clampCam, layout, mapDirtyAll, mapInit, render, screenToWorld, setZoom, stepClock, stepWeather, stepZoom, worldToScreen, zoomLevels } from './11-render.ts';
 import { drawFlagIcon, drawPortrait } from './12-portrait.ts';
 import { $, $of, HISTORY, achieve, addWall, drawCompass, setSpeed, setTool, stepKeys, toast, updateClockUI, updateUndo } from './13-ui.ts';
-import { THUMBS, buildMenu, flagSVG, lootVestige } from './14-hud.ts';
+import { THUMBS, buildMenu, flagSVG, lootVestige, thumb } from './14-hud.ts';
 import { DEMOS, EV, buildTime, newRes, stepEco, stepEvents, stepSpace } from './15-economy.ts';
 import { CREWS, buildNav, offshoreFrom, stepBoats, type Boat } from './16-boats.ts';
 import { PAPER, applySeason, deliverPaper, memGreeting, memRemember, updateCalUI, type ChatTurn } from './17-calendar.ts';
@@ -203,12 +203,12 @@ export interface SaveData {
   name?: string;
 }
 // ce qui sort du stockage n'est qu'une valeur JSON : on ne garde que ce qui porte le bon numero de version
-export function asSave(d: unknown): SaveData | null { return typeof d === 'object' && d !== null && 'v' in d && d.v === 8 ? d as SaveData : null; }
+export function asSave(d: unknown): SaveData | null { return typeof d === 'object' && d !== null && 'v' in d && (d.v === 8 || d.v === 9) ? d as SaveData : null; }
 // territoire compresse : longueurs des suites de cases identiques
 export function rleEncode(a: ArrayLike<number>){ const out: number[] = []; let v = a[0], n = 0; for (let i = 0; i < a.length; i++){ if (a[i] === v) n++; else { out.push(v, n); v = a[i]; n = 1; } } out.push(v, n); return out.join(','); }
 export function rleDecode(s: string, into: Uint8Array){ const p = s.split(',').map(Number); let i = 0; for (let k = 0; k + 1 < p.length; k += 2){ into.fill(p[k], i, i + p[k + 1]); i += p[k + 1]; } }
 export function snapshot(): SaveData {
-  return { v: 8, seed: GAME.seed, size: GAME.size, conf: GAME.conf, side: GAME.side, t: Math.round(GAME.t), speed: GAME.speed, cal: SH.CAL.m, h: +CLOCK.h.toFixed(2),
+  return { v: 9, seed: GAME.seed, size: GAME.size, conf: GAME.conf, side: GAME.side, t: Math.round(GAME.t), speed: GAME.speed, cal: SH.CAL.m, h: +CLOCK.h.toFixed(2),
     res: SIDES.map(s => [Math.round(SH.RES[s].croq), Math.round(SH.RES[s].laine), Math.round(SH.RES[s].ron)]),
     bld: SH.BLD.map(l => [l.type, l.side === 'usc' ? 0 : 1, l.ca, l.cb, l.lvl || 1, l.dir || 0, l.done ? -1 : +(GAME.t - l.buildT).toFixed(1), l.upT ? +(GAME.t - l.upT).toFixed(1) : -1]),
     roads: SH.ROADS.map(r => [r.side === 'usc' ? 0 : 1, r.pts.map(p => [Math.round(p[0] * 10) / 10, Math.round(p[1] * 10) / 10])]),
@@ -225,15 +225,19 @@ export function saveSoon(){
   saveTimer = setTimeout(SH.saveNow, 900);
 }
 export function loadGame(d: SaveData | null){
-  if (!d || d.v !== 8) return false;
+  // version 8 : quatre directions pour tous les batiments ; version 9 : seize pour ceux qui ne sont pas sur la cote
+  if (!d || (d.v !== 8 && d.v !== 9)) return false;
   newWorld(d.seed | 0, d.size, d.conf);
   GAME.side = d.side === 'ccp' ? 'ccp' : 'usc'; GAME.rival = other(GAME.side); GAME.t = +d.t || 0; SH.CAL.m = clamp(d.cal | 0, 0, 11); CLOCK.h = +d.h || 10;
   SIDES.forEach((s, k) => { const r = d.res && d.res[k]; if (r){ SH.RES[s].croq = +r[0] || 0; SH.RES[s].laine = +r[1] || 0; SH.RES[s].ron = +r[2] || 0; } });
   for (const t of String(d.trees || '').split(',')){ const i = +t; if (t !== '' && TREES.list[i]) TREES.list[i].alive = false; }
   for (const id of d.vest || []){ const v = VEST.find(o => o.id === id); if (v) v.looted = true; }
   for (const b of d.bld || []){
-    if (!TYPES[b[0]] || !SH.ECO[b[0]]) continue;
-    const l = makeBuilding(b[0], b[1] ? 'ccp' : 'usc', +b[2], +b[3], b[5] | 0);
+    // les deux anciens gratte-ciel (un par camp) n'en font plus qu'un
+    const ty = b[0] === 'artdeco' || b[0] === 'stalinien' ? 'gratteciel' : b[0];
+    if (!TYPES[ty] || !SH.ECO[ty]) continue;
+    const dir = (d.v === 8 && !selfTurning(ty) ? (b[5] | 0) * 4 : b[5] | 0) % NDIR;
+    const l = makeBuilding(ty, b[1] ? 'ccp' : 'usc', +b[2], +b[3], dir);
     l.lvl = clamp(b[4] | 0, 1, 3);
     if (b[6] < 0){ l.done = true; l.doneT = -9; } else { l.buildT = GAME.t - b[6]; l.bdur = buildTime(l.type); }
     if (b[7] >= 0){ l.upT = GAME.t - b[7]; l.udur = buildTime(l.type) * .7; }
@@ -445,7 +449,7 @@ export function start(){
   window.__okt = { SH, state, cam, GAME, WEATHER, RES: SH.RES, BLD: () => SH.BLD, ROADS: () => SH.ROADS, WALLS: () => SH.WALLS, BOATS: () => SH.BOATS, CATS: () => SH.CATS, TER, TREES, MAPV, get VEST(){ return VEST; }, lootVestige, SPACE: SH.SPACE, EV, RIVAL, CLOCK, CAL: SH.CAL, TYPES, ECO: SH.ECO, PEAKS,
     setZoom, centerOn, unprj, prj, worldToScreen, screenToWorld, placeProblem, findSpot, makeBuilding, startBuilding: SH.startBuilding, addRoad, roadProblem, sampleLine, sampleCurve, addWall, sendBarge: SH.sendBarge, chooseLanding, terPct, claimDisc,
     render, FAR, rebuildTown, snapshot, loadGame, newWorld, enterPlay, applySeason, updateCalUI, deliverPaper, forceEvent: () => { EV.next = 0; }, autoBoth: () => { RIVAL.auto = { usc: true, ccp: true }; }, selectBuilding: SH.selectBuilding, setTool, upgradeBuilding: SH.upgradeBuilding, rivalStep: stepRival,
-    get Z(){ return SH.Z; }, get K(){ return SH.K; }, get KMIN(){ return SH.KMIN; }, get KDEF(){ return SH.KDEF; }, get ZLEVELS(){ return ZLEVELS; }, get OV_ON(){ return OV_ON; }, get view(){ return [W, H]; }, get NIGHT(){ return SH.NIGHT; }, get CURV(){ return SH.CURV; }, geoCast, geoProj, WARP: SH.WARP, get SC(){ return SC; }, islandNear, ISL: () => ISEED.isl, saveNow: SH.saveNow, newWorldOpts: () => [GAME.size, GAME.conf] };
+    get Z(){ return SH.Z; }, get K(){ return SH.K; }, get KMIN(){ return SH.KMIN; }, get KDEF(){ return SH.KDEF; }, get ZLEVELS(){ return ZLEVELS; }, get OV_ON(){ return OV_ON; }, get view(){ return [W, H]; }, get NIGHT(){ return SH.NIGHT; }, get CURV(){ return SH.CURV; }, geoCast, geoProj, WARP: SH.WARP, get SC(){ return SC; }, islandNear, ISL: () => ISEED.isl, saveNow: SH.saveNow, thumb, newWorldOpts: () => [GAME.size, GAME.conf] };
   requestAnimationFrame(frame);
 }
 setTimeout(start, 30);
