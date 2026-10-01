@@ -30,3 +30,4 @@ import './game/25-villes.ts';
 import './game/26-unites.ts';
 import './game/27-transports.ts';
 import './game/28-monde.ts';
+import './game/29-recherche.ts';

@@ -41,6 +41,8 @@ export interface EcoDef {
   nearWater?: boolean;
   /** recherche necessaire pour le construire (etape 8) */
   tech?: string;
+  /** points de recherche par minute (universite, laboratoire ; etape 8) */
+  sci?: number;
 }
 /** Prix d'un batiment ou d'une amelioration. */
 export interface Price { l: number; c: number; r: number; t?: number; p?: number }
@@ -284,6 +286,7 @@ export function onUpgraded(l: Building): void {
 export function upgradeBuilding(l: Building): string {
   const c = upCost(l); if (!c) return 'Déjà au niveau maximum.';
   if (!l.done || l.upT) return 'Déjà en chantier.';
+  if (SH.upTech){ const w = SH.upTech(l); if (w) return w; }
   if (!canAfford(l.side, c)) return 'Il faut ' + costLabel(c) + '.';
   payPrice(l.side, c);
   l.upT = GAME.t; l.udur = buildTime(l.type) * .7;

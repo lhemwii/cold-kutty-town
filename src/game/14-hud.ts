@@ -196,8 +196,11 @@ export function refreshPalette(){
   for (const b of $('palette').children){
     if (!(b instanceof HTMLElement)) continue;
     const t = b.dataset.t || '', p: Price = SH.priceOf(t, GAME.side), e: EcoDef | undefined = SH.ECO[t], lack = lackText(p);
-    b.classList.toggle('poor', !!lack); const c = b.querySelector('.bb-cost'); if (c) c.innerHTML = costHTML(p);
-    b.title = typeName(t, GAME.side) + '. ' + (e && e.desc ? e.desc : '') + (lack ? ' Il manque ' + lack + '.' : '');
+    // verrouille tant que la recherche qu'il demande n'est pas faite (etape 8)
+    const lock = e && e.tech && SH.hasTech && !SH.hasTech(GAME.side, e.tech) ? (SH.techName ? SH.techName(e.tech) : e.tech) : '';
+    b.classList.toggle('poor', !!lack); b.classList.toggle('locked', !!lock); const c = b.querySelector('.bb-cost'); if (c) c.innerHTML = costHTML(p);
+    const ef = b.querySelector('.bb-eff'); if (ef && e) ef.innerHTML = lock ? '<span class="bb-lock">Recherche : ' + lock + '</span>' : effLine(e);
+    b.title = typeName(t, GAME.side) + '. ' + (e && e.desc ? e.desc : '') + (lock ? ' Il faut d’abord la recherche « ' + lock + ' ».' : lack ? ' Il manque ' + lack + '.' : '');
   }
 }
 
@@ -289,7 +292,7 @@ export function renderSel(){
   // why : ce qui empeche l'action, dit au survol du bouton grise
   const btn = (label: string, sub: string, fn: () => void, why?: string) => { const b = document.createElement('button'); b.className = 'btn'; b.type = 'button'; b.innerHTML = '<span>' + label + '</span>' + (sub ? '<i>' + sub + '</i>' : ''); b.disabled = !!why; if (why) b.title = why; b.addEventListener('click', fn); act.append(b); return b; };
   const uc: Price | null = SH.upCost(l);
-  if (uc && l.done) btn('Améliorer', costHTML(uc), () => { const why = SH.upgradeBuilding(l); if (why) toast(why); else { pushHistory({ kind: 'upgrade', id: l.id, l: uc.l, r: uc.r }); toast('Amélioration lancée.'); SH.sfx('click'); } renderHUD(); $('sel').dataset.key = ''; renderSel(); }, l.upT ? 'Amélioration déjà en cours.' : lackText(uc) ? 'Il manque ' + lackText(uc) + '.' : '');
+  if (uc && l.done) btn('Améliorer', costHTML(uc), () => { const why = SH.upgradeBuilding(l); if (why) toast(why); else { pushHistory({ kind: 'upgrade', id: l.id, l: uc.l, r: uc.r }); toast('Amélioration lancée.'); SH.sfx('click'); } renderHUD(); $('sel').dataset.key = ''; renderSel(); }, l.upT ? 'Amélioration déjà en cours.' : (SH.upTech && SH.upTech(l)) || (lackText(uc) ? 'Il manque ' + lackText(uc) + '.' : ''));
   if (uc && l.done && !l.upT){
     // ce que l'amelioration va rapporter
     const nl = (l.lvl || 1) + 1, bits: string[] = [];

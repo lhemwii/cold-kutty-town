@@ -285,11 +285,14 @@ Chaque étape laisse le jeu jouable. L’ordre proposé : d’abord ce qui exist
 - [x] Correction : les arbres de matière propre (pins, palmiers) n’avaient pas leur couleur par la carte graphique.
 - [ ] À revoir ensemble : le nombre et la largeur des rivières, l’emplacement des marais, la couleur des pins, des lacs en montagne, des gués.
 
-## Étape 8. La recherche
+## Étape 8. La recherche (fait)
 
-- [ ] Université, puis laboratoires.
-- [ ] Arbre de recherche en branches (industrie et énergie, société, transports, armée, espace, atome, renseignement), avec un écran pour le parcourir.
-- [ ] Ce que chaque recherche débloque : bâtiments, améliorations, unités.
+- [x] Université (campus de briques à clocher à l’USC, grande tour à flèche et étoile à la CCR), puis Laboratoire (coupole d’observatoire à l’USC, Institut du Plan à antenne à la CCR) : des points de recherche, selon les habitants au métier Recherche et l’électricité. Le QG en donne un point par minute.
+- [x] Arbre de 29 recherches en sept branches (industrie et énergie, société, transports, armée, espace, atome, renseignement), avec ses prérequis ; écran E (ou le bouton à fiole du bloc des ressources, avec la barre d’avancement) : on choisit la recherche en cours, les points s’y versent ; sans choix, ils attendent en réserve.
+- [x] Ce que chaque recherche débloque : bâtiments (gare, métro, barrage, laboratoire, mine d’uranium, nouvelle Centrale nucléaire), améliorations (niveau 3 des maisons et immeubles par l’Urbanisme), actions (goudronner, voies ferrées, tunnels), effets (Mécanisation +15 %, Pétrochimie, Automatisation, Médecine, Télévision). Les branches armée, espace et renseignement débloquent ce qu’apportent les étapes 9 et 10. Dans le menu de construction, un bâtiment verrouillé dit quelle recherche il attend.
+- [x] L’autre camp cherche aussi (la moins chère des recherches ouvertes) ; la radio annonce les percées.
+- [x] Sauvegardé ; une partie d’avant cette étape reçoit les recherches de ce qu’elle avait déjà (gares, métro, goudron, tunnels, barrage, urbanisme).
+- [ ] À revoir ensemble : le prix de chaque recherche et la vitesse des points, la place de l’écran, des recherches propres à chaque camp.
 
 ## Étape 9. L’armée
 

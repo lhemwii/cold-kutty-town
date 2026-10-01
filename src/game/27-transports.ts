@@ -232,6 +232,7 @@ SH.TOOLS.rail = {
   start(){ railPts = []; },
   esc(): boolean { if (railPts.length){ railPts = []; return true; } return false; },
   click(a: number, b: number){
+    if (SH.hasTech && !SH.hasTech(GAME.side, 'chemin_de_fer')){ toast('Il faut d’abord la recherche « Chemin de fer » (écran E).'); return; }
     const p = railEnd(a, b); railPts.push(p);
     if (railPts.length < 2){ SH.sfx('click'); return; }
     const pts = sampleLine(railPts[0], railPts[1]), why = railProblem(pts, GAME.side);
@@ -383,7 +384,7 @@ export const paveCost = (r: Road): Price => ({ l: Math.max(1, roadCost(r.pts) - 
 function roadCard(r: Road){
   const L = Math.round(r.len), o = lineLength(r.pts), extra = (o.wet ? ', dont ' + Math.round(o.wet) + ' pas de pont' : '') + (o.rock ? ', dont ' + Math.round(o.rock) + ' pas de tunnel' : '');
   const acts: [string, string, () => void, string?][] = [];
-  if (r.dirt){ const pr = paveCost(r); acts.push(['Goudronner', costHTML(pr), () => { if (!canAfford(GAME.side, pr)){ toast('Il faut ' + SH.costLabel(pr) + '.'); return; } payPrice(GAME.side, pr); r.dirt = false; repaintRoad(r); buildGraph(); reseatCars(); toast('Route goudronnée : les voitures y roulent plus vite.'); hideCard(); SH.saveSoon(); SH.renderHUD(); }, canAfford(GAME.side, pr) ? '' : 'Il manque ' + SH.costLabel(pr) + '.']); }
+  if (r.dirt){ const pr = paveCost(r); const noTar = SH.hasTech && !SH.hasTech(GAME.side, 'goudron') ? 'Il faut la recherche « Goudron ».' : ''; acts.push(['Goudronner', costHTML(pr), () => { if (noTar){ toast(noTar); return; } if (!canAfford(GAME.side, pr)){ toast('Il faut ' + SH.costLabel(pr) + '.'); return; } payPrice(GAME.side, pr); r.dirt = false; repaintRoad(r); buildGraph(); reseatCars(); toast('Route goudronnée : les voitures y roulent plus vite.'); hideCard(); SH.saveSoon(); SH.renderHUD(); }, noTar || (canAfford(GAME.side, pr) ? '' : 'Il manque ' + SH.costLabel(pr) + '.')]); }
   acts.push(['Démolir', '', () => { removeRoad(r); toast('Route démolie.'); hideCard(); SH.saveSoon(); }]);
   showCard(r.dirt ? 'Chemin de terre' : 'Route goudronnée', L + ' pas' + extra + '. ' + (r.dirt ? 'Les voitures y roulent moins vite.' : 'Les voitures y roulent à pleine vitesse.'), acts);
 }
