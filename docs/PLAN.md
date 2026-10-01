@@ -342,7 +342,7 @@ Chaque étape laisse le jeu jouable. L’ordre proposé : d’abord ce qui exist
 - [x] Icônes pixel pour chaque catégorie du menu de construction (étape 0.20).
 - [x] Raccourcis clavier : écrits sur les outils, et un écran d’aide (H, ou le bouton « ? » du rail de droite) qui les donne tous.
 - [x] Téléphone : le dock se replie (bouton Outils) et passe sur deux rangées ouvert ; l’appui long fait le clic droit (envoyer les unités, arrêter un tracé) ; panneaux à la hauteur de l’écran.
-- [x] Logo en SVG : une tête de chat mi-bleue mi-rouge, sur l’écran d’accueil.
+- [ ] Logo en SVG avec la tête de chat : essayé puis retiré (pas voulu) ; l’accueil garde le titre « Cold KUTTY TOWN » seul.
 - [ ] À revoir ensemble : la place du tutoriel au téléphone (il cache une partie de l’île), la règle du jeu dans l’accueil, une vraie maquette du HUD pour la suite.
 
 ## Étape 14. Vie et contenu (fait)
@@ -401,7 +401,7 @@ Toutes les étapes de la feuille de route ont été faites d’un trait (étapes
 ## Étape 19. Regarder ensemble ce qui a été dessiné
 
 - [ ] Les bâtiments nouveaux, chacun dans ses deux styles (gare, métro, barrage, ponton, université, laboratoire, centrale nucléaire, usine de chars, chantier naval, aérodrome, défenses, centre atomique, silo, agence, station d’écoute, ambassade, points de passage) : lesquels redessiner.
-- [ ] Les véhicules, navires et avions ; les trains ; les ponts et entrées de tunnels ; le logo.
+- [ ] Les véhicules, navires et avions ; les trains ; les ponts et entrées de tunnels.
 - [ ] Les rivières (nombre, largeur, méandres), les marais, les pins et les palmiers (étape 7).
 - [ ] La neige qui reste au sol l’hiver : assez visible, trop forte ?
 
