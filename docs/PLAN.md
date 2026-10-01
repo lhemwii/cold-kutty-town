@@ -200,6 +200,7 @@ Le jeu passe à une base prête pour la haute définition et pour Steam, sans ri
 - [x] Vision rangée dans le [PRD](PRD.md) : croisement de city builder, de Mini Metro, de jeu de civilisation et de stratégie en temps réel ; peu de ressources (nourriture et pâté, laine et tricot, ronrons, habitants, Catcoins, eau et électricité, gisements) ; bâtiments communs aux deux camps habillés par camp ; huit orientations ; villes et connexions ; brouillard et unités ; recherche, espace, espionnage, commerce ; plusieurs façons de gagner ; types de partie.
 - [x] Liste proposée des bâtiments et des unités : [BATIMENTS.md](BATIMENTS.md), à valider.
 - [x] Nouvelle feuille de route ci-dessous (étapes 1 à 17), qui reprend les points encore ouverts de l’ancienne.
+- [x] Précisions du deuxième message : Catcoins et tricot confirmés ; seize orientations ; seules les croquettes, la laine et les ronrons paient les bâtiments et décident des victoires, le reste va dans un onglet Ressources ; charbon et centrale à charbon à la place du minerai et des éoliennes ; parties Blitz et Sans fin, victoires à cocher ; victoires scientifique, sociale, économique et de circonstance ; Rideau de Laine comme lieu de traités ; un camp amélioré devient un chef-lieu ; bâtiments qui s’équilibrent ajoutés à la liste.
 
 # Feuille de route de la nouvelle version
 
@@ -220,7 +221,7 @@ Chaque étape laisse le jeu jouable. L’ordre proposé : d’abord ce qui exist
 - [ ] Un seul type par bâtiment, avec un habillage USC et un habillage CCR : fusionner ce qui existe en double (ferme et kolkhoze, les deux gratte-ciel, chapelle et musée à bulbes...).
 - [ ] Corriger l’immeuble : côté USC, il porte aujourd’hui les signes de la CCR.
 - [ ] Dessiner le style qui manque à chaque bâtiment (le diner devient la Cantine du Peuple côté CCR, le bowling un club ouvrier, etc.), d’après [BATIMENTS.md](BATIMENTS.md).
-- [ ] Huit orientations : tourner un bâtiment par pas de 45 degrés ; routes dans les huit directions. L’alignement automatique face à la route la plus proche.
+- [ ] Seize orientations (pas de 22,5 degrés), au minimum huit si seize ne rend pas bien en pixel art ; les routes suivent. L’alignement automatique face à la route la plus proche.
 - [ ] Améliorer change le bâtiment à l’écran pour tous les bâtiments améliorables, avec un chantier visible (échafaudages, grue).
 - [ ] Aperçu du prix et de l’effet au survol, dans le fantôme du bâtiment ; ce que l’amélioration va rapporter, dans le panneau.
 - [ ] Défrichage visible : souches et chantier quand on coupe une forêt.
@@ -229,10 +230,13 @@ Chaque étape laisse le jeu jouable. L’ordre proposé : d’abord ce qui exist
 
 - [ ] Nourriture : les croquettes, et le pâté en luxe, fait par une conserverie ; affichés ensemble en haut.
 - [ ] Laine, et le tricot en luxe, fait par un atelier.
-- [ ] Catcoins : impôts des habitants, banque, certains prix en Catcoins (le port).
+- [ ] Les bâtiments se paient uniquement en croquettes, laine et ronrons.
+- [ ] Catcoins : impôts des habitants, banque ; ils servent aux échanges et aux importations, pas aux bâtiments.
 - [ ] Habitants et métiers : répartition réglable par grand métier (nourriture, laine, industrie, services, recherche, armée).
 - [ ] Eau et électricité en réseaux : production contre besoins ; un bâtiment non raccordé tourne mal.
-- [ ] Gisements de minerai et d’uranium sur la carte, et les mines.
+- [ ] Gisements de charbon et d’uranium sur la carte, mines de charbon et centrale à charbon.
+- [ ] Un onglet Ressources : habitants, Catcoins, électricité, eau, charbon, uranium, ce qui les fait varier et ce qu’ils changent sur les trois indicateurs.
+- [ ] Les bâtiments qui s’équilibrent (entrepôt, marché, propagande...), d’après [BATIMENTS.md](BATIMENTS.md).
 - [ ] Rendre chaque ressource utile du début à la fin (aujourd’hui les croquettes s’accumulent).
 - [ ] Bilan de fin de mois : ce qui a rapporté, ce qui a coûté.
 
@@ -240,8 +244,9 @@ Chaque étape laisse le jeu jouable. L’ordre proposé : d’abord ce qui exist
 
 - [ ] Retirer la victoire au premier camp à 60 % de l’île, et l’objectif de la barre du haut.
 - [ ] Chaque bâtiment agrandit un peu le territoire autour de lui, chaque amélioration un peu plus, dans une limite.
-- [ ] Construire hors de son territoire : plus cher, plus lent, et cela l’étend.
-- [ ] La première ville, portuaire, fondée au débarquement (hôtel de ville et port) ; fonder d’autres villes ; chaque ville a son nom.
+- [ ] Construire hors de son territoire, grâce aux unités, ce qui l’étend.
+- [ ] La première ville, portuaire, fondée au débarquement (hôtel de ville et port).
+- [ ] Le camp (l’avant-poste actuel) s’améliore en chef-lieu, avec son hôtel de ville à la mode de son camp : une nouvelle ville, avec son nom.
 - [ ] Rendre la pression aux frontières lisible (flèches ou hachures là où ça bouge).
 - [ ] Rideau de Laine : tracé en plusieurs clics qui suit la frontière, portes, checkpoint qui s’insère dans le mur ; ce qu’il rapporte et ce qu’il coûte.
 
@@ -249,7 +254,7 @@ Chaque étape laisse le jeu jouable. L’ordre proposé : d’abord ce qui exist
 
 - [ ] Brouillard : jamais vu, déjà vu (figé tel qu’on l’a vu), vu ; sur la scène, la vue de loin et la mini-carte.
 - [ ] Unités : sélection (clic, cadre), ordre de déplacement, chemin à terre qui contourne les montagnes et l’eau.
-- [ ] Explorateurs (révèlent le brouillard, trouvent les gisements) et bâtisseurs (construisent loin, fondent une ville).
+- [ ] Explorateurs (révèlent le brouillard, trouvent les gisements) et bâtisseurs (posent un camp loin, même hors du territoire).
 - [ ] La caserne qui les produit.
 
 ## Étape 6. Transports et connexions
@@ -275,7 +280,8 @@ Chaque étape laisse le jeu jouable. L’ordre proposé : d’abord ce qui exist
 
 ## Étape 9. L’armée
 
-- [ ] Usine de chars, chantier naval, aérodrome ; soldats, véhicules, navires, avions.
+- [ ] Usine de chars, chantier naval, aérodrome ; soldats, véhicules, navires, avions (dont des bombardiers qui détruisent des bâtiments).
+- [ ] Entrer en territoire ennemi : y voler des ressources, y prendre du terrain.
 - [ ] Combat : points de vie, portée, prise d’un bâtiment ; défenses (canon côtier, DCA, bunker, radar).
 - [ ] Le navire de transport remplace la barge pour emmener des unités sur une autre côte.
 - [ ] La bombe atomique : uranium, centre atomique, silo, au bout de la branche de l’atome.
@@ -287,20 +293,22 @@ Chaque étape laisse le jeu jouable. L’ordre proposé : d’abord ce qui exist
 
 ## Étape 11. Le commerce et la diplomatie
 
+- [ ] Le Rideau de Laine comme lieu où l’on parle à l’ennemi : portes, checkpoint, ambassade.
 - [ ] Échanges entre l’USC et la CCR en Catcoins, au checkpoint.
-- [ ] Port à acheter puis agrandir ; nations alliées au large ; importer des biens et des habitants, exporter les surplus.
-- [ ] Relations entre les camps : tension, accords commerciaux, trêve, capitulation.
+- [ ] Nations alliées au large, par le port : importer des biens et des habitants, exporter les surplus.
+- [ ] Traités (accords commerciaux, trêve, échanges) avec un temps d’acceptation ; l’IA dit pourquoi elle refuse.
+- [ ] Capitulation.
 
 ## Étape 12. Gagner, et les types de partie
 
-- [ ] Victoires : annihilation, capitulation, et à la fin du temps un score sur plusieurs dimensions (territoire, science et technologie, société, économie). Victoires de dimension à trancher (scientifique, sociale, économique).
-- [ ] Types de partie dans « Nouvelle partie » : Blitz, Normale, Longue (durée, taille de carte, vitesse de la recherche et des chantiers).
+- [ ] Victoires, chacune activable ou non à la création de la partie : militaire (annihilation, capitulation), scientifique, sociale, économique, de circonstance. Elles reposent sur la guerre et sur les trois indicateurs.
+- [ ] Types de partie dans « Nouvelle partie » : Blitz (au temps, le meilleur score gagne) et Sans fin (jusqu’à une victoire).
 - [ ] Succès redéfinis avec le jeu (`src/platform/achievements.ts`).
-- [ ] Équilibrage d’une partie Blitz et d’une partie Normale.
+- [ ] Équilibrage d’une partie Blitz et d’une partie Sans fin.
 
 ## Étape 13. L’écran, deuxième version
 
-- [ ] Revoir le HUD une fois les étapes 2 à 12 posées : moins de boutons, plus d’informations. Retirer l’outil Observer (sans outil choisi, on sélectionne). Faire une place aux ressources de luxe, aux réseaux, à la recherche, aux unités sélectionnées.
+- [ ] Revoir le HUD une fois les étapes 2 à 12 posées : moins de boutons, plus d’informations. Retirer l’outil Observer (sans outil choisi, on sélectionne). Faire une place à l’onglet Ressources, au luxe (pâté, tricot), à la recherche, aux unités sélectionnées.
 - [ ] Tutoriel au premier lancement.
 - [x] Icônes pixel pour chaque catégorie du menu de construction (étape 0.20).
 - [~] Raccourcis clavier : écrits sur les outils (étape 0.20) ; reste un écran d’aide.

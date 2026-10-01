@@ -28,37 +28,42 @@ Un jeu de chats pendant la guerre froide où l’on débarque sur une île, fond
 
 ## 4. Le déroulé d’une partie
 
-1. **Accueil** : on choisit son camp et le type de partie.
+1. **Accueil** : on choisit son camp, le type de partie et les victoires actives.
 2. **Débarquement** : l’île est vierge. On choisit sa côte ; les barges accostent et fondent automatiquement la **première ville, une ville portuaire**, avec son hôtel de ville et son port.
-3. **Prospérer** : on bâtit, on répartit les habitants entre les métiers, on produit nourriture, laine, eau et électricité, on gagne des Catcoins.
+3. **Prospérer** : on bâtit, on répartit les habitants entre les métiers, on fait monter les trois indicateurs (croquettes, laine, ronrons) grâce au charbon, à l’eau, à l’électricité et au commerce.
 4. **Explorer** : l’île est sous un brouillard. Des explorateurs révèlent le terrain, les gisements et ce que fait l’autre camp.
-5. **S’étendre** : chaque bâtiment, et plus encore chaque amélioration, agrandit le territoire. On fonde d’autres villes, reliées par routes, chemins de fer, métro et tunnels.
+5. **S’étendre** : chaque bâtiment, et plus encore chaque amélioration, agrandit le territoire. Des unités vont poser des camps loin, même hors du territoire ; un camp amélioré devient un chef-lieu, c’est-à-dire une nouvelle ville. Les villes se relient par routes, chemins de fer, métro et tunnels.
 6. **Rechercher, commercer, espionner, s’armer** : l’université ouvre l’arbre de recherche ; le port et le checkpoint ouvrent le commerce ; les espions et les satellites observent l’ennemi ; casernes, usines, chantiers navals et aérodromes produisent les unités.
 7. **Gagner** : par l’une des voies du chapitre 15.
 
 ## 5. Les types de partie
 
-- **Blitz** : une partie courte (de l’ordre de 20 minutes), carte petite, tout va plus vite.
-- **Normale** : de l’ordre d’une heure.
-- **Longue** : plusieurs heures, sauvegardée, avec tout l’arbre de recherche.
+- **Blitz** : une partie courte, au temps (de l’ordre de 20 minutes), carte petite, tout va plus vite. À la fin du temps, le meilleur score gagne.
+- **Sans fin** : la partie ne s’arrête pas à une heure donnée ; elle continue tant qu’aucun camp n’a gagné par l’une des victoires actives. Elle peut durer autant qu’on veut, sauvegardée.
+- **Victoires au choix** : en créant la partie, on coche les victoires actives (toutes, ou seulement certaines : militaire, scientifique, sociale, économique...).
 - Contre l’IA, sur sa machine. **En ligne** contre un autre joueur ou contre l’IA : plus tard.
-- Le type de partie fixe la durée (et donc la fin au temps), la taille de la carte, la vitesse de la recherche et des chantiers.
+- Le type de partie fixe aussi la taille de la carte et la vitesse de la recherche et des chantiers.
 
 ## 6. Les ressources
 
-Peu nombreuses, chacune avec une version de base et, pour deux d’entre elles, une version de luxe qui vient plus tard dans la partie.
+**Trois indicateurs comptent, et seulement eux** : les **croquettes**, la **laine** et les **ronrons**. Tous les bâtiments se paient uniquement avec ces trois-là. Avec la guerre, ce sont eux qui décident des victoires et des défaites. Tout le reste ne sert qu’à les faire monter ou descendre.
 
-| Ressource | À quoi elle sert | D’où elle vient |
+| Indicateur | À quoi il sert | D’où il vient |
 |---|---|---|
-| **Nourriture : croquettes**, et le **pâté** en luxe | Nourrir les habitants, les pionniers et les unités. Le pâté rend les habitants plus heureux et permet les grands logements. | Pêcheries, fermes, épiceries ; le pâté sort d’une conserverie qui transforme les croquettes. |
-| **Laine**, et le **tricot** en luxe (nom à confirmer) | Construire, améliorer, tracer routes, rails et Rideau. Le tricot sert aux grands bâtiments et aux améliorations hautes. | Bergeries, filatures ; le tricot sort d’un atelier qui transforme la laine. |
+| **Croquettes** (nourriture), et le **pâté** en luxe | Nourrir les habitants, les pionniers et les unités. Le pâté rend les habitants plus heureux et permet les grands logements. | Pêcheries, fermes, épiceries ; le pâté sort d’une conserverie qui transforme les croquettes. |
+| **Laine**, et le **tricot** en luxe (icône : une pelote et deux aiguilles) | Construire, améliorer, tracer routes, rails et Rideau. Le tricot sert aux grands bâtiments et aux améliorations hautes. | Bergeries, filatures ; le tricot sort d’un atelier qui transforme la laine. |
 | **Ronrons** | Le moral. Font travailler mieux, font avancer la frontière, évitent la capitulation. | Habitants nourris, logés, distraits ; loisirs, prestige, pâté. |
-| **Habitants** | Occupent les métiers. Sans eux, rien ne tourne. | Naissances dans les logements, immigration par le port. |
-| **Catcoins** (nom à confirmer) | La monnaie : acheter et vendre avec l’autre camp et avec les nations alliées au large, importer des habitants et des biens, payer certains bâtiments (le port). | Impôts des habitants, commerce, exportations. |
-| **Électricité** et **eau** | Des réseaux, pas des stocks : un bâtiment non raccordé tourne mal ou s’arrête. | Éoliennes, centrales (dont la centrale nucléaire), barrages ; châteaux d’eau, pompages. |
-| **Gisements** sur la carte : minerai et uranium | Le minerai pour les véhicules et les armes ; l’uranium pour la centrale nucléaire et la bombe. | Des mines posées sur les gisements découverts par l’exploration. |
 
-Chaque bâtiment a une **production** et un **coût de fonctionnement**. Le haut de l’écran affiche les ressources directes ; le détail (luxe, réseaux) est au survol.
+**L’onglet Ressources** rassemble ce qui conditionne les trois indicateurs, sans servir à payer les bâtiments :
+
+| Ressource | Rôle | D’où elle vient |
+|---|---|---|
+| **Habitants** | Occupent les métiers. Sans eux, rien ne tourne. | Naissances dans les logements, immigration par le port. |
+| **Catcoins** | La monnaie des échanges : acheter et vendre avec l’autre camp et avec les nations alliées au large, importer des habitants et des biens. | Impôts des habitants, commerce, exportations. |
+| **Électricité** et **eau** | Des réseaux, pas des stocks : un bâtiment non raccordé produit moins ou s’arrête. | Centrales à charbon, centrale nucléaire, barrages ; châteaux d’eau, pompages. |
+| **Charbon** et **uranium** | Gisements de la carte. Le charbon fait tourner les centrales et l’industrie ; l’uranium la centrale nucléaire et la bombe. | Mines posées sur les gisements découverts par l’exploration. |
+
+Le haut de l’écran montre les trois indicateurs ; l’onglet Ressources, le reste. Sa place dans le HUD reste à dessiner (étape 13 du plan).
 
 ## 7. Les habitants et les métiers
 
@@ -69,14 +74,15 @@ Chaque bâtiment a une **production** et un **coût de fonctionnement**. Le haut
 ## 8. Les bâtiments
 
 - **Les mêmes bâtiments pour les deux camps**, chacun **habillé au style de son camp** : l’immeuble USC en briques à escalier de secours, l’immeuble CCR en barre de béton à étoile rouge. Plus de bâtiment d’un camp qui porte les signes de l’autre.
-- **Huit orientations** : on tourne un bâtiment par pas de 45 degrés (les huit points cardinaux), routes comprises.
+- **Seize orientations** : on tourne un bâtiment par pas de 22,5 degrés (les seize directions de la rose des vents) ; au minimum huit (45 degrés) si seize ne rend pas bien en pixel art. Les routes suivent.
 - **Améliorer change le bâtiment à l’écran**, avec un vrai chantier (échafaudages, grue) pendant les travaux. Certaines améliorations demandent une recherche ou une ressource de luxe.
-- **Le territoire grandit avec les bâtiments** : chaque bâtiment en ajoute un peu autour de lui, chaque amélioration un peu plus, dans une limite. On peut **construire hors de son territoire** (plus cher, plus lent), ce qui l’étend.
+- **Le territoire grandit avec les bâtiments** : chaque bâtiment en ajoute un peu autour de lui, chaque amélioration un peu plus, dans une limite. On peut **construire hors de son territoire** grâce aux unités (explorateurs, bâtisseurs), ce qui l’étend.
 - La liste proposée, catégorie par catégorie, est dans [BATIMENTS.md](BATIMENTS.md).
 
 ## 9. Les villes et les connexions
 
-- La première ville est portuaire, fondée au débarquement. On en **fonde d’autres** (un hôtel de ville posé ailleurs, ou une unité de bâtisseurs qui part fonder).
+- La première ville est portuaire, fondée au débarquement.
+- **Fonder une ville** : des unités partent poser un **camp** loin, même hors du territoire. Le camp s’améliore en **chef-lieu**, avec son hôtel de ville (mairie côté USC, Palais du Peuple côté CCR) : c’est une nouvelle ville, qui grandit comme la première.
 - Les villes et les bâtiments se relient par des **routes**, des **chemins de fer** et des **métros**, avec des **tunnels** sous les montagnes et des ponts. Les connexions **transportent les ressources** entre villes : une ville sans lien ne profite pas de la production des autres.
 - Des lignes lisibles à la façon de Mini Metro : couleurs, gares, trains qu’on voit circuler.
 
@@ -85,7 +91,7 @@ Chaque bâtiment a une **production** et un **coût de fonctionnement**. Le haut
 - **Brouillard** : on ne voit que ce que voient ses bâtiments et ses unités. Ce qui a été vu reste affiché tel qu’on l’a vu en dernier.
 - **Biomes** : forêts de feuillus, forêts de pins, plages, marais, prairies, montagnes ; des arbres différents par biome.
 - **Saisons** : en hiver, la neige couvre vraiment le sol, ralentit les unités et les chantiers ; l’été est plus rapide.
-- **Gisements** de minerai et d’uranium à découvrir.
+- **Gisements** de charbon et d’uranium à découvrir.
 - **La mer** : les bateaux naviguent vraiment (chemin calculé, sillage, accostage).
 
 ## 11. Les unités
@@ -94,16 +100,17 @@ Chaque bâtiment a une **production** et un **coût de fonctionnement**. Le haut
   - **civiles** : explorateurs, bâtisseurs (construire loin, fonder une ville) ;
   - **terrestres** : soldats, chars et autres véhicules militaires ;
   - **navales** : patrouilleurs, destroyers, sous-marins, navires de transport ;
-  - **aériennes** : avions de reconnaissance, chasseurs, bombardiers ;
+  - **aériennes** : avions de reconnaissance, chasseurs, bombardiers qui détruisent des bâtiments ;
   - **spatiales** : satellites (voir le chapitre 13) ;
   - **renseignement** : espions (voir le chapitre 14).
+- Les unités peuvent **entrer en territoire ennemi** : y voler des ressources, y prendre du terrain, y détruire.
 - La liste proposée est dans [BATIMENTS.md](BATIMENTS.md).
 
 ## 12. La recherche
 
 - Une **université** (puis des laboratoires) produit de la recherche.
 - Un **arbre de recherche** en quelques branches : industrie et énergie, société, transports, armée, espace, atome, renseignement. La recherche débloque des bâtiments, des améliorations et des unités.
-- La bombe atomique est au bout de la branche de l’atome : elle demande de l’uranium, une centrale ou un centre atomique, et beaucoup de recherche.
+- La bombe atomique est au bout de la branche de l’atome : elle demande de l’uranium, un centre atomique et beaucoup de recherche.
 
 ## 13. L’espace
 
@@ -117,23 +124,28 @@ Chaque bâtiment a une **production** et un **coût de fonctionnement**. Le haut
 
 ## 15. Le commerce et la diplomatie
 
-- **Échanges entre l’USC et la CCR**, en Catcoins, au checkpoint du Rideau de Laine : acheter ce qui manque, vendre ce qu’on a en trop.
-- **Nations alliées au large** : par le port (qu’il faut acheter, puis agrandir), on importe des biens et des habitants, on exporte ses surplus.
-- **Relations** entre les deux camps : tension, accords commerciaux, trêve, et la **capitulation** quand un camp n’en peut plus.
+- **Le Rideau de Laine est une construction** : on le bâtit le long de la frontière, avec des portes et un checkpoint. Il fige la frontière, mais c’est aussi **le lieu où l’on parle à l’ennemi** : échanges, traités, négociations.
+- **Échanges entre l’USC et la CCR**, en Catcoins, au checkpoint : acheter ce qui manque, vendre ce qu’on a en trop.
+- **Traités** : accords commerciaux, trêve, échanges d’habitants ou de territoire. Un traité proposé n’est pas accepté tout de suite : il y a **un temps d’acceptation**, pendant lequel l’autre camp réfléchit (et l’IA dit pourquoi elle refuse, quand elle refuse).
+- **Nations alliées au large** : par le port, on importe des biens et des habitants, on exporte ses surplus.
+- **La capitulation** : un camp à bout peut se rendre.
 
 ## 16. Gagner
 
-L’ancienne règle (le premier à 60 % de l’île) disparaît. On gagne par l’une de ces voies :
+L’ancienne règle (le premier à 60 % de l’île) disparaît : le territoire ne compte plus que dans le score. Les victoires reposent sur la guerre et sur les trois indicateurs (croquettes, laine, ronrons). Chacune peut être activée ou non en créant la partie.
 
-- **Annihilation** : l’autre camp n’existe plus (plus de ville, plus d’unité).
-- **Capitulation** : l’autre camp se rend (ronrons au plus bas, villes perdues, blocus, pression militaire).
-- **À la fin du temps** (Blitz et Normale) : un score sur plusieurs dimensions, territoire, science et technologie, société (habitants et ronrons), économie. Le plus haut score gagne.
-- Des victoires de dimension à confirmer : scientifique (la course à l’espace menée à son terme), sociale, économique.
+- **Militaire, par annihilation** : l’autre camp n’existe plus (plus de ville, plus d’unité).
+- **Militaire, par capitulation** : l’autre camp se rend.
+- **Scientifique** : mener la recherche à son terme (la course à l’espace jusqu’au bout), ce qui demande de tenir longtemps les trois indicateurs à un haut niveau.
+- **Sociale** : des ronrons au sommet, tenus un certain temps, avec une grande population.
+- **Économique** : une production de croquettes et de laine, et un commerce, au-dessus de l’autre camp pendant un certain temps.
+- **Victoires de circonstance** : des objectifs propres à une carte ou à une situation (un îlot à tenir, un blocus à briser, une trêve à obtenir...), à imaginer avec les cartes.
+- **Blitz** : à la fin du temps, le meilleur score (les trois indicateurs, le territoire, la recherche) gagne.
 
 ## 17. L’écran
 
 - Aujourd’hui : la disposition A (trois blocs en haut, colonne de vue à droite, outils au centre en bas, tiroir de construction, mini-carte en bas à gauche, un panneau à droite à la fois).
-- **À revoir une fois les nouveautés posées** : moins de boutons, plus d’informations. L’outil Observer disparaît : sans outil choisi, on sélectionne. Les ressources de luxe, les réseaux et la recherche trouvent leur place.
+- **À revoir une fois les nouveautés posées** : moins de boutons, plus d’informations. L’outil Observer disparaît : sans outil choisi, on sélectionne. L’onglet Ressources (habitants, Catcoins, électricité, eau, charbon, uranium), le luxe (pâté, tricot), la recherche et les unités sélectionnées trouvent leur place.
 
 ## 18. Les chats
 
@@ -152,6 +164,6 @@ Joué par une IA. Elle doit savoir faire tout ce que fait le joueur : construire
 ## 21. Critères de réussite
 
 - 60 images par seconde à tous les zooms sur un portable courant, sans à-coup au dézoom.
-- Une partie Blitz et une partie Normale complètes, sans blocage, gagnables par plusieurs voies.
+- Une partie Blitz et une partie Sans fin complètes, sans blocage, gagnables par plusieurs voies.
 - Un nouveau joueur comprend quoi faire dans les 2 premières minutes.
 - `npm run build` passe, aucune erreur dans la console.
