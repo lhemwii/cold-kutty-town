@@ -262,7 +262,7 @@ export function renderSel(){
   if ($('sel').dataset.key === key) return;
   $('sel').dataset.key = key;
   $('selSide').innerHTML = flagSVG(l.side) + '<span>' + CAMP_FULL[l.side] + '</span>';
-  $('selName').textContent = typeName(l.type, l.side);
+  $('selName').textContent = l.name || typeName(l.type, l.side);
   $('selLvl').innerHTML = (e && e.up) || SH.LVL_POP[l.type] ? '<span>' + SH.lvlName(l) + '</span>' + pips(lv) : '';
   const st = $('selState');
   if (!l.done) st.innerHTML = '<span class="pill work">En chantier ' + progress((GAME.t - l.buildT) / l.bdur) + '</span>';

@@ -31,11 +31,11 @@
     <div class="res pop" title="Habitants et emplois"><span class="ico" data-ico="pop"></span><b id="vP">0</b><i id="dP">habitants</i></div>
     <button class="btn k res-more" type="button" id="btnRes" aria-pressed="false" aria-label="Ressources" title="Ressources : luxe, Catcoins, charbon, électricité, eau..."></button>
   </section>
-  <section class="hud-race panel" id="hudRace" aria-label="Course au territoire" title="Part de l’île tenue par chaque camp. Le premier à 60 % gagne.">
+  <section class="hud-race panel" id="hudRace" aria-label="Territoire des deux camps" title="Part de l’île tenue par chaque camp. Elle compte dans le score de fin de partie.">
     <span class="flag rf" data-flag="usc"></span>
-    <div class="terbar"><i class="t-usc" id="tbU"></i><i class="t-ccp" id="tbC"></i><em class="goal-l"></em><em class="goal-r"></em></div>
+    <div class="terbar"><i class="t-usc" id="tbU"></i><i class="t-ccp" id="tbC"></i></div>
     <span class="flag rf" data-flag="ccp"></span>
-    <b class="pct pu" id="tbUpct">0 %</b><span class="ter-goal">objectif 60 %</span><b class="pct pc" id="tbCpct">0 %</b>
+    <b class="pct pu" id="tbUpct">0 %</b><span class="ter-goal" id="tbGoal">territoire</span><b class="pct pc" id="tbCpct">0 %</b>
   </section>
   <section class="hud-time panel" id="hudTime" aria-label="Date et temps">
     <div class="tb-clock"><span id="calLabel">septembre</span><output id="clockTime">10:30</output></div>
@@ -246,7 +246,7 @@
       <li><b>03</b><span>Trois ressources : croquettes pour manger, laine pour bâtir, ronrons pour conquérir. Chaque bâtiment produit et coûte en fonctionnement.</span></li>
       <li><b>04</b><span>Relie tes bâtiments au QG par des routes, droites ou courbes, sinon ils restent à l’arrêt. Améliore-les : un ponton devient quai, puis grand port.</span></li>
       <li><b>05</b><span>Des vestiges catzi traînent sur l’île : fouille-les quand ton territoire les atteint.</span></li>
-      <li><b>06</b><span>Le premier camp à tenir 60 % de l’île gagne. Le Rideau de Laine fige ta frontière.</span></li>
+      <li><b>06</b><span>On gagne par la guerre, la science, la société ou l’économie, selon les victoires choisies. Le Rideau de Laine fige ta frontière.</span></li>
     </ul>
     <p class="field-note">Glisser pour se déplacer, molette pour zoomer, clic droit glissé pour tourner. En construction, clic droit glissé ou T pour tourner le bâtiment.</p>
   </section>

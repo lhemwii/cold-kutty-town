@@ -26,3 +26,4 @@ import './game/21-main.ts';
 import './game/22-home.ts';
 import './game/23-planet.ts';
 import './game/24-ressources.ts';
+import './game/25-villes.ts';

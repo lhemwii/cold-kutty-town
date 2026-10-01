@@ -199,6 +199,7 @@ export function ecoTally(side: Side): void {
     for (const k of XRES){ const v = e.x?.[k]; if (!v) continue; addX(k, v > 0 ? v * mult * pw * (e.jobs ? Math.max(.3, effM[metierOf(e.cat)]) : 1) : v * (1 + (mult - 1) * .5), nm); }
     fun += e.fun * mult * taste(l.type, side);
   }
+  if (SH.wallUpkeep) add('l', -SH.wallUpkeep(side), 'Rideau de Laine (entretien)');
   // les habitants mangent (et du pate s'il y en a), paient l'impot, et ronronnent s'ils ont a manger, de l'eau, de quoi se distraire
   add('c', -pop * .35, 'Repas des habitants');
   const pate = R.x.pate > .5, herbe = R.x.herbe > .5;

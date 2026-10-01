@@ -247,15 +247,15 @@ Chaque étape laisse le jeu jouable. L’ordre proposé : d’abord ce qui exist
 - [x] Bilan de fin de mois : croquettes, laine, ronrons, Catcoins et habitants gagnés ou perdus, affiché en bas de l’écran.
 - [ ] Équilibrer tous ces chiffres en jouant (voir l’étape 12).
 
-## Étape 4. Territoire et villes
+## Étape 4. Territoire et villes (fait)
 
-- [ ] Retirer la victoire au premier camp à 60 % de l’île, et l’objectif de la barre du haut.
-- [ ] Chaque bâtiment agrandit un peu le territoire autour de lui, chaque amélioration un peu plus, dans une limite.
-- [ ] Construire hors de son territoire, grâce aux unités, ce qui l’étend.
-- [ ] La première ville, portuaire, fondée au débarquement (hôtel de ville et port).
-- [ ] Le camp (l’avant-poste actuel) s’améliore en chef-lieu, avec son hôtel de ville à la mode de son camp : une nouvelle ville, avec son nom.
-- [ ] Rendre la pression aux frontières lisible (flèches ou hachures là où ça bouge).
-- [ ] Rideau de Laine : tracé en plusieurs clics qui suit la frontière, portes, checkpoint qui s’insère dans le mur ; ce qu’il rapporte et ce qu’il coûte.
+- [x] Plus de victoire au premier camp à 60 % de l’île : la barre du haut montre le territoire des deux camps, qui ne compte plus que dans le score (les victoires viennent à l’étape 12).
+- [x] Chaque bâtiment agrandit le territoire autour de lui ; chaque niveau d’amélioration ajoute 25 % à son rayon.
+- [x] Construire hors de son territoire : par les bâtisseurs, à l’étape 5.
+- [x] La première ville, portuaire, fondée au débarquement : le QG, avec son nom (Port-Kutty à l’USC, Kuttygrad à la CCR).
+- [x] Le camp (l’ancien avant-poste) s’améliore : camp, baraquements, puis chef-lieu ; il devient alors une ville à part entière, avec son hôtel de ville à la manière de son camp, son nom (douze noms par camp) écrit au-dessus, un peu d’eau et d’électricité. Toute ville est un nœud du réseau : un bâtiment relié par la route à n’importe quel hôtel de ville est en service. Les noms sont sauvegardés.
+- [x] La pression aux frontières : des chevrons de la couleur du camp qui gagne apparaissent là où il prend des cases à l’autre, cinq secondes.
+- [x] Rideau de Laine : il se trace en plusieurs clics à la suite (chaque clic repart du bout) ; il coûte un peu d’entretien en laine ; le Checkpoint sert de porte. Ce qu’il apporte de plus vient avec les fuites d’habitants (étape 11).
 
 ## Étape 5. Brouillard et premières unités
 

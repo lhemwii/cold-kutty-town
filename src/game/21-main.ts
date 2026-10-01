@@ -1,5 +1,5 @@
 import { SH, type Building, type Side } from './00-shared.ts';
-import { CAMP_FULL, DASHES, GAME, H, HOOKS, RP, SC, SIDES, TAU, W, cam, clamp, geoCast, geoProj, groundDelta, other, prj, reduceMotion, state, unprj } from './01-core.ts';
+import { DASHES, GAME, H, HOOKS, RP, SC, SIDES, TAU, W, cam, clamp, geoCast, geoProj, groundDelta, other, prj, reduceMotion, state, unprj } from './01-core.ts';
 import { IS, ISEED, buildGround, clearForest, isMapConf, isMapSize, islandNear, mapScale, nearestShore, setMapSize, type Vec2 } from './02-ground.ts';
 import { TYPES } from './04-types.ts';
 import { typeName } from './05-types-extra.ts';
@@ -378,19 +378,19 @@ export function stubRoad(l: Building, side: Side, away: Vec2 | null){
   for (const c of cand) if (!roadProblem(c.pts, side)){ addRoad(c.pts, side); return true; }
   return false;
 }
+// la victoire au premier camp a 60 % de l'ile n'existe plus : les victoires sont celles de l'etape 12 (SH.checkWin)
 export function checkVictory(){
   if (GAME.mode !== 'play' || GAME.winner) return;
-  for (const s of SIDES) if (terPct(s) >= .6){
-    GAME.winner = s; SH.profileResult(s); saveSoon();
-    const me = s === GAME.side;
-    if (me) achieve('VICTOIRE');
-
-    $('endFlag').innerHTML = flagSVG(s);
-    $('endTitle').textContent = me ? 'Victoire !' : 'L’autre camp l’emporte';
-    $('endText').textContent = (me ? 'Les ' : 'La ') + CAMP_FULL[s] + (me ? ' tiennent ' : ' tient ') + Math.round(terPct(s) * 100) + ' % de l’île de Kutty. ' + (me ? 'Les chats ronronnent jusque sur les plages de l’autre camp.' : 'Tu peux continuer à jouer pour reprendre du terrain.');
-    $('endBox').hidden = false; SH.fwSalvo(s, 12); SH.sfx('launch');
-  }
+  if (typeof SH.checkWin === 'function') SH.checkWin();
 }
+/** fin de partie : le vainqueur, le titre et le texte de l'ecran de fin */
+export function endGame(s: Side, title: string, text: string){
+  GAME.winner = s; SH.profileResult(s); saveSoon();
+  if (s === GAME.side) achieve('VICTOIRE');
+  $('endFlag').innerHTML = flagSVG(s); $('endTitle').textContent = title; $('endText').textContent = text;
+  $('endBox').hidden = false; SH.fwSalvo(s, 12); SH.sfx('launch');
+}
+SH.endGame = endGame;
 $('endNew').addEventListener('click', () => { $('endBox').hidden = true; SH.openIntro('new'); });
 $('endKeep').addEventListener('click', () => { $('endBox').hidden = true; });
 

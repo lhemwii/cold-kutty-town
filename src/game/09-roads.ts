@@ -186,9 +186,9 @@ export function rectRoadDist(l: Rect, r: Road): number {
 // un batiment est desservi s'il touche une route reliee a celle du QG de son camp
 export function roadAccess(l: Building): boolean {
   const E = SH.ECO[l.type]; if (E && E.noRoad) return true;
-  const hq = SH.BLD.find(o => o.type === 'qg' && o.side === l.side);
+  // relie a un hotel de ville : le QG ou un chef-lieu (etape 4)
   const hqComps = new Set<number | undefined>();
-  if (hq) for (const r of SH.ROADS) if (r.side === l.side && rectRoadDist(hq, r) < RW + 10) hqComps.add(ROAD_COMP.get(r.id));
+  for (const hq of SH.BLD) if ((hq.type === 'qg' || hq.type === 'ville') && hq.side === l.side) for (const r of SH.ROADS) if (r.side === l.side && rectRoadDist(hq, r) < RW + 10) hqComps.add(ROAD_COMP.get(r.id));
   for (const r of SH.ROADS){
     if (r.side !== l.side || rectRoadDist(l, r) > RW + 10) continue;
     if (hqComps.has(ROAD_COMP.get(r.id))) return true;

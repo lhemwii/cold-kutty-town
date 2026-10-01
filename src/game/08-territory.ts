@@ -54,7 +54,7 @@ export function influenceOf(l: Building): number {
   const E = SH.ECO[l.type]; if (!E) return 0;
   let r = E.rad || 0;
   if (l.type === 'qg') r += Math.min(80, Math.sqrt(SH.RES[l.side].pop || 0) * 5);
-  if (E.up && (l.lvl || 1) > 1) r *= 1 + .15 * ((l.lvl || 1) - 1);
+  if (E.up && (l.lvl || 1) > 1) r *= 1 + .25 * ((l.lvl || 1) - 1);
   return r;
 }
 // distance normalisee a la source la plus proche (0 au centre, 250 au bord du rayon, 255 hors d'atteinte)
@@ -161,8 +161,10 @@ export function stepTerritory(dt: number): void {
         if (ps > pe * 1.3 + .06) list.push([i, ps - pe]);
       }
       list.sort((p, q) => q[1] - p[1]);
-      for (const [i] of list){ if (budget-- <= 0) break; claimCell(i, sid, t); }
+      for (const [i] of list){ if (budget-- <= 0) break; if (claimCell(i, sid, t)){ FRONT.push({ i, side, t }); if (FRONT.length > 160) FRONT.shift(); } }
     }
   }
 }
 export const terPct = (side: Side): number => TER.cnt[side] / TER.landN;
+/** cases prises a l'autre camp ces derniers temps (i la case, side le gagnant, t le moment) : la frontiere qui bouge */
+export const FRONT: { i: number; side: Side; t: number }[] = [];

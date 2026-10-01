@@ -27,6 +27,8 @@ export interface Building {
   /** debut et duree d'une amelioration en cours (0 : aucune) */
   upT: number; udur?: number;
   doneT?: number;
+  /** nom de la ville, pour un QG ou un chef-lieu */
+  name?: string;
   demoT?: number;
   /** en fonctionnement (assez de croquettes, de laine et de route) */
   active: boolean;
