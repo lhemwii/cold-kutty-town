@@ -622,7 +622,7 @@ body:not(.playing) .peek{display:none}
 .phone.green{border-color:#2e7d45;animation:ring .5s steps(2) infinite}
 @keyframes ring{0%{transform:rotate(-4deg)}100%{transform:rotate(4deg)}}
 @media (prefers-reduced-motion:reduce){.phone.green{animation:none}.peek{transition:none}}
-@media (max-width:720px){.peek{width:180px}.peek-papers .btn{font-size:13px}}
+@media (max-width:720px){.peek{width:180px}.peek-papers .btn{font-size:13px}body.playing .bottom{bottom:calc(42px + env(safe-area-inset-bottom,0px))}}
 
 /* les fenetres se tirent par leur titre (etape 0.22) */
 .sci-head,.xr-head,.un-head,.sel-head,.chat-head{cursor:grab;touch-action:none}
