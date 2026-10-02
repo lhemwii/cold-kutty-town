@@ -4,7 +4,7 @@ import { GA0, GB0, GH, GSC, GW, T_ROCK, T_SEA, baseAt } from './02-ground.ts';
 import { Lc, facadePlate, frontVisible, houseGeo, part, sideLight, smokeAt, wallBase } from './03-buildings-base.ts';
 import { TYPES, pyramid } from './04-types.ts';
 import { drawCyl } from './06-types-more.ts';
-import { PEAKS, TREES, addStump, treesIn, type Drawable } from './07-world.ts';
+import { PEAKS, TREES, addStump, peaksIn, treesIn, type Drawable } from './07-world.ts';
 import { FOOT } from './10-town.ts';
 import { $, ICONS, ico } from './13-ui.ts';
 import { CATS_MENU, ECO, FOREST_R, METIERS, METIER_NAME, PRIO, RES, XRES, XRES_NAME, bdef, treesAround, type DepositKind, type Metier, type XRes } from './15-economy.ts';
@@ -66,9 +66,12 @@ HOOKS.world.push((seed: number) => {
   for (const kind of ['charbon', 'uranium'] as const){
     let n = 0;
     for (let k = 0; k < 400 && n < want[kind] && peaks.length; k++){
-      const pk = peaks[Math.floor(hash2(seed + k * 7, kind === 'charbon' ? 11 : 23) * peaks.length)], an = hash2(seed + k, 31) * Math.PI * 2, r = pk.R * (1.05 + hash2(k, seed) * .25);
+      // juste au pied : la mine (une trentaine de pas) ne mord pas sur la pente (etape 0.22)
+      const pk = peaks[Math.floor(hash2(seed + k * 7, kind === 'charbon' ? 11 : 23) * peaks.length)], an = hash2(seed + k, 31) * Math.PI * 2, r = pk.R + 24 + hash2(k, seed) * 10;
       const a = pk.a + Math.cos(an) * r, b = pk.b + Math.sin(an) * r, t = baseAt(a, b);
       if (t === T_SEA || !far(a, b)) continue;
+      let onPeak = false; peaksIn(a - 90, a + 90, b - 90, b + 90, (q) => { if (Math.hypot(q.a - a, q.b - b) < q.R * .85 + 22) onPeak = true; });
+      if (onPeak) continue;
       DEPOSITS.push({ id: id++, kind, a, b }); n++;
     }
   }

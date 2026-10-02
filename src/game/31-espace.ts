@@ -47,7 +47,6 @@ HOOKS.step.push((dt: number) => {
     if (!(SH.BLD as Building[]).some(l => l.side === side && l.type === 'fusee' && l.done)) continue;
     orderLaunch(side);
   }
-  renderRace();
 });
 const prevSel = SH.selExtra;
 SH.selExtra = (l: Building, btn: (label: string, sub: string, fn: () => void, why?: string) => HTMLButtonElement, act: HTMLElement) => {
@@ -56,7 +55,7 @@ SH.selExtra = (l: Building, btn: (label: string, sub: string, fn: () => void, wh
     const st = SPACE[l.side].stage;
     if (st < SPACE_STEPS.length){
       const pr = launchPrice(st), fuel = launchFuel(st), tech = STAGE_TECH[st];
-      const why = !l.active ? 'La base est à l’arrêt : relie-la par la route à un hôtel de ville.' : !hasTech(l.side, tech) ? 'Il faut la recherche « ' + (TECH.get(tech)?.name || '') + ' ».' : (SPACE[l.side].launchT || ORDER[l.side] === st) ? 'Lancement en préparation.' : lackText(pr) ? 'Il manque ' + lackText(pr) + '.' : RES[l.side].x.petrole < fuel ? 'Il faut ' + fuel + ' pétrole.' : '';
+      const why = !l.active ? 'La base est à l’arrêt.' : !hasTech(l.side, tech) ? 'Il faut la recherche « ' + (TECH.get(tech)?.name || '') + ' ».' : (SPACE[l.side].launchT || ORDER[l.side] === st) ? 'Lancement en préparation.' : lackText(pr) ? 'Il manque ' + lackText(pr) + '.' : RES[l.side].x.petrole < fuel ? 'Il faut ' + fuel + ' pétrole.' : '';
       btn('Lancer : ' + SPACE_STEPS[st][1], costHTML(pr) + ' + ' + fuel + ' pétrole', () => { const w = orderLaunch(l.side); if (w) toast(w); else toast('Lancement commandé : ' + SPACE_STEPS[st][1] + '.'); SH.sfx('click'); }, why);
     }
     const n = document.createElement('p'); n.className = 'sel-note'; n.textContent = 'Jalons de la science : ' + st + ' sur 5 (l’autre camp : ' + SPACE[l.side === 'usc' ? 'ccp' : 'usc'].stage + ').'; act.append(n);
@@ -74,16 +73,8 @@ fogSources.push((see) => {
   if (st >= 2) for (const l of SH.BLD as Building[]) if (l.side !== GAME.side && l.done && isCity(l)) see(l.ca, l.cb, 120);
 });
 
-/* ---- la course a l'espace, a l'ecran : cinq cases par camp ---- */
-function renderRace(){
-  const el = document.getElementById('spaceRace'); if (!el) return;
-  const row = (s: Side) => '<span class="sr-row" data-side="' + s + '">' + SPACE_STEPS.map((x, i) => '<i class="' + (SPACE[s].stage > i ? 'on' : '') + '" title="' + x[1] + '"></i>').join('') + '</span>';
-  const h = row('usc') + '<span class="sr-lab">espace</span>' + row('ccp');
-  if (el.innerHTML !== h) el.innerHTML = h;
-  el.title = 'Jalons de la science : USC ' + SPACE.usc.stage + ' sur 5, CCR ' + SPACE.ccp.stage + ' sur 5.';
-}
-HOOKS.reset.push(() => { ORDER.usc = -1; ORDER.ccp = -1; renderRace(); });
-HOOKS.load.push(() => renderRace());
+/* ---- la course a l'espace se suit dans l'ecran des victoires (le bloc du haut est retire, etape 0.22) ---- */
+HOOKS.reset.push(() => { ORDER.usc = -1; ORDER.ccp = -1; });
 
 /* ---- le renseignement : agence, station d'ecoute ---- */
 TYPES.agence = { name: 'Agence de renseignement', nameCCP: 'Bureau du Peuple', fem: true, build(lot: Building, seed: number){

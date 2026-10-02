@@ -2,8 +2,8 @@ import { SH } from './00-shared.ts';
 import type { Building, Light, Side } from './00-shared.ts';
 import type { Vec2 } from './02-ground.ts';
 import { M, SIDES, clamp, hash2 } from './01-core.ts';
-import { GA0, GB0, GH, GSC, GW, T_DIRT, T_ROAD, T_ROCK, T_SEA, T_WALK, cellOf, gBase, gLand, groundDirty, gTone, gType, resetArea, typeAt } from './02-ground.ts';
-import { LAMP_POS, cutTreesAlong } from './07-world.ts';
+import { GA0, GB0, GH, GSC, GW, T_DIRT, T_ROAD, T_SEA, T_WALK, cellOf, gBase, gLand, groundDirty, gTone, gType, resetArea, typeAt } from './02-ground.ts';
+import { LAMP_POS, cutTreesAlong, peaksIn } from './07-world.ts';
 import { sideAt } from './08-territory.ts';
 import { segDist, segInter } from '../rules/geom.ts';
 /* ================= routes : droites ou courbes, raccordees entre elles, parcourues par les voitures ================= */
@@ -89,7 +89,7 @@ export function paintTile(ia0: number, ia1: number, ib0: number, ib1: number): v
         const a = GA0 + (ia + .5) / GSC, b = GB0 + (ib + .5) / GSC, [d, s] = segDist(pa, pb, qa, qb, a, b);
         if (d >= pad) continue;
         const i = ib * GW + ia, t = gBase[i];
-        if (t === T_SEA || t === T_ROCK) continue;
+        if (t === T_SEA) continue;
         f(i, (ib - ib0) * w + (ia - ia0), d, r.cum[k] + s * segL);
       }
     }
@@ -189,7 +189,9 @@ export function rectRoadDist(l: Rect, r: Road): number {
   return best;
 }
 // un batiment est desservi s'il touche une route reliee a celle du QG de son camp
-export function roadAccess(l: Building): boolean {
+// (etape 0.22 : plus besoin de route pour travailler ; roadLinked garde le calcul pour les villes et l'IA)
+export function roadAccess(_l: Building): boolean { return true; }
+export function roadLinked(l: Building): boolean {
   const E = SH.ECO[l.type]; if (E && E.noRoad) return true;
   // relie a un hotel de ville : le QG ou un chef-lieu (etape 4)
   const hqComps = new Set<number | undefined>();
@@ -205,7 +207,8 @@ export function roadAccess(l: Building): boolean {
 // un pont passe au-dessus de l'eau (90 pas au plus), un tunnel sous la roche (avec la recherche des tunnels, etape 8)
 export const BRIDGE_MAX = 90;
 export const overWater = (a: number, b: number): boolean => { const i = cellOf(a, b); return i < 0 || gBase[i] === T_SEA || gLand[i] < 3; };
-export const underRock = (a: number, b: number): boolean => { const i = cellOf(a, b); return i >= 0 && gBase[i] === T_ROCK; };
+// (etape 0.22 : sur la roche, la route se voit et grimpe ; elle ne passe en tunnel que sous un sommet)
+export const underRock = (a: number, b: number): boolean => { let under = false; peaksIn(a - 80, a + 80, b - 80, b + 80, (pk) => { if (!under && Math.hypot(pk.a - a, pk.b - b) < pk.R * .8) under = true; }); return under; };
 export function lineProblem(pts: Vec2[], side: Side, what: string): string {
   let L = 0; for (let k = 1; k < pts.length; k++) L += Math.hypot(pts[k][0] - pts[k - 1][0], pts[k][1] - pts[k - 1][1]);
   if (L < 12) return 'Trop court : tire la ' + what + ' un peu plus loin.';
@@ -221,8 +224,9 @@ export function lineProblem(pts: Vec2[], side: Side, what: string): string {
       continue;
     }
     wet = 0;
+    // la route passe la montagne (etape 0.22) ; la voie ferree attend la recherche des tunnels
     if (underRock(a, b)){
-      if (SH.hasTech && !SH.hasTech(side, 'tunnels')) return 'Des rochers barrent le passage : il faut la recherche des tunnels.';
+      if (what !== 'route' && SH.hasTech && !SH.hasTech(side, 'tunnels')) return 'Des rochers barrent le passage : il faut la recherche des tunnels.';
       continue;
     }
     if (sideAt(a, b) !== side) return 'Une ' + what + ' ne se trace que dans ton territoire.';

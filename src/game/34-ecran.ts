@@ -1,12 +1,73 @@
-import { SH, type Building } from './00-shared.ts';
-import { GAME, HOOKS, state } from './01-core.ts';
+import { SH, type Building, type Side } from './00-shared.ts';
+import { GAME, HOOKS, M, SIDES, fput, prj, state } from './01-core.ts';
+import { GA0, GB0, type Vec2 } from './02-ground.ts';
+import { SID, TC, TER, claimDisc } from './08-territory.ts';
 import { scene } from './11-render.ts';
-import { $, setTool, worldUnder } from './13-ui.ts';
+import { $, setTool, toast, worldUnder } from './13-ui.ts';
+import { TOOL_TILES } from './14-hud.ts';
+import { RES, canAfford, payPrice, type Price } from './15-economy.ts';
 import { store } from './22-home.ts';
 import { SCI } from './29-recherche.ts';
 /* ================= etape 13 : l'ecran, deuxieme version ================= */
 // Plus d'outil Observer : sans outil, on choisit (Echap y revient). Le luxe et les Catcoins dans le bloc des ressources.
 // Un ecran d'aide (H). Un tutoriel au premier lancement. Au telephone : un dock repliable et l'appui long pour le clic droit.
+
+/* ---- acheter du terrain (etape 0.22) : un disque au bord de son territoire, contre des Catcoins, de la laine et des ronrons ---- */
+const BUY_R = 34;
+const BOUGHT: Record<Side, number> = { usc: 0, ccp: 0 };
+export const buyPrice = (side: Side): Price & { coins: number } => ({ l: 15 + 5 * BOUGHT[side], c: 0, r: 15 + 5 * BOUGHT[side], coins: 25 + 10 * BOUGHT[side] });
+// les cases du disque : combien de terre libre, et touche-t-il deja le territoire du camp ?
+function buyCheck(side: Side, a: number, b: number): string {
+  const sid = SID[side], r = BUY_R + 8; let free = 0, mine = 0;
+  const x0 = Math.max(0, Math.floor((a - r - GA0) / TC)), x1 = Math.min(TER.W - 1, Math.floor((a + r - GA0) / TC)), y0 = Math.max(0, Math.floor((b - r - GB0) / TC)), y1 = Math.min(TER.H - 1, Math.floor((b + r - GB0) / TC));
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++){
+    const i = y * TER.W + x, d = Math.hypot(GA0 + (x + .5) * TC - a, GB0 + (y + .5) * TC - b); if (d > r || !TER.land[i]) continue;
+    if (TER.own[i] === sid) mine++; else if (!TER.own[i] && d <= BUY_R) free++;
+  }
+  if (!mine) return 'Achète au bord de ton territoire : le terrain doit toucher le tien.';
+  if (free < 12) return 'Rien à acheter ici : le terrain est déjà pris (ou c’est la mer).';
+  return '';
+}
+export function buyLand(side: Side, a: number, b: number): string {
+  const why = buyCheck(side, a, b); if (why) return why;
+  const p = buyPrice(side);
+  if (!canAfford(side, p) || RES[side].x.coins < p.coins) return 'Il faut ' + p.coins + ' Catcoins, ' + p.l + ' laine et ' + p.r + ' ronrons.';
+  payPrice(side, p); RES[side].x.coins -= p.coins; BOUGHT[side]++;
+  claimDisc(a, b, BUY_R, side); return '';
+}
+let buyHover: Vec2 | null = null;
+SH.TOOLS = SH.TOOLS || {};
+SH.TOOLS.buyland = {
+  hint: 'Acheter du terrain : clique au bord de ton territoire. Le prix monte à chaque achat.',
+  start(){ const p = buyPrice(GAME.side); $('modeHint').textContent = 'Acheter du terrain : clique au bord de ton territoire. Prix : ' + p.coins + ' Catcoins, ' + p.l + ' laine, ' + p.r + ' ronrons. Il monte à chaque achat.'; },
+  click(a: number, b: number){
+    const why = buyLand(GAME.side, a, b); if (why){ toast(why); return; }
+    toast('Terrain acheté.'); SH.sfx('build'); SH.floatText(a, b, 'Terrain acheté'); SH.saveSoon(); SH.renderHUD();
+    const t = SH.TOOLS.buyland; if (t && t.start) t.start();
+  },
+  preview(t: number, w: Vec2 | null){
+    if (!w) return; buyHover = w;
+    const ok = !buyCheck(GAME.side, w[0], w[1]);
+    SH.CUR = ok ? M.BEAM : M.FLAG_RED;
+    for (let k = 0; k < 64; k++){ if (((k + Math.floor(t * 8)) & 3) === 3) continue; const an = k * Math.PI / 32, q = prj(w[0] + Math.cos(an) * BUY_R, w[1] + Math.sin(an) * BUY_R, 0); fput(Math.round(q[0]), Math.round(q[1]), 1); fput(Math.round(q[0]) + 1, Math.round(q[1]), 1); }
+  },
+};
+void buyHover;
+(TOOL_TILES.frontiere = TOOL_TILES.frontiere || []).unshift({ tool: 'buyland', name: 'Acheter du terrain', svg: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 13l4-3 3 2 3-4 4 3v4H1z" fill="currentColor"/><circle cx="11" cy="4" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10.4 2.6h1.2v2.8h-1.2z" fill="currentColor"/></svg>', cost: 'Catcoins', desc: 'Un morceau de terrain au bord de ton territoire, contre des Catcoins, de la laine et des ronrons.' });
+HOOKS.reset.push(() => { for (const s of SIDES) BOUGHT[s] = 0; });
+HOOKS.save.push((ext) => { ext.buy = [BOUGHT.usc, BOUGHT.ccp]; });
+HOOKS.load.push((ext) => { const v = ext.buy; BOUGHT.usc = Array.isArray(v) ? +v[0] || 0 : 0; BOUGHT.ccp = Array.isArray(v) ? +v[1] || 0 : 0; });
+
+/* ---- ce que font les batiments qui ne produisent pas (etape 0.22) : un mot dans le tiroir et la fiche ---- */
+const TAGS: Record<string, [string, string]> = {
+  fusee: ['science', 'course à l’espace'], drapeau: ['frontiere', 'nouveau territoire'], foret: ['laine', 'laine de la forêt'], caserne: ['armee', 'soldats, explorateurs'],
+  gare: ['transport', 'trains entre villes'], usinechars: ['armee', 'chars et jeeps'], chantier: ['mer', 'navires'], aerodrome: ['armee', 'avions'],
+  bunker: ['armee', 'défense à terre'], canoncotier: ['armee', 'défense côtière'], dca: ['armee', 'défense aérienne'], radar: ['influence', 'voit loin'],
+  centreatome: ['uranium', 'bombe atomique'], silo: ['uranium', 'lance la bombe'], agence: ['influence', 'espions'], ecoute: ['influence', 'voit l’ennemi'],
+  mirador: ['frontiere', 'moins de fuites'], hautparleurs: ['influence', 'propagande'], pontech: ['coins', 'meilleurs prix'], tunnelev: ['pop', 'évasions vers nous'],
+  ambassade: ['influence', 'parler à l’autre camp'], checkpoint: ['coins', 'marché'], entrepot: ['croq', 'plus de stock'], port: ['mer', 'barges, chalutiers'],
+};
+for (const [k, t] of Object.entries(TAGS)) if (SH.ECO[k]) SH.ECO[k].tag = t;
 
 /* ---- les parametres : son, mode photo, aide, tutoriel, menu (etape 0.22) ---- */
 function toggleGear(on?: boolean){
@@ -64,7 +125,7 @@ const mine = (f: (l: Building) => boolean) => (SH.BLD as Building[]).some(l => l
 const TUTO: Step[] = [
   { t: 'Bienvenue sur Kutty', txt: 'Tes barges accostent : ton QG se construit. Glisse pour te déplacer, molette pour zoomer.', done: () => mine(l => l.type === 'qg' && l.done) },
   { t: 'Des habitants', txt: 'Construire (B), onglet Logement, puis une maison : pose-la dans ton territoire.', done: () => mine(l => l.type === 'maison') },
-  { t: 'Les routes', txt: 'Pas obligatoires, mais les voitures et les ouvriers vont plus vite : Construire, onglet Routes et voies. Un chemin de terre suffit, même en montagne.', done: () => (SH.ROADS as { side: string }[]).filter(r => r.side === GAME.side).length >= 1 },
+  { t: 'Les routes', txt: 'Pas obligatoires : elles font rouler les voitures et relient tes villes à la capitale. Construire, onglet Routes et voies. Un chemin de terre suffit, même en montagne.', done: () => (SH.ROADS as { side: string }[]).filter(r => r.side === GAME.side).length >= 1 },
   { t: 'À manger', txt: 'Les chats mangent des croquettes : une pêcherie sur la côte, ou une ferme (onglet Croquettes).', done: () => mine(l => !!SH.ECO[l.type] && SH.ECO[l.type].cat === 'nourriture') },
   { t: 'La laine', txt: 'La laine paie presque tout : une bergerie (onglet Laine), ou une exploitation forestière en forêt.', done: () => mine(l => !!SH.ECO[l.type] && SH.ECO[l.type].cat === 'laine') },
   { t: 'La recherche', txt: 'Bâtis une université (onglet Recherche), puis choisis une recherche avec E.', done: () => SCI[GAME.side].done.size > 0 || !!SCI[GAME.side].cur },

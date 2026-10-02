@@ -44,12 +44,14 @@ export interface EcoDef {
   tech?: string;
   /** points de recherche par minute (universite, laboratoire ; etape 8) */
   sci?: number;
+  /** ce qu'il fait quand ce n'est pas une production : [icone, mot] (etape 0.22, montre dans le tiroir) */
+  tag?: [string, string];
 }
 /** Prix d'un batiment ou d'une amelioration. */
 export interface Price { l: number; c: number; r: number; t?: number; p?: number }
 export const bdef = (cat: Cat, cost: number, o: Partial<EcoDef>): EcoDef => Object.assign({ cat, cost, costR: 0, costC: 0, c: 0, l: 0, r: 0, pop: 0, jobs: 0, fun: 0, rad: 34, up: false, time: 0 }, o);
 export const ECO: Record<string, EcoDef> = {
-  qg: bdef('base', 0, { c: 10, l: 12, r: 6, pop: 6, rad: 150, noRoad: true, time: 12 }),
+  qg: bdef('base', 0, { c: 10, l: 12, r: 6, pop: 6, rad: 150, noRoad: true, up: true, time: 12 }),
   maison: bdef('logement', 20, { pop: 5, rad: 34, up: true, desc: 'Des habitants : ils mangent, travaillent et ronronnent.' }),
   immeuble: bdef('logement', 45, { l: -1, pop: 14, rad: 34, up: true, desc: 'Beaucoup d’habitants, un peu d’entretien.' }),
   pecherie: bdef('nourriture', 25, { c: 12, l: -.5, jobs: 4, rad: 40, up: true, coast: true, noRoad: true, desc: 'Sur la côte. Les chalutiers rapportent des croquettes de poisson.' }),
@@ -94,8 +96,8 @@ export const CAMP_VAL: Record<string, [number, number]> = {
 export const taste = (type: string, side: Side): number => { const v = CAMP_VAL[type]; return v ? .55 + v[side === 'usc' ? 0 : 1] / 7 : 1; };
 export const LVL_POP: Record<string, number[]> = { maison: [5, 8, 12], immeuble: [14, 22, 34] };
 export const LVL_MULT = [1, 1.7, 2.5];
-export const LVL_NAME: Record<string, string[]> = { maison: ['Maison', 'Pavillon', 'Villa'], immeuble: ['Immeuble', 'Grand immeuble', 'Gratte-ciel'], port: ['Ponton', 'Quai', 'Grand port'] };
-export const LVL_NAME_CCP: Record<string, string[]> = { maison: ['Isba', 'Datcha', 'Datcha de ministre'], immeuble: ['Barre', 'Grande barre', 'Tour du Peuple'], port: ['Ponton', 'Quai du Peuple', 'Port du Peuple'] };
+export const LVL_NAME: Record<string, string[]> = { maison: ['Maison', 'Pavillon', 'Villa'], immeuble: ['Immeuble', 'Grand immeuble', 'Gratte-ciel'], port: ['Ponton', 'Quai', 'Grand port'], qg: ['Mairie', 'Grande mairie', 'Hôtel de ville'] };
+export const LVL_NAME_CCP: Record<string, string[]> = { maison: ['Isba', 'Datcha', 'Datcha de ministre'], immeuble: ['Barre', 'Grande barre', 'Tour du Peuple'], port: ['Ponton', 'Quai du Peuple', 'Port du Peuple'], qg: ['Palais du Peuple', 'Grand Palais du Peuple', 'Palais de la Révolution'] };
 export function lvlName(l: Building): string { const L = (l.side === 'ccp' ? LVL_NAME_CCP : LVL_NAME)[l.type]; return L ? L[(l.lvl || 1) - 1] : typeName(l.type, l.side); }
 export const costOf = (type: string): number => (ECO[type] ? ECO[type].cost : 20);
 // prix complet d'un batiment pour un camp : laine, croquettes, ronrons (les avant-postes coutent de plus en plus cher)
@@ -108,7 +110,7 @@ export const costLabel = (p: Price): string => andList([p.l ? p.l + ' laine' : '
 export const canAfford = (side: Side, p: Price): boolean => canPay(side, p.l, p.r, p.c) && RES[side].x.tricot >= (p.t || 0) && RES[side].x.pate >= (p.p || 0);
 export function payPrice(side: Side, p: Price): void { pay(side, p.l, p.r, p.c); RES[side].x.tricot -= p.t || 0; RES[side].x.pate -= p.p || 0; }
 // le niveau 3 demande aussi du tricot, et du pate pour les logements
-export const upCost = (l: Building): Price | null => { const e = ECO[l.type], lv = l.lvl || 1; return lv >= 3 || !e || !e.up ? null : { l: Math.round(Math.max(30, e.cost) * (lv === 1 ? 1.5 : 2.6)), c: 0, r: lv === 1 ? 15 : 40, t: lv === 2 ? 10 : 0, p: lv === 2 && e.cat === 'logement' ? 10 : 0 }; };
+export const upCost = (l: Building): Price | null => { const e = ECO[l.type], lv = l.lvl || 1; return lv >= 3 || !e || !e.up ? null : { l: Math.round(Math.max(l.type === 'qg' ? 80 : 30, e.cost) * (lv === 1 ? 1.5 : 2.6)), c: 0, r: lv === 1 ? 15 : 40, t: lv === 2 ? 10 : 0, p: lv === 2 && e.cat === 'logement' ? 10 : 0 }; };
 export const buildTime = (type: string): number => { const e = ECO[type]; return e && e.time ? e.time : Math.round(7 + (e ? e.cost : 20) / 7); };
 export const popOf = (l: Building): number => LVL_POP[l.type] ? LVL_POP[l.type][(l.lvl || 1) - 1] : (ECO[l.type] ? ECO[l.type].pop : 0);
 
@@ -154,7 +156,7 @@ export function ecoTally(side: Side): void {
   let pop = 0, jobs = 0, fun = 0, elecP = 0, elecU = 0, eauP = 0, eauU = 0, cap = BASE_CAP, prestige = 0;
   const mine = SH.BLD.filter(l => l.side === side && l.done);
   for (const l of mine){
-    const e = ECO[l.type]; pop += popOf(l); if (!e) continue;
+    const e = ECO[l.type]; pop += popOf(l); if (!e || l.upT) continue;
     const mult = LVL_MULT[(l.lvl || 1) - 1];
     if (l.active) jobs += e.jobs * mult ** .5;
     if (!l.active && !e.noRoad) continue;
@@ -260,7 +262,7 @@ export function onBuilt(l: Building): void {
   SH.logDay(l.side, 'build', typeName(l.type, l.side), { id: l.id, type: l.type });
   if (l.side === GAME.side){
     const nm = typeName(l.type, l.side);
-    toast(nm + (TYPES[l.type].fem ? ' terminée' : ' terminé') + '.' + (!l.active ? ' Attention : pas de route jusqu’au QG, il reste à l’arrêt.' : ''));
+    toast(nm + (TYPES[l.type].fem ? ' terminée' : ' terminé') + '.' + '');
     SH.sfx('build', l.ca, l.cb);
     if (typeof SH.radioFlash === 'function' && l.type !== 'maison') SH.radioFlash(l);
     if (l.type !== 'qg') achieve('PREMIERE_PIERRE');
@@ -278,7 +280,9 @@ export function upgradeBuilding(l: Building): string {
   if (SH.upTech){ const w = SH.upTech(l); if (w) return w; }
   if (!canAfford(l.side, c)) return 'Il faut ' + costLabel(c) + '.';
   payPrice(l.side, c);
+  // (etape 0.22) le batiment repasse en chantier jusqu'a la fin : il ne produit plus, on voit l'echafaudage
   l.upT = GAME.t; l.udur = buildTime(l.type) * .7;
+  rebuildTown(); refreshAccess(); SH.mapDirtyRect(l.a0 - 4, l.a1 + 4, l.b0 - 4, l.b1 + 4);
   SH.saveSoon();
   return '';
 }
@@ -316,23 +320,6 @@ export function drawSite(l: Building, t: number, p: number): void {
   SH.CUR = M.BUBBLE; for (let x = 0; x < 17; x++){ fput(bx + x, by, 0); fput(bx + x, by + 2, 0); } fput(bx - 1, by + 1, 0); fput(bx + 17, by + 1, 0);
   SH.CUR = l.side === 'usc' ? M.FLAG_BLUE : M.FLAG_RED; for (let x = 0; x < 17; x++) fput(bx + x, by + 1, x < Math.round(p * 17) ? 0 : 1);
 }
-// amelioration en cours : echafaudage autour du batiment, grue qui tourne, barre d'avancement
-export function drawUpgradeSite(l: Building, t: number, p: number): void {
-  const a0 = l.a0 + 2, a1 = l.a1 - 2, b0 = l.b0 + 2, b1 = l.b1 - 2, Hh = 12 + (l.lvl || 1) * 9;
-  SH.CUR = M.KVAS;
-  for (const [a, b] of [[a0, b0], [a1, b0], [a1, b1], [a0, b1]]) line3(a, b, 0, a, b, Hh, 1);
-  for (let z = 3.5; z < Hh; z += 4){ line3(a0, b1, z, a1, b1, z, 1); line3(a1, b0, z, a1, b1, z, 1); }
-  for (let z = 3.5; z + 4 < Hh; z += 8){ line3(a0, b1, z, a0 + 4, b1, z + 4, 0); line3(a1, b1 - 4, z, a1, b1, z + 4, 0); }
-  const ga = a1 + 2, gb = b0 - 1, gh = Hh + 8, ang = t * .6 + l.ca;
-  SH.CUR = M.KVAS; line3(ga, gb, 0, ga, gb, gh, 1); line3(ga + .6, gb, 0, ga + .6, gb, gh, 1);
-  const ja = ga + Math.cos(ang) * 13, jb = gb + Math.sin(ang) * 13;
-  line3(ga - Math.cos(ang) * 4, gb - Math.sin(ang) * 4, gh, ja, jb, gh, 1); line3(ga, gb, gh + 3, ja, jb, gh, 1);
-  SH.CUR = M.METAL; line3(ja, jb, gh, ja, jb, gh - 4 - 6 * Math.abs(Math.sin(t * 1.3)), 0);
-  drawDust(l, t, .3 + .15 * Math.sin(t * 5));
-  const bp = prj(l.ca, l.cb, Hh + 6), bx = Math.round(bp[0]) - 8, by = Math.round(bp[1]);
-  SH.CUR = M.BUBBLE; for (let x = 0; x < 17; x++){ fput(bx + x, by, 0); fput(bx + x, by + 2, 0); } fput(bx - 1, by + 1, 0); fput(bx + 17, by + 1, 0);
-  SH.CUR = M.ICON_Y; for (let x = 0; x < 17; x++) fput(bx + x, by + 1, x < Math.round(p * 17) ? 0 : 1);
-}
 export function drawDust(l: Building, t: number, amt: number): void {
   SH.CUR = M.SMOKE;
   const c = prj(l.ca, l.cb, 0), cx = Math.round(c[0]), cy = Math.round(c[1]);
@@ -348,7 +335,7 @@ export function siteDrawables(t: number, out: Drawable[]): void {
   for (const l of SH.BLD){
     const q = prj(l.ca, l.cb, 0); if (q[0] < -60 * SC || q[0] > W + 60 * SC || q[1] < -60 * SC || q[1] > H + 80 * SC) continue;
     if (!l.done) out.push({ d: dep(l.ca, l.cb) + 2, a: l.ca, b: l.cb, f: () => drawSite(l, t, clamp((gt - l.buildT) / l.bdur, 0, 1)) });
-    else if (l.upT) out.push({ d: dep(l.ca, l.cb) + 6, a: l.ca, b: l.cb, f: () => drawUpgradeSite(l, t, clamp((gt - l.upT) / (l.udur || 1), 0, 1)) });
+    else if (l.upT) out.push({ d: dep(l.ca, l.cb) + 2, a: l.ca, b: l.cb, f: () => drawSite(l, t, clamp((gt - l.upT) / (l.udur || 1), 0, 1)) });
     else if (l.doneT && gt < l.doneT + .7) out.push({ d: dep(l.ca, l.cb) + 6, a: l.ca, b: l.cb, f: () => drawDust(l, t, 1 - (gt - (l.doneT || 0)) / .7) });
     if (l.done && !l.active && !l.upT) out.push({ d: dep(l.ca, l.cb) + 8, a: l.ca, b: l.cb, f: () => drawNoRoad(l, t) });
   }

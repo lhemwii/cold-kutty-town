@@ -5,7 +5,7 @@ import { Lc, part, rbox, sideLight, wallBase } from './03-buildings-base.ts';
 import { TYPES } from './04-types.ts';
 import { peaksIn, type Drawable } from './07-world.ts';
 import { SID, TC, TER, claimDisc, fogSeenAt, fogVisible } from './08-territory.ts';
-import { FOOT, makeBuilding, placeProblem } from './10-town.ts';
+import { FOOT, catMat, catPixels, makeBuilding, placeProblem, type CatDef } from './10-town.ts';
 import { $, costHTML, toast } from './13-ui.ts';
 import { lackText } from './14-hud.ts';
 import { CATS_MENU, ECO, bdef, canAfford, payPrice, priceOf, type Price } from './15-economy.ts';
@@ -212,24 +212,30 @@ HOOKS.step.push((dt: number) => {
 SH.fogSeen = (side: Side, a: number, b: number): boolean => side !== GAME.side || !TER.fogOn || fogSeenAt(a, b);
 
 /* ---- dessin des unites ---- */
-// un petit chat en uniforme : le corps a la couleur du camp, la tete, un casque ou un chapeau
-function drawTrooper(x: number, y: number, side: Side, kind: string, k: number, t: number, moving: boolean){
-  const step = moving ? (Math.floor(t * 8 + k) & 1) : 0;
-  SH.CUR = M.METAL; fput(x - 1, y, 0); fput(x + 1, y, 0); if (step){ fput(x - 1, y - 1, 0); } else fput(x + 1, y - 1, 0);
-  SH.CUR = side === 'ccp' ? M.FLAG_RED : M.FLAG_BLUE;
-  for (let dy = 2; dy <= 4; dy++) for (let dx = -1; dx <= 1; dx++) fput(x + dx, y - dy, dx === -1 ? 0 : 1);
-  SH.CUR = M.CAT_OR; for (let dx = -1; dx <= 1; dx++){ fput(x + dx, y - 5, 1); fput(x + dx, y - 6, 1); } fput(x - 1, y - 7, 0); fput(x + 1, y - 7, 0);
-  if (kind === 'soldats'){ SH.CUR = M.MILITARY; for (let dx = -2; dx <= 2; dx++) fput(x + dx, y - 7, 0); fput(x, y - 8, 0); fput(x - 1, y - 8, 0); fput(x + 1, y - 8, 0); SH.CUR = M.METAL; fput(x + 2, y - 3, 0); fput(x + 2, y - 4, 0); fput(x + 2, y - 5, 0); fput(x + 2, y - 6, 1); }
-  else if (kind === 'batisseurs'){ SH.CUR = M.ICON_Y; for (let dx = -1; dx <= 1; dx++) fput(x + dx, y - 7, 1); fput(x, y - 8, 1); }
-  else if (kind === 'explorateur'){ SH.CUR = side === 'ccp' ? M.CAT_GRAY : M.PIER; for (let dx = -2; dx <= 2; dx++) fput(x + dx, y - 7, 0); fput(x, y - 8, 0); fput(x - 1, y - 8, 0); }
+// un vrai petit chat a quatre pattes, comme ceux des villes (etape 0.22), en manteau aux couleurs du camp :
+// casque pour les soldats, chapeau pour les explorateurs, casque de chantier pour les batisseurs
+const trooperDef = (side: Side, kind: string, k: number): CatDef => ({ home: '', name: '', job: '', side, col: ['tabby', 'gray', 'black', 'white'][(k + (side === 'ccp' ? 1 : 0)) % 4], sp: 0, traits: '', hello: '', facts: [], outfit: '',
+  look: kind === 'soldats' ? (side === 'ccp' ? 'ushanka' : 'kepi') : kind === 'batisseurs' ? 'chantier' : 'cowboy' });
+const TROOP: Record<string, CatDef> = {};
+function drawTrooper(x: number, y: number, side: Side, kind: string, k: number, t: number, moving: boolean, f: number){
+  const key = side + kind + (k & 3), c = TROOP[key] || (TROOP[key] = trooperDef(side, kind, k));
+  const fr = moving ? (Math.floor(t * 8 + k) & 1) : 2, pix = catPixels(c, fr, f, false);
+  SH.CUR = catMat(c);
+  for (const [px, py] of pix) for (const [ox, oy] of [[0, -1], [0, 1], [-1, 0], [1, 0]]) fput(x + px + ox, y + py + oy, 0);
+  for (const [px, py, v] of pix) fput(x + px, y + py, v);
+  // le manteau du camp sur le dos, et le chapeau de son metier
+  SH.CUR = side === 'ccp' ? M.FLAG_RED : M.FLAG_BLUE; for (let dx = -1; dx <= 2; dx++) fput(x + dx * f, y - 3, dx === -1 ? 0 : 1);
+  SH.CUR = kind === 'soldats' ? M.MILITARY : kind === 'batisseurs' ? M.ICON_Y : (side === 'ccp' ? M.CAT_GRAY : M.PIER);
+  for (const [px, py] of pix) if (py <= -6) fput(x + px, y + py, 0);
+  if (kind === 'soldats'){ SH.CUR = M.METAL; for (let d = 0; d < 4; d++) fput(x + (-2 + d) * f, y - 4 - (d >> 1), d === 3 ? 1 : 0); }
 }
 export function drawUnit(u: Unit, t: number){
   const d = UNIT_DEF[u.kind]; if (!d) return;
   if (SH.drawVehicle && d.look !== 'chats' && SH.drawVehicle(u, d, t)) { /* dessine par l'etape 9 */ }
   else {
     const p = prj(u.a, u.b, 0), x = Math.round(p[0]), y = Math.round(p[1]), moving = u.pi < u.path.length;
-    const n = d.n || 1;
-    for (let k = 0; k < n; k++) drawTrooper(x + (k - (n - 1) / 2) * 5, y + (k & 1), u.side, u.kind, k, t, moving);
+    const n = d.n || 1, nx = moving && u.path[u.pi] ? prj(u.path[u.pi][0], u.path[u.pi][1], 0)[0] : x + 1, f = nx >= x ? 1 : -1;
+    for (let k = 0; k < n; k++) drawTrooper(x + (k - (n - 1) / 2) * 9, y + (k & 1) * 2, u.side, u.kind, k, t, moving, f);
   }
   const p = prj(u.a, u.b, 0), x = Math.round(p[0]), y = Math.round(p[1]);
   if (SEL.has(u.id)){ SH.CUR = M.ICON_Y; for (let k = 0; k < 20; k++){ const an = k / 20 * Math.PI * 2; fput(x + Math.round(Math.cos(an) * 9), y + Math.round(Math.sin(an) * 4), 1); } }

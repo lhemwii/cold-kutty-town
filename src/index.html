@@ -124,13 +124,19 @@
 </div>
 
 <section class="chat panel" id="chat" aria-label="Conversation" hidden>
-  <div class="chat-head">
-    <div class="portrait-wrap"><canvas id="portrait" width="160" height="120" role="img" aria-label="Portrait du chat"></canvas></div>
-    <div class="chat-id">
-      <div class="chat-side"><canvas id="flag" width="15" height="10"></canvas><span id="chatSide">USC</span></div>
-      <h2 class="chat-name" id="chatName">Minou</h2>
-      <div class="chat-job" id="chatJob">Maire</div>
+  <!-- la fiche du chat : un passeport de son pays, avec sa photo (etape 0.22) -->
+  <div class="chat-head passport">
+    <div class="pp-band"><span class="pp-emb" id="ppEmb" aria-hidden="true"></span><span class="pp-titles"><b class="pp-title" id="ppTitle">Passeport</b><span class="pp-country" id="chatSide">USC</span></span><canvas id="flag" width="15" height="10"></canvas></div>
+    <div class="pp-page">
+      <div class="portrait-wrap"><canvas id="portrait" width="160" height="120" role="img" aria-label="Photo du chat"></canvas><i class="pp-stamp" id="ppStamp" aria-hidden="true"></i></div>
+      <dl class="chat-id pp-fields">
+        <dt>Nom</dt><dd><h2 class="chat-name" id="chatName">Minou</h2></dd>
+        <dt>Profession</dt><dd class="chat-job" id="chatJob">Maire</dd>
+        <dt>Domicile</dt><dd id="ppHome"></dd>
+        <dt>N°</dt><dd class="pp-num" id="ppNum"></dd>
+      </dl>
     </div>
+    <div class="pp-mrz" id="ppMrz" aria-hidden="true"></div>
     <button class="btn chat-close" id="chatClose" type="button" aria-label="Fermer la conversation">Fermer</button>
   </div>
   <div class="chat-log" id="chatLog" aria-live="polite"></div>
@@ -269,7 +275,7 @@
       <li><b>01</b><span>Choisis ta plage : tes barges accostent et bâtissent ton QG.</span></li>
       <li><b>02</b><span>Chaque bâtiment rayonne : ton territoire grandit tout seul autour. Les avant-postes le poussent plus loin, les barges l’emmènent sur d’autres côtes.</span></li>
       <li><b>03</b><span>Trois ressources : croquettes pour manger, laine pour bâtir, ronrons pour conquérir. Chaque bâtiment produit et coûte en fonctionnement.</span></li>
-      <li><b>04</b><span>Relie tes bâtiments au QG par des routes, droites ou courbes, sinon ils restent à l’arrêt. Améliore-les : un ponton devient quai, puis grand port.</span></li>
+      <li><b>04</b><span>Les routes, droites ou courbes, ne sont pas obligatoires : elles font rouler les voitures et relient tes villes à la capitale. Améliore tes bâtiments : un ponton devient quai, puis grand port.</span></li>
       <li><b>05</b><span>Des vestiges catzi traînent sur l’île : fouille-les quand ton territoire les atteint.</span></li>
       <li><b>06</b><span>Des camps deviennent des villes : relie-les à la capitale par la route ou le train, sinon elles perdent la moitié de leur production.</span></li>
       <li><b>07</b><span>Recherche (E), armée, course à l’espace, espions, traités et commerce au Rideau de Laine (P).</span></li>

@@ -216,15 +216,15 @@ L’icône de l’onglet reste comme elle est ; le logo à tête de chat de l’
 - [x] L’aide « Glisse pour te déplacer… » ne s’affiche que la première fois. Le bouton Annuler (Ctrl+Z) quitte le dock.
 - [x] Construire : routes droites, courbes, voies ferrées et Rideau de Laine rejoignent le menu Construire ; les outils deviennent des boutons séparés plutôt qu’une seule barre.
 - [x] Le menu Construire : bâtiments au-dessus, catégories en dessous, sur une ligne, toute la largeur, avec des flèches pour défiler ; la phrase d’aide (« Ce terrain n’est pas à toi… ») passe au-dessus du cadre, collé à la barre.
-- [ ] Chaque bâtiment dit ce qu’il produit (pâté, tricot, charbon, électricité, eau…) ; aucun bâtiment ne doit être sans effet.
-- [ ] Plus besoin de route jusqu’au QG pour qu’un bâtiment travaille.
-- [ ] Des routes dans les montagnes ; un bâtiment ne s’enfonce plus dans une montagne.
-- [ ] Un bouton pour acheter du territoire avec des ressources.
-- [ ] Une amélioration remet le bâtiment en chantier jusqu’à la fin, et chaque niveau change le dessin, la mairie comprise.
+- [x] Chaque bâtiment dit ce qu’il produit (pâté, tricot, charbon, électricité, eau…) ; aucun bâtiment ne doit être sans effet.
+- [x] Plus besoin de route jusqu’au QG pour qu’un bâtiment travaille.
+- [x] Des routes dans les montagnes (sur la roche elles se voient ; sous un sommet, tunnel, sans recherche pour les routes) ; un bâtiment ne s’enfonce plus dans une montagne, les gisements de charbon et d’uranium sont au pied des pentes.
+- [x] Un bouton pour acheter du territoire avec des ressources (onglet Frontière : Catcoins, laine et ronrons, le prix monte à chaque achat).
+- [x] Une amélioration remet le bâtiment en chantier jusqu’à la fin (il ne produit plus pendant ce temps), et chaque niveau change le dessin : la mairie gagne des ailes puis un étage, le Palais du Peuple un étage à chaque niveau ; les autres un mât au niveau 2 et une tour au niveau 3.
 - [x] Le journal dépasse en bas à droite chaque matin ; on y ouvre la Gazette et la Pravdachat d’un clic, puis il redescend.
-- [ ] La fiche d’un chat devient un passeport de son pays, avec sa photo.
-- [ ] Les unités à terre sont bien des chats.
-- [ ] La radio prend un style d’époque ; un téléphone rouge (le mien) et un téléphone vert (le leur) pour parler à l’autre camp.
+- [x] La fiche d’un chat devient un passeport de son pays, avec sa photo.
+- [x] Les unités à terre sont bien des chats.
+- [x] La radio prend un style d’époque ; un téléphone rouge (le mien) et un téléphone vert (le leur) pour parler à l’autre camp.
 - [ ] À préciser ensemble : « pouvoir amener un QG ».
 
 # Feuille de route de la nouvelle version

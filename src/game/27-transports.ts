@@ -1,6 +1,6 @@
 import { SH, type Building, type Side } from './00-shared.ts';
 import { GAME, H, HOOKS, M, SIDES, UP, W, boxS, bz, dep, drawFace, drawStar, fput, gableRoof2, gableWalls, line3, prj, state, wallFace, win, winColor } from './01-core.ts';
-import { GA0, GB0, type Vec2 } from './02-ground.ts';
+import { GA0, GB0, T_ROCK, baseAt, type Vec2 } from './02-ground.ts';
 import { Lc, facadePlate, frontVisible, part, rbox, sideLight, wallBase } from './03-buildings-base.ts';
 import { TYPES } from './04-types.ts';
 import { drawCyl } from './06-types-more.ts';
@@ -80,7 +80,7 @@ const PASS = new Set<number>();
 const pkey = (a: number, b: number) => Math.floor((a - GA0) / 8) * 65536 + Math.floor((b - GB0) / 8);
 function buildPassages(){
   PASS.clear();
-  for (const r of [...SH.ROADS as Road[], ...RAILS]) for (const [a, b] of r.pts) if (overWater(a, b) || underRock(a, b)) for (const [da, db] of [[0, 0], [-4, 0], [4, 0], [0, -4], [0, 4]]) PASS.add(pkey(a + da, b + db));
+  for (const r of [...SH.ROADS as Road[], ...RAILS]) for (const [a, b] of r.pts) if (overWater(a, b) || underRock(a, b) || baseAt(a, b) === T_ROCK) for (const [da, db] of [[0, 0], [-4, 0], [4, 0], [0, -4], [0, 4]]) PASS.add(pkey(a + da, b + db));
 }
 SH.tunnelAt = (a: number, b: number): boolean => PASS.has(pkey(a, b));
 

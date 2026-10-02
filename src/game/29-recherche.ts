@@ -28,7 +28,7 @@ export const TECHS: Tech[] = [
   { id: 'television', name: 'Télévision', branch: 'societe', cost: 200, req: ['urbanisme'], gives: 'Plus de loisirs dans chaque foyer, et plus d’influence.' },
   { id: 'chemin_de_fer', name: 'Chemin de fer', branch: 'transports', cost: 45, req: [], gives: 'La gare et les trains.' },
   { id: 'goudron', name: 'Goudron', branch: 'transports', cost: 40, req: [], gives: 'Goudronner les chemins de terre.' },
-  { id: 'tunnels', name: 'Tunnels', branch: 'transports', cost: 90, req: ['chemin_de_fer'], gives: 'Routes et voies sous la roche.' },
+  { id: 'tunnels', name: 'Tunnels', branch: 'transports', cost: 90, req: ['chemin_de_fer'], gives: 'Les voies ferrées passent sous la montagne.' },
   { id: 'metro', name: 'Métro', branch: 'transports', cost: 150, req: ['tunnels'], gives: 'La station de métro.' },
   { id: 'blindes', name: 'Blindés', branch: 'armee', cost: 80, req: ['mecanisation'], gives: 'L’usine de chars : chars et jeeps.' },
   { id: 'marine', name: 'Marine', branch: 'armee', cost: 90, req: [], gives: 'Le chantier naval : navires de guerre et de transport.' },

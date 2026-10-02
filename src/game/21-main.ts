@@ -143,6 +143,16 @@ export function openChat(c: Cat){
   $('chatName').textContent = c.name; $('chatJob').textContent = c.job;
   $('chatSide').textContent = SIDE_LABEL[c.side];
   drawFlagIcon($of('flag', HTMLCanvasElement), c.side);
+  // le passeport de son pays (etape 0.22) : la couverture, le domicile, un numero, la ligne lisible par les machines
+  $('chat').dataset.side = c.side;
+  $('ppTitle').textContent = c.side === 'neutre' ? 'Laissez-passer' : c.side === 'ccp' ? 'Passeport du Peuple' : 'Passeport';
+  const home = SH.BLD.find(l => l.id === c.homeId), hq = SH.BLD.find(l => l.type === 'qg' && l.side === c.side);
+  const homeNm = home ? home.name || (TYPES[home.type] ? (c.side === 'ccp' && TYPES[home.type].nameCCP) || TYPES[home.type].name : home.type) : '';
+  $('ppHome').textContent = homeNm ? homeNm + (hq && hq.name && hq.name !== homeNm ? ', ' + hq.name : '') : 'Île de Kutty';
+  const num = (c.side === 'ccp' ? 'CC' : c.side === 'usc' ? 'US' : 'NT') + String(100000 + ((c.id * 7919) % 900000)).slice(0, 6);
+  $('ppNum').textContent = num;
+  const mrzName = c.name.toUpperCase().normalize('NFD').replace(/[^A-Z ]/g, '').trim().replace(/ +/g, '<');
+  $('ppMrz').textContent = ('P<' + (c.side === 'ccp' ? 'CCR' : c.side === 'usc' ? 'USC' : 'NTR') + '<' + mrzName + '<'.repeat(40)).slice(0, 44) + '\n' + (num + '<' + '<'.repeat(40)).slice(0, 44);
   chatLog.textContent = ''; chatTurns = []; factIdx = 0;
   c.memCounted = false; c.helloNow = memGreeting(c) || c.hello;
   addMsg(c.helloNow, 'cat');

@@ -5,7 +5,7 @@ import { TYPES } from './04-types.ts';
 import { typeName } from './05-types-extra.ts';
 import { VEST_DEF, drawVestige, type VestDef, type VestKind, type Vestige } from './07-world.ts';
 import { TER, influenceOf, sideAt } from './08-territory.ts';
-import { footOf, matOf } from './10-town.ts';
+import { buildParts, footOf, matOf } from './10-town.ts';
 import { FAR, PALL } from './11-render.ts';
 import { $, $of, CAT_ICON, ICONS, andList, costHTML, ico, pips, pixelSVG, progress, pushHistory, setTool, toast, type Pal } from './13-ui.ts';
 import type { EcoDef, Flow, Price, Resources } from './15-economy.ts';
@@ -112,7 +112,7 @@ export function thumb(type: string, side: Side, w: number, h: number, lvl?: numb
   setView({ W: w, H: h, fb: new Uint8Array(w * h), mb: new Uint8Array(w * h), lb: new Uint8Array(w * h), db: new Uint16Array(w * h), PC: 1, PS: 0, SC: 1 });
   SH.CUR_SIDE = side;
   try {
-    const r = TYPES[type].build(lot, 5), probe = { x0: 1e9, y0: 1e9, x1: -1e9, y1: -1e9 };
+    const r = buildParts(lot, 5), probe = { x0: 1e9, y0: 1e9, x1: -1e9, y1: -1e9 };
     setView({ TX: w >> 1, TY: Math.round(h * .62) });
     const parts = r.parts.slice().sort((u, v) => (dep(u.a, u.b) + u.zb) - (dep(v.a, v.b) + v.zb));
     const bm = matOf(type, side, 0), drawAll = () => { for (const d of r.decals || []){ SH.CUR = side === 'ccp' ? M.CCP : M.USC; d(0); } for (const p of parts){ SH.CUR = p.m != null ? p.m : bm; p.draw(0); } };
@@ -215,6 +215,7 @@ export function effLine(e: EcoDef, max = 3){
   if (e.sci) bits.push(it('science', 'recherche par minute', '+' + e.sci));
   if (e.stock) bits.push(it('croq', 'place de stock', '+' + e.stock + ' stock'));
   if (e.fun) bits.push(it('fun', 'loisirs', String(e.fun)));
+  if (e.tag) bits.push('<span class="ci">' + ico(e.tag[0], e.tag[1]) + '<b>' + e.tag[1] + '</b></span>');
   if (e.cat === 'frontiere' || e.cat === 'mer' || !bits.length) bits.push('<span class="ci">territoire <b>' + e.rad + '</b></span>');
   // ce qu'il consomme pour produire, en dernier
   const use: string[] = [];
@@ -305,7 +306,7 @@ export function renderSel(){
   const st = $('selState');
   if (!l.done) st.innerHTML = '<span class="pill work">En chantier ' + progress((GAME.t - l.buildT) / l.bdur) + '</span>';
   else if (l.upT) st.innerHTML = '<span class="pill work">Amélioration ' + progress((GAME.t - l.upT) / (l.udur || 0)) + '</span>';
-  else if (!l.active) st.innerHTML = '<span class="pill bad">À l’arrêt : pas de route jusqu’au QG</span>';
+  else if (!l.active) st.innerHTML = '<span class="pill bad">À l’arrêt</span>';
   else st.innerHTML = '<span class="pill ok">En service</span>';
   const rows: [string, string][] = [];
   const R: Resources = SH.RES[l.side], eff = e && e.jobs ? R.eff : 1;
@@ -316,6 +317,11 @@ export function renderSel(){
       const v = e[k]; if (!v) continue;
       rows.push([nm, v > 0 ? fmtRate(v * mult * eff * (k === 'r' ? SH.taste(l.type, l.side) : 1)) : fmtRate(v * (1 + (mult - 1) * .5)) + ' (fonctionnement)']);
     }
+    for (const [k, v] of Object.entries(e.x || {})) if (v) rows.push([X_NAME[k].charAt(0).toUpperCase() + X_NAME[k].slice(1), v > 0 ? fmtRate(v * mult * eff) : fmtRate(v) + ' (consommé)']);
+    if (e.elec) rows.push(['Électricité', e.elec > 0 ? '+' + Math.round(e.elec * mult) + ' (capacité)' : String(e.elec).replace('-', '−') + ' (besoin)']);
+    if (e.eau) rows.push(['Eau', e.eau > 0 ? '+' + Math.round(e.eau * mult) + ' (capacité)' : String(e.eau).replace('-', '−') + ' (besoin)']);
+    if (e.stock) rows.push(['Stock', '+' + Math.round(e.stock * mult)]);
+    if (e.tag) rows.push(['Rôle', e.tag[1]]);
     if (e.fun) rows.push(['Loisirs', String(Math.round(e.fun * mult * SH.taste(l.type, l.side)))]);
     rows.push(['Influence', 'rayon ' + Math.round(influenceOf(l))]);
   }

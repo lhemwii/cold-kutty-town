@@ -628,3 +628,42 @@ body:not(.playing) .peek{display:none}
 .sci-head,.xr-head,.un-head,.sel-head,.chat-head{cursor:grab;touch-action:none}
 .moving .sci-head,.moving .xr-head,.moving .un-head,.moving .sel-head,.moving .chat-head{cursor:grabbing}
 .moving{opacity:.94;user-select:none}
+
+/* la fiche d'un chat : le passeport de son pays, avec sa photo (etape 0.22) */
+.chat{--pp:#1d2f6b;--pp2:#e9e2cc;--gold:#d9b44a}
+.chat[data-side="ccp"]{--pp:#7a1620;--pp2:#efe3cf}
+.chat[data-side="neutre"]{--pp:#3d4a3a;--pp2:#e8e6da}
+.passport{display:grid;grid-template-columns:1fr;background:var(--pp2);color:#241c14;font-family:'Old Standard TT',serif}
+.pp-band{display:flex;align-items:center;gap:10px;padding:9px 90px 9px 12px;background:var(--pp);color:var(--gold);border-bottom:2px solid var(--paper)}
+.pp-emb{width:26px;height:26px;flex:none;border:2px solid var(--gold);border-radius:50%;background:radial-gradient(circle,var(--gold) 0 3px,transparent 4px)}
+.chat[data-side="ccp"] .pp-emb{border-radius:0;background:var(--gold);clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)}
+.pp-titles{display:grid;gap:2px;min-width:0}
+.pp-title{font:700 15px/1 'Old Standard TT',serif;letter-spacing:.2em;text-transform:uppercase}
+.pp-country{font:400 11px/1.1 'Old Standard TT',serif;letter-spacing:.08em;color:#f4ecd2}
+.pp-band canvas{width:24px;height:16px;image-rendering:pixelated;outline:1px solid var(--gold);margin-left:auto}
+.pp-page{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;padding:12px;background:repeating-linear-gradient(135deg,transparent 0 6px,rgba(0,0,0,.035) 6px 7px)}
+.passport .portrait-wrap{position:relative;border:2px solid #241c14;background:#d8d0b8;padding:3px;align-self:start}
+.passport #portrait{width:120px;height:90px;filter:sepia(.25) contrast(1.05)}
+.pp-stamp{position:absolute;right:-14px;bottom:-12px;width:46px;height:46px;border:2px solid var(--pp);border-radius:50%;opacity:.55;transform:rotate(-18deg);display:grid;place-items:center;font:700 8px/1 'Old Standard TT',serif;color:var(--pp);letter-spacing:.06em;pointer-events:none}
+.pp-stamp::after{content:'KUTTY';border-top:1px solid currentColor;border-bottom:1px solid currentColor;padding:2px 0}
+.pp-fields{display:grid;grid-template-columns:auto minmax(0,1fr);gap:3px 8px;margin:0;padding:0;align-content:start}
+.pp-fields dt{font:400 10px/1.5 'Old Standard TT',serif;text-transform:uppercase;letter-spacing:.06em;color:#6b5f4c}
+.pp-fields dd{margin:0;font:700 13px/1.35 'Old Standard TT',serif;min-width:0;overflow-wrap:anywhere}
+.passport .chat-name{font:700 16px/1.2 'Old Standard TT',serif;color:#241c14}
+.passport .chat-job{color:#241c14;font-size:12.5px}
+.pp-num{font-family:var(--mono)!important;color:var(--pp)}
+.pp-mrz{font:600 10px/1.35 var(--mono);white-space:pre;overflow:hidden;padding:5px 12px 7px;background:#f6f1e2;border-top:1px dashed #9b8f78;letter-spacing:.06em;color:#3a3226}
+.passport .chat-close{top:8px;right:8px;background:var(--pp2);color:#241c14}
+@media (max-width:640px){.chat-head.passport{grid-template-columns:1fr}.passport .portrait-wrap{border:2px solid #241c14}.passport #portrait{width:96px;height:72px}.pp-mrz{display:none}}
+
+/* la radio, un poste d'epoque (etape 0.22) : caisse en bois, toile du haut-parleur, cadran eclaire ou defilent les nouvelles */
+.radio{background:linear-gradient(180deg,#8a5530,#5b351b 55%,#4a2a16);border:2px solid var(--paper);border-radius:7px;padding:4px 30px 4px 4px;gap:4px;box-shadow:var(--shadow),inset 0 1px 0 rgba(255,220,170,.35)}
+.radio::after{content:'';position:absolute;right:7px;top:50%;width:16px;height:16px;margin-top:-8px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#f4e2b8,#b88a4a 55%,#5b351b);box-shadow:0 0 0 1.5px #2a1a0e}
+.radio-tag{border-radius:4px;background:repeating-linear-gradient(90deg,#c9b48a 0 2px,#a8936a 2px 3px),#c9b48a;color:#2a1a0e;box-shadow:inset 0 0 0 1.5px #2a1a0e;font-family:'Old Standard TT',serif;letter-spacing:.08em}
+.radio-tag i{background:#ffb347;box-shadow:0 0 6px 2px rgba(255,170,60,.85),inset 0 0 0 1px #6b3a10}
+.radio-tag i.off{background:#7a4a20;box-shadow:inset 0 0 0 1px #2a1a0e}
+.radio-track{border-radius:4px;background:linear-gradient(180deg,#fff3cf,#f1d99a);box-shadow:inset 0 0 0 1.5px #2a1a0e,inset 0 0 12px rgba(255,160,40,.45)}
+.radio-track::before{content:'';position:absolute;left:4px;right:4px;top:2px;height:5px;background:repeating-linear-gradient(90deg,#6b4a2a 0 1px,transparent 1px 9px);opacity:.55;pointer-events:none}
+.radio-text{color:#3a2412;font:italic 600 13px/32px 'Old Standard TT',serif}
+.radio-text b{font-style:normal;letter-spacing:.06em}
+.radio.go:hover .radio-track{background:linear-gradient(180deg,#fff8de,#f6e3b0)}

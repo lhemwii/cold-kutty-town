@@ -18,7 +18,7 @@ Pas encore en jeu : la planète est gardée pour un futur mode espace (voir docs
 
 1. Choisis ton camp, puis clique sur la côte où débarquer.
 2. Les barges accostent, l’équipage bâtit ton QG et un premier bout de route. L’autre camp débarque de l’autre côté.
-3. Construis dans ton territoire. Relie tes bâtiments au QG par la route, sinon ils restent à l’arrêt.
+3. Construis dans ton territoire. Les routes ne sont pas obligatoires : elles font rouler les voitures et relient les villes à la capitale. Elles passent aussi en montagne.
 4. Chaque bâtiment rayonne : ton territoire grandit tout seul autour, case par case. Les avant-postes le poussent plus loin, les barges (depuis un port) l’emmènent sur d’autres côtes.
 5. Quand les frontières se touchent, la plus forte grignote l’autre. Le Rideau de Laine fige la frontière.
 6. L’île est cachée par le brouillard : tes bâtiments et tes unités voient autour d’eux. Les explorateurs découvrent le terrain et les gisements, les bâtisseurs posent un camp loin, même hors de ton territoire.
@@ -42,7 +42,7 @@ Trois niveaux pour la plupart des bâtiments : le port passe de ponton à quai p
 
 ## Commandes
 
-H montre toutes les commandes. Glisser pour se déplacer, molette pour zoomer, clic droit glissé pour tourner. En construction, clic droit glissé ou T pour tourner le bâtiment de 22,5 degrés (Maj+T dans l’autre sens). B construire, R route, C courbe, M Rideau, X démolir, Échap arrêter, Espace pause, 1 2 3 vitesse, Ctrl+Z annuler.
+H montre toutes les commandes. Glisser pour se déplacer, molette pour zoomer, clic droit glissé pour tourner. En construction, clic droit glissé ou T pour tourner le bâtiment de 22,5 degrés (Maj+T dans l’autre sens). B construire (routes, voies et Rideau dans l’onglet Routes et voies), R route, C courbe, V voie ferrée, M Rideau, X démolir, Échap arrêter, Espace pause, 1 2 3 vitesse, Ctrl+Z annuler.
 
 Pourparlers : P ouvre l’écran des traités et du commerce (il faut un checkpoint ou une ambassade au bord du Rideau).
 

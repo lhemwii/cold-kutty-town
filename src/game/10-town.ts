@@ -1,9 +1,9 @@
 import { SH } from './00-shared.ts';
 import type { Building, BuiltParts, Light, Part, Side } from './00-shared.ts';
 import type { Vec2 } from './02-ground.ts';
-import { COLOR, HOOKS, M, MOON, PC, PS, SC, SUN, TAU, TX, TY, bay, blitAt, fput, hash2, prj, setView } from './01-core.ts';
+import { COLOR, HOOKS, M, MOON, PC, PS, SC, SUN, TAU, TX, TY, bay, blitAt, boxS, drawFlagPole, fput, hash2, line3, prj, setView, win, winColor } from './01-core.ts';
 import { GA0, GB0, GH, GSC, GW, T_BEACH, T_ROCK, T_SEA, baseAt, landDAt, seaDAt } from './02-ground.ts';
-import { LAMP_SPR, Lc, part } from './03-buildings-base.ts';
+import { LAMP_SPR, Lc, part, wallBase } from './03-buildings-base.ts';
 import { TYPES, seedOf } from './04-types.ts';
 import { DIR_V } from './06-types-more.ts';
 import { LAMP_POS, VEST, drawTower, drawWallPiece, peaksIn } from './07-world.ts';
@@ -66,7 +66,8 @@ export function placeProblem(type: string, side: Side, ca: number, cb: number, d
   for (const o of SH.BLD) if (l.a0 < o.a1 + 1 && l.a1 > o.a0 - 1 && l.b0 < o.b1 + 1 && l.b1 > o.b0 - 1) return 'Il y a déjà un bâtiment ici.';
   // les montagnes debordent de la roche : on ne bati pas sous leurs pentes
   let peak = false; peaksIn(l.a0 - 70, l.a1 + 70, l.b0 - 70, l.b1 + 70, (pk) => { const da = Math.max(l.a0 - pk.a, 0, pk.a - l.a1), db = Math.max(l.b0 - pk.b, 0, pk.b - l.b1); if (Math.hypot(da, db) < pk.R * .85) peak = true; });
-  if (peak && !e.deposit) return 'Une montagne se dresse ici.';
+  // (etape 0.22 : les mines aussi, au pied de la montagne et non dedans)
+  if (peak) return 'Une montagne se dresse ici : pose-le à son pied.';
   for (const v of VEST) if (!v.looted && v.a > l.a0 - (v.kind === 'statue' ? 32 : 14) && v.a < l.a1 + 14 && v.b > l.b0 - (v.kind === 'statue' ? 16 : 14) && v.b < l.b1 + 14) return 'Des vestiges catzi sont ici : fouille-les d’abord.';
   for (const r of SH.ROADS) if (rectRoadDist(l, r) < RW + .5) return 'Une route passe ici.';
   for (const w of SH.WALLS){ const m = [(w.pa + w.qa) / 2, (w.pb + w.qb) / 2]; if (m[0] > l.a0 - 6 && m[0] < l.a1 + 6 && m[1] > l.b0 - 6 && m[1] < l.b1 + 6) return 'Le Rideau de Laine passe ici.'; }
@@ -342,11 +343,27 @@ export function turnDraw(ca: number, cb: number, th: number, fn: (t: number) => 
 }
 export const turnsItself = (l: Building): boolean => !l.dir || SELF_DIR[l.type] || (SH.ECO[l.type] && SH.ECO[l.type].coast);
 // construit le dessin d'un batiment dans sa direction
+// chaque niveau se voit (etape 0.22) : ceux qui ne changent pas deja de dessin gagnent un mat au niveau 2, une tour annexe au niveau 3
+const OWN_LEVELS = new Set(['maison', 'immeuble', 'port', 'pecherie', 'qg', 'ville', 'mairie', 'peuple']);
+function levelParts(lot: Building): Part[] {
+  const lv = lot.lvl || 1; if (lv < 2 || OWN_LEVELS.has(lot.type) || (SH.LVL_POP && SH.LVL_POP[lot.type])) return [];
+  const out: Part[] = [part(lot.a1 - 2, lot.b1 - 1, .3, (t: number) => drawFlagPole(lot.a1 - 2, lot.b1 - 1, 0, 14 + lv * 3, lot.side, t))];
+  if (lv >= 3){
+    const a0 = lot.a0 + 1, a1 = lot.a0 + 8, b0 = lot.b0 + 1, b1 = lot.b0 + 8, hh = 20;
+    out.push(part((a0 + a1) / 2, (b0 + b1) / 2, 0, (t: number) => {
+      boxS(a0, a1, b0, b1, 0, hh, (u: number, h: number, x: number, y: number, k: number) => { const kk = win(u % 3.5, h % 4, 1, 1.2, 1.5, 2); if (kk && h > 2 && h < hh - 1) return winColor(kk, true, x, y); return h > hh - 1 ? 1 : wallBase(k, x, y); }, 0);
+      SH.CUR = M.METAL; line3((a0 + a1) / 2, (b0 + b1) / 2, hh, (a0 + a1) / 2, (b0 + b1) / 2, hh + 7, 1);
+      const p = prj((a0 + a1) / 2, (b0 + b1) / 2, hh + 7); SH.CUR = lot.side === 'ccp' ? M.FLAG_RED : M.FLAG_BLUE; if (Math.sin(t * 3 + lot.id) > -.3){ fput(Math.round(p[0]), Math.round(p[1]) - 1, 0); fput(Math.round(p[0]) + 1, Math.round(p[1]) - 1, 0); }
+    }));
+  }
+  return out;
+}
 export function buildParts(l: Building, seed: number): BuiltParts {
-  if (turnsItself(l)) return TYPES[l.type].build(l, seed);
+  if (turnsItself(l)){ const r0 = TYPES[l.type].build(l, seed); r0.parts.push(...levelParts(l)); return r0; }
   const [fa, fb] = footOf(l.type), th = dirAngle(l.dir), c = Math.cos(th), s = Math.sin(th), ca = l.ca, cb = l.cb;
   const lot = Object.assign({}, l, { a0: ca - fa / 2, a1: ca + fa / 2, b0: cb - fb / 2, b1: cb + fb / 2, dir: 0 });
   const r = TYPES[l.type].build(lot, seed);
+  r.parts.push(...levelParts(lot));
   const R = (a: number, b: number): [number, number] => [ca + (a - ca) * c - (b - cb) * s, cb + (a - ca) * s + (b - cb) * c];
   const Rpts = (pts: number[]): number[] => { const o = pts.slice(); for (let i = 0; i + 1 < o.length; i += 3){ const q = R(o[i], o[i + 1]); o[i] = q[0]; o[i + 1] = q[1]; } return o; };
   for (const p of r.parts){ const q = R(p.a, p.b); p.a = q[0]; p.b = q[1]; p.draw = turnDraw(ca, cb, th, p.draw); if (p.shadow) p.shadow = Rpts(p.shadow); }
@@ -361,7 +378,7 @@ export function rebuildTown(): void {
   SH.TOWN_VER++;
   BUILT = []; STATIC_PARTS = []; DECALS = []; LIGHTS_STATIC = []; BEACONS = [];
   for (const l of SH.BLD){
-    if (!l.done || !TYPES[l.type]) continue;
+    if (!l.done || l.upT || !TYPES[l.type]) continue;
     const sd = seedOf(l), r = buildParts(l, sd);
     BUILT.push({ lot: l, r });
     const bm = matOf(l.type, l.side, sd);

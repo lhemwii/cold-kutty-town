@@ -211,7 +211,9 @@ export function rivalBarge(side: Side){
   SH.pay(side, BARGE_COST.l, BARGE_COST.r, BARGE_COST.c); return true;
 }
 export function rivalUpgrade(side: Side){
-  const list = SH.BLD.filter(l => l.side === side && l.done && !l.upT && SH.upCost(l));
+  // une amelioration remet le batiment en chantier (etape 0.22) : un seul atelier a la fois, la mairie quand la ville a grandi
+  const busy = SH.BLD.some(l => l.side === side && l.upT && !SH.LVL_POP[l.type]);
+  const list = SH.BLD.filter(l => l.side === side && l.done && !l.upT && SH.upCost(l) && (SH.LVL_POP[l.type] || !busy) && (l.type !== 'qg' || SH.RES[side].pop >= 40));
   list.sort((x, y) => (SH.LVL_POP[y.type] ? 2 : 0) - (SH.LVL_POP[x.type] ? 2 : 0) + ((x.lvl || 1) - (y.lvl || 1)));
   for (const l of list.slice(0, 4)){ const c = SH.upCost(l); if (SH.canPay(side, c.l + 70, c.r)){ SH.upgradeBuilding(l); return true; } }
   return false;

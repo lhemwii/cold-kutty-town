@@ -53,9 +53,11 @@ export const TYPES: Record<string, BuildingType> = {
     return lot.side === 'ccp' ? maisonCCR(lot, seed, lot.lvl || 1) : maisonUSC(lot, seed, lot.lvl || 1);
   } },
   mairie: { name: 'Mairie', fem: true, build(lot: Building, seed: number){
-    const g = houseGeo(lot.ca, lot.cb - 2, 26, 18, 12, 8, seed, 'a', 0);
+    // chaque niveau se voit (etape 0.22) : deux ailes au niveau 2, un etage et un beffroi plus haut au niveau 3
+    const lv = lot.lvl || 1, g = houseGeo(lot.ca, lot.cb - 2, 26, 18, lv >= 3 ? 16 : 12, 8, seed, 'a', 0);
     g.lit = [true, true, false, true];
-    const parts = [part(g.ca, g.cb, 0, () => drawHouse(g)), part(g.ca, g.cb, .5, (t) => {
+    const wings = lv >= 2 ? [-1, 1].map(sg => { const w = houseGeo(lot.ca + sg * 15, lot.cb - 1, 8, 14, lv >= 3 ? 10 : 8, 4, seed + 3 + sg, 'b', null); w.lit = [true, true, true, true]; return part(w.ca, w.cb, 0, () => drawHouse(w)); }) : [];
+    const parts = [...wings, part(g.ca, g.cb, 0, () => drawHouse(g)), part(g.ca, g.cb, .5, (t) => {
       const p = prj(g.ca, (g.b0 + g.b1) / 2, g.hh + g.rh), bx = Math.round(p[0]), by = Math.round(p[1]);
       for (let y = by - 11; y <= by; y++) for (let x = bx - 3; x <= bx + 3; x++) fput(x, y, (x === bx - 3 || x === bx + 3 || y === by - 11) ? 1 : 0);
       fput(bx, by - 8, 1); fput(bx - 1, by - 7, 1); fput(bx + 1, by - 7, 1); fput(bx, by - 7, Math.sin(t * 2) > .6 ? 1 : 0);
@@ -241,14 +243,19 @@ export const TYPES: Record<string, BuildingType> = {
       if (ph >= cols * .35 && ph < cols * .7 && h > 2 && h < (z1 - z0) - 3) return hash2(Math.floor(u / cols) + k * 17, Math.floor(h / 4) + z0) < .5 ? 3 : (bz(x, y) < 3 ? 1 : 0);
       return wallBase(k, x, y);
     }, 0);
+    // chaque niveau se voit (etape 0.22) : deux etages au niveau 1, trois au niveau 2, quatre et des ailes au niveau 3
+    const lv = lot.lvl || 1, top = lv >= 3 ? 40 : lv >= 2 ? 33 : 22, sp = top + 12;
     const spire = (t: number) => {
-      line3(ca, cb, 33, ca, cb, 45, 1);
-      const p = prj(ca, cb, 45), x = Math.round(p[0]), y = Math.round(p[1]);
+      line3(ca, cb, top, ca, cb, sp, 1);
+      const p = prj(ca, cb, sp), x = Math.round(p[0]), y = Math.round(p[1]);
       SH.CUR = M.SIGN_CCP;
       drawStar(fput, x - 3, y - 7, 1, true);
       if (Math.sin(t * 1.3) > .7) for (let k = 0; k < 4; k++){ fput(x - 5 - k, y - 4, 1); fput(x + 5 + k, y - 4, 1); }
     };
-    return { parts: [part(ca, cb, 0, tier(15, 11, 0, 12, 3)), part(ca, cb, .3, tier(9, 7, 12, 24, 3)), part(ca, cb, .6, tier(5, 4, 24, 33, 2.5)), part(ca, cb, .9, spire),
+    const tiers = [part(ca, cb, 0, tier(15, 11, 0, 12, 3)), part(ca, cb, .3, tier(9, 7, 12, lv >= 2 ? 24 : 22, 3))];
+    if (lv >= 2) tiers.push(part(ca, cb, .6, tier(5, 4, 24, 33, 2.5)));
+    if (lv >= 3) tiers.push(part(ca, cb, .75, tier(3, 2.5, 33, 40, 2)), part(ca - 17, cb, 0, () => boxS(ca - 18, ca - 15, cb - 8, cb + 8, 0, 9, 1, 0)), part(ca + 17, cb, 0, () => boxS(ca + 15, ca + 18, cb - 8, cb + 8, 0, 9, 1, 0)));
+    return { parts: [...tiers, part(ca, cb, .9, spire),
       part(ca + 12, cb + 13, 0, (t) => drawFlagPole(ca + 12, cb + 13, 0, 22, 'ccp', t))],
       lights: [Lc(ca, cb + 17, 16, 1.4), sideLight(ca - 15, ca + 15, cb - 11, cb + 11, 1, 9, 1.1), sideLight(ca - 15, ca + 15, cb - 11, cb + 11, 3, 9, 1.1)] };
   } },

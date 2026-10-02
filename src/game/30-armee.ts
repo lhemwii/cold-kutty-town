@@ -213,12 +213,20 @@ SH.unitArrived = (u: Unit) => {
 // clic droit sur un batiment ennemi decouvert : 26-unites en fait deja un ordre d'attaque (bid)
 
 /* ---- le dessin des vehicules, navires et avions ---- */
+// une tete de chat qui depasse (etape 0.22) : le conducteur de la jeep, le chef de char dans sa tourelle
+function catHead(a: number, b: number, z: number, ccp: boolean){
+  const p = prj(a, b, z), x = Math.round(p[0]), y = Math.round(p[1]);
+  SH.CUR = ccp ? M.CAT_GRAY : M.CAT_OR;
+  for (let dx = -1; dx <= 1; dx++){ fput(x + dx, y, 1); fput(x + dx, y - 1, 1); }
+  fput(x - 1, y - 2, 0); fput(x + 1, y - 2, 0); fput(x + 1, y - 1, 0);
+}
 SH.drawVehicle = (u: Unit, d: UnitDef, t: number): boolean => {
   const ccp = u.side === 'ccp', a = u.a, b = u.b, ang = u.ang, moving = u.pi < u.path.length;
   if (d.look === 'jeep'){
     SH.CUR = ccp ? M.MILITARY : M.MILITARY; rbox(a, b, ang, -4.5, 4.5, -2.6, 2.6, .8, 2.8, (_u: number, h: number) => h > 1.6 ? 1 : 0, 1, 1);
     SH.CUR = M.METAL; const g = rot2(a, b, ang, -1, 0); line3(g[0], g[1], 2.8, g[0], g[1], 4.6, 1); const e = rot2(a, b, ang, 2.5, 0); line3(g[0], g[1], 4.6, e[0], e[1], 4.6, 1);
     SH.CUR = ccp ? M.FLAG_RED : M.FLAG_BLUE; const s = prj(a, b, 2.9); fput(Math.round(s[0]), Math.round(s[1]), 1);
+    const dr = rot2(a, b, ang, -1.5, 1.2); catHead(dr[0], dr[1], 3.6, ccp);
     return true;
   }
   if (d.look === 'char'){
@@ -229,6 +237,7 @@ SH.drawVehicle = (u: Unit, d: UnitDef, t: number): boolean => {
     rbox(a, b, ta, -2.6, 2.6, -2.2, 2.2, 3.8, 6, 0, 1, 1);
     SH.CUR = M.METAL; const m0 = rot2(a, b, ta, 2.4, 0), m1 = rot2(a, b, ta, 9, 0); line3(m0[0], m0[1], 5, m1[0], m1[1], 5, 1);
     SH.CUR = ccp ? M.FLAG_RED : M.FLAG_BLUE; const s = prj(a, b, 6.1); if (ccp) drawStar(fput, Math.round(s[0]) - 3, Math.round(s[1]) - 3, 0, true); else fput(Math.round(s[0]), Math.round(s[1]), 1);
+    const hc = rot2(a, b, ta, -1.4, 1); catHead(hc[0], hc[1], 6.4, ccp);
     return true;
   }
   if (d.look === 'navire' || (d.look === 'barge' && u.kind === 'transport')){
