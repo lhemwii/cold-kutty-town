@@ -204,6 +204,29 @@ Le jeu passe à une base prête pour la haute définition et pour Steam, sans ri
 - [x] Troisième message : la liste des bâtiments devient un tableau à double entrée (règles communes, version USC, version CCR) ; rivières ; unités transportées par bateau ; pêche ; Blitz à durée choisie et Sans fin ; cinq jalons pour la victoire scientifique ; habitants qui s’enfuient à travers le Rideau et points de passage ; ressources proposées.
 - [x] Retenus : herbe à chat, pétrole, influence. Ni acier ni bois ; mines dans les montagnes et exploitations forestières qui rapportent de la laine.
 
+## Étape 0.22. Retours de jeu sur la nouvelle version (en cours)
+
+L’icône de l’onglet reste comme elle est ; le logo à tête de chat de l’accueil est retiré.
+
+- [x] En haut : toutes les ressources dans la barre (croquettes, laine, ronrons, pâté, tricot, Catcoins, charbon, uranium, pétrole, électricité, eau) ; un clic sur une ressource ouvre l’onglet Ressources. Le bloc territoire et espace disparaît ; la course aux victoires reste accessible.
+- [x] En haut à droite : le temps écoulé depuis le début de la partie, à côté de l’heure du jour.
+- [x] Les fenêtres (Ressources, Recherche, Pourparlers, Victoires, Aide) se déplacent en les tirant par leur titre.
+- [x] La recherche devient un vrai arbre de progression, avec ses liens d’une recherche à l’autre.
+- [x] Le rail de droite garde le zoom et la vue ; la météo n’est plus pilotable (toujours au hasard) ; le son, le tutoriel et le mode photo passent dans les paramètres.
+- [x] L’aide « Glisse pour te déplacer… » ne s’affiche que la première fois. Le bouton Annuler (Ctrl+Z) quitte le dock.
+- [x] Construire : routes droites, courbes, voies ferrées et Rideau de Laine rejoignent le menu Construire ; les outils deviennent des boutons séparés plutôt qu’une seule barre.
+- [x] Le menu Construire : bâtiments au-dessus, catégories en dessous, sur une ligne, toute la largeur, avec des flèches pour défiler ; la phrase d’aide (« Ce terrain n’est pas à toi… ») passe au-dessus du cadre, collé à la barre.
+- [ ] Chaque bâtiment dit ce qu’il produit (pâté, tricot, charbon, électricité, eau…) ; aucun bâtiment ne doit être sans effet.
+- [ ] Plus besoin de route jusqu’au QG pour qu’un bâtiment travaille.
+- [ ] Des routes dans les montagnes ; un bâtiment ne s’enfonce plus dans une montagne.
+- [ ] Un bouton pour acheter du territoire avec des ressources.
+- [ ] Une amélioration remet le bâtiment en chantier jusqu’à la fin, et chaque niveau change le dessin, la mairie comprise.
+- [x] Le journal dépasse en bas à droite chaque matin ; on y ouvre la Gazette et la Pravdachat d’un clic, puis il redescend.
+- [ ] La fiche d’un chat devient un passeport de son pays, avec sa photo.
+- [ ] Les unités à terre sont bien des chats.
+- [ ] La radio prend un style d’époque ; un téléphone rouge (le mien) et un téléphone vert (le leur) pour parler à l’autre camp.
+- [ ] À préciser ensemble : « pouvoir amener un QG ».
+
 # Feuille de route de la nouvelle version
 
 Chaque étape laisse le jeu jouable. L’ordre proposé : d’abord ce qui existe et les bâtiments, puis l’économie et le territoire, puis la carte (brouillard, unités, transports, monde), puis les grands systèmes (recherche, armée, espace, renseignement, commerce), la victoire, l’écran, et l’IA adverse en dernier.

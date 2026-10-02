@@ -39,9 +39,9 @@ button{font:inherit;color:inherit}
 /* ================= HUD de la partie, disposition A (docs/PLAN.md, etape 0.20) =================
    --hud-top : bas des trois blocs du haut, --hud-bot : hauteur prise en bas de l'ecran (mesurees par 14-hud.ts, layoutHUD) */
 :root{--hud-top:0px;--hud-bot:0px;--rail:42px}
-.hud-top{position:fixed;z-index:10;top:calc(10px + env(safe-area-inset-top,0px));left:10px;right:10px;display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,380px) minmax(0,1fr);grid-template-areas:"res race time" "radio . .";align-items:start;gap:8px 12px;pointer-events:none}
+.hud-top{position:fixed;z-index:10;top:calc(10px + env(safe-area-inset-top,0px));left:10px;right:10px;display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"res time" "radio .";align-items:start;gap:8px 12px;pointer-events:none}
 .hud-top .panel{position:relative;z-index:auto;pointer-events:auto}
-.hud-res,.hud-race,.hud-time{min-height:54px}
+.hud-res,.hud-time{min-height:54px}
 
 /* ressources */
 .hud-res{grid-area:res;justify-self:start;display:flex;align-items:center;gap:2px;padding:4px 5px}
@@ -53,7 +53,14 @@ button{font:inherit;color:inherit}
 .res.down i{color:var(--ccp)}
 .res.warn b{color:var(--ccp);animation:blink 1s steps(2) infinite}
 .res-lab{display:none}
-.res.pop{cursor:default}
+.res.pop{cursor:pointer}
+/* le luxe, les matieres et les reseaux : une grille de petites cases, un clic ouvre l'onglet Ressources */
+.res-x{display:grid;grid-template-columns:repeat(5,auto);gap:1px 2px;margin-left:4px;padding-left:6px;border-left:2px solid var(--faint)}
+.rx{display:inline-flex;align-items:center;gap:3px;padding:2px 4px;border:1.5px solid transparent;background:none;cursor:pointer;color:inherit}
+.rx:hover,.rx:focus-visible{border-color:var(--paper);background:#efe8d8;outline:none}
+.rx .i{width:13px;height:13px}
+.rx b{font:700 11px/1 var(--mono);font-variant-numeric:tabular-nums;min-width:2ch}
+.rx.low b{color:var(--ccp)}
 .res.pop i{color:var(--paper);display:inline-flex;align-items:center;gap:3px}
 /* sur l'icone : une fleche rouge quand la ressource baisse, un point d'exclamation quand elle va manquer */
 .res::after{content:none;position:absolute;box-sizing:border-box;pointer-events:none}
@@ -62,25 +69,16 @@ button{font:inherit;color:inherit}
 @keyframes blink{50%{opacity:0}}
 
 /* course au territoire */
-.hud-race{grid-area:race;display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-rows:auto auto;align-items:center;column-gap:9px;row-gap:5px;padding:7px 10px 6px}
-.hud-race .rf{width:34px;height:18px;outline:2px solid var(--paper)}
-.terbar{position:relative;height:14px;border:2px solid var(--paper);background:repeating-linear-gradient(45deg,#e7e0cf 0 4px,#f5efe2 4px 8px)}
-.terbar i{position:absolute;top:0;bottom:0;transition:width .6s}
-.terbar .t-usc{left:0;background:var(--usc)}
-.terbar .t-ccp{right:0;background:var(--ccp)}
-.terbar em{position:absolute;top:-6px;bottom:-6px;width:2px;background:var(--paper)}
-.terbar .goal-l{left:60%}
-.terbar .goal-r{right:60%}
-.hud-race .pct{font:700 12px/1 var(--mono);padding:2px 4px;justify-self:center;white-space:nowrap}
-.hud-race .pu{grid-column:1;color:var(--usc)}
-.hud-race .pc{grid-column:3;color:var(--ccp)}
-/* ton camp : son pourcentage sur sa couleur */
-body[data-side="usc"] .hud-race .pu,body[data-side="ccp"] .hud-race .pc{background:var(--me);color:#fff}
-.ter-goal{grid-column:2;text-align:center;font:600 11px/1 var(--text)}
-
 /* date et temps, journal, menu */
 .hud-time{grid-area:time;justify-self:end;display:flex;align-items:center;gap:5px;padding:6px 6px 6px 12px}
 .tb-clock{display:grid;gap:5px;min-width:86px;margin-right:4px}
+.tb-row{display:flex;align-items:baseline;gap:8px}
+.game-t{font:600 11px/1 var(--mono);font-variant-numeric:tabular-nums;color:var(--mute);white-space:nowrap}
+/* les parametres : son, mode photo, aide, tutoriel, menu */
+.gear{right:10px;top:calc(var(--hud-top) + 6px);z-index:31;display:grid;gap:4px;padding:6px;min-width:190px}
+.gear .btn{display:flex;align-items:center;gap:9px;padding:7px 10px;font:600 13px/1 var(--text);text-align:left}
+.gear .btn svg{width:16px;height:16px;flex:none}
+#btnGear[aria-expanded="true"],#btnVic[aria-pressed="true"]{background:var(--paper);color:var(--ink)}
 #clockTime{font:600 17px/1 var(--mono);font-variant-numeric:tabular-nums}
 #calLabel{display:inline-flex;align-items:center;gap:5px;font:600 12px/1 var(--text);white-space:nowrap}
 #calLabel .i{width:13px;height:13px}
@@ -194,22 +192,40 @@ body:not(.playing) .minimap,body.photo .minimap{display:none}
 
 /* bas de l'ecran, au centre : evenements, messages, tiroir de construction, aide de l'outil, outils */
 .bottom{position:fixed;z-index:10;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none}
-body.has-map .bottom{left:236px;right:236px}
+body.has-map .bottom{left:236px;right:256px}
+@media (min-width:721px){.bottom{right:256px}}
 .bottom > *{max-width:100%}
 .bottom .panel{position:relative;z-index:auto;pointer-events:auto}
 .toast{pointer-events:none;background:var(--paper);color:var(--ink);padding:8px 12px;font:600 13px/1.35 var(--text);max-width:560px;box-shadow:var(--shadow)}
-.dock{display:flex;align-items:stretch;gap:4px;padding:6px}
+.build-stack{display:flex;flex-direction:column;align-items:center;width:100%;pointer-events:none}
+.build-stack > *{pointer-events:auto}
+/* les outils : des boutons separes, chacun son cadre */
+.dock{display:flex;align-items:stretch;justify-content:center;gap:6px;pointer-events:none}
+.dock .tool{pointer-events:auto}
+.dock .tool.panel{position:relative;z-index:auto}
+.dock .tool[hidden]{display:none}
+/* le tiroir ouvert : toute la largeur, pose sur les boutons, la phrase d'aide collee au-dessus */
+.build-stack:has(.drawer:not([hidden])) .dock{margin-top:-2px}
+.build-stack:has(.drawer:not([hidden])) .hint{width:100%;max-width:none;border-bottom:0;margin-bottom:0}
 .tool{position:relative;display:grid;justify-items:center;align-content:center;gap:5px;padding:9px 6px 6px;min-width:64px}
 .tool svg{width:20px;height:20px;display:block}
 .tool span{font:700 11px/1 var(--text);letter-spacing:.02em}
 /* la touche de l'outil, comme une etiquette posee sur le bouton */
 .tool kbd{position:absolute;top:-10px;right:3px;font:600 11px/1 var(--mono);padding:1px 3px 2px;background:var(--ink);color:var(--paper);border:1.5px solid var(--paper)}
 .tools-sep{width:2px;background:var(--faint);margin:2px 4px}
-.drawer{display:grid;gap:8px;padding:8px;width:max-content;max-width:min(920px,100%)}
-.cats{display:flex;gap:4px;flex-wrap:wrap}
+.drawer{display:grid;gap:6px;padding:6px;width:100%;max-width:none}
+.scroller{display:grid;grid-template-columns:26px minmax(0,1fr) 26px;gap:4px;align-items:stretch}
+.scroller .sc{padding:0;font:700 18px/1 var(--mono);display:grid;place-items:center}
+.cats-row{border-top:2px solid var(--faint);padding-top:6px}
+.cats{display:flex;gap:4px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;scroll-behavior:smooth}
+.cats::-webkit-scrollbar,.palette::-webkit-scrollbar{display:none}
+.cats .btn{flex:none;white-space:nowrap}
 .cats .btn{display:inline-flex;align-items:center;gap:6px;padding:5px 9px 5px 6px;font-size:11px;text-transform:uppercase;letter-spacing:.05em}
 .cats .btn .i{width:16px;height:16px}
-.palette{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
+.palette{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;scroll-behavior:smooth}
+.palette > *{flex:none}
+.bbtn .tile-ico{width:72px;height:56px;display:grid;place-items:center}
+.bbtn .tile-ico svg{width:34px;height:34px}
 .bbtn{display:grid;justify-items:center;gap:3px;padding:5px 6px 6px;min-width:96px;position:relative}
 .bbtn canvas{width:72px;height:56px;image-rendering:pixelated;display:block}
 .bb-name{font:700 11px/1.1 var(--text);white-space:normal;text-align:center;max-width:100px}
@@ -218,7 +234,7 @@ body.has-map .bottom{left:236px;right:236px}
 .bbtn[aria-checked="true"] .bb-eff{color:#9fe0b0}
 .bbtn.poor{border-style:dashed;background:repeating-linear-gradient(-45deg,var(--ink) 0 5px,#e7dfcc 5px 7px)}
 .bbtn.poor .bb-cost{color:var(--ccp)}
-.hint{pointer-events:auto;background:var(--ink);border:2px solid var(--paper);padding:5px 10px;font-size:12px;line-height:1.35;width:max-content;max-width:min(640px,100%);box-sizing:border-box;display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px}
+.hint{pointer-events:auto;background:var(--ink);border:2px solid var(--paper);padding:5px 10px;margin-bottom:8px;font-size:12px;line-height:1.35;width:max-content;max-width:min(640px,100%);box-sizing:border-box;display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px}
 .hint:empty{display:none}
 .event{width:min(470px,100%);padding:12px 14px 13px;display:grid;gap:7px}
 .event[data-side="usc"]{box-shadow:inset 5px 0 0 var(--usc),var(--shadow)}
@@ -336,8 +352,7 @@ body.ui-off .bubbles,body.photo .bubbles{display:none}
 .tip-side.usc{background:#2a45a6}.tip-side.ccp{background:#c8283a}
 .tip-mute{color:var(--mute)}
 .tip-want{color:#b8860b;font-weight:700}
-body.photo .view{display:flex!important}
-body.photo .view .btn:not(#btnPhoto),body.photo .v-sep{display:none}
+body.photo .view,body.photo .gear,body.photo .peek{display:none!important}
 .photo-bar{position:fixed;z-index:20;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);padding:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;max-width:calc(100vw - 32px);box-sizing:border-box}
 .pf{display:flex;gap:6px;flex-wrap:wrap}
 .photo-bar .btn.primary{background:var(--paper);color:var(--ink)}
@@ -349,13 +364,14 @@ body.photo .view .btn:not(#btnPhoto),body.photo .v-sep{display:none}
 body.photo .hud-top,body.photo .bottom,body.photo .sel,body.photo .chat,body.photo .countdown{display:none!important}
 
 /* HUD sur un ecran moins large : le temps a cote des ressources, la course en dessous */
-@media (max-width:1080px){
-  .hud-top{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"res time" "race race" "radio radio"}
-  .hud-race{justify-self:center;width:min(460px,100%);min-height:0}
+@media (max-width:1180px){
+  .res-x{grid-template-columns:repeat(3,auto)}
+  .res i{display:none}
 }
 @media (max-width:720px){
   .hud-top{gap:6px}
-  .hud-res,.hud-race,.hud-time{min-height:0}
+  .hud-res,.hud-time{min-height:0}
+  .res-x{display:none}
   .res{padding:2px 4px;column-gap:5px}
   .res b{font-size:14px}
   .res .ico{width:22px;height:22px}
@@ -369,12 +385,8 @@ body.photo .hud-top,body.photo .bottom,body.photo .sel,body.photo .chat,body.pho
 }
 /* telephone : ressources sur toute la largeur, puis la course et le temps cote a cote */
 @media (max-width:560px){
-  .hud-top{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"res res" "race time" "radio radio"}
+  .hud-top{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"res res" ". time" "radio radio"}
   .hud-res{justify-self:stretch;justify-content:space-between}
-  .hud-race{width:auto;justify-self:stretch;column-gap:5px;padding:5px 6px}
-  .hud-race .rf{width:24px;height:13px}
-  .ter-goal{display:none}
-  .hud-race .pct{font-size:11px;padding:1px 3px}
   .hud-time{padding:4px 4px 4px 8px;gap:4px}
   .tb-clock{min-width:0;margin-right:0}
   .cal-m{display:none}
@@ -514,16 +526,23 @@ body.playing .home{background:rgba(12,26,48,.55)}
 .tech .tbar{display:block;height:4px;background:#d8d2c4}
 .tech .tbar i{display:block;height:100%;background:#2e7d45}
 .bbtn.locked{opacity:.55}
+/* l'arbre de recherche en graphe (etape 0.22) */
+.tree-wrap{overflow:auto;max-height:calc(100vh - var(--hud-top) - 150px);border:2px solid var(--faint)}
+.tree{position:relative}
+.tree-band{position:absolute;left:0;right:0;border-top:1.5px dashed var(--faint)}
+.tree-band:first-child{border-top:0}
+.tree-band span{position:absolute;left:8px;top:8px;width:96px;font:700 11px/1.2 var(--display);letter-spacing:.05em;text-transform:uppercase}
+.tree-links{position:absolute;left:0;top:0;pointer-events:none}
+.tree-links path{fill:none;stroke:#b8b0a0;stroke-width:2;stroke-dasharray:4 3}
+.tree-links path.open{stroke:var(--paper);stroke-dasharray:none}
+.tree-links path.done{stroke:#2e7d45;stroke-width:3;stroke-dasharray:none}
+.tree .tech{position:absolute;box-sizing:border-box;overflow:hidden;padding:5px 7px;gap:1px;align-content:start}
+.tree .tech b{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:44px}
+.tree .tech .tc{position:absolute;right:6px;top:6px}
+.tree .tech small{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:11px;line-height:1.2}
+.tree .tech .tbar{position:absolute;left:0;right:0;bottom:0;height:3px}
+.sci-foot{margin:0;font:600 11px/1.3 var(--text)}
 .bb-lock{font:600 11px/1.2 var(--text)}
-
-/* la course a l'espace dans le bloc du territoire (etape 10) */
-.space-race{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:6px;margin-top:2px}
-.space-race:empty{display:none}
-.sr-row{display:flex;gap:3px}
-.sr-row i{display:block;width:9px;height:9px;border:2px solid currentColor;background:transparent;box-sizing:border-box}
-.sr-row[data-side="usc"] i.on{background:var(--usc)}
-.sr-row[data-side="ccp"] i.on{background:var(--ccp)}
-.sr-lab{font:700 11px/1 var(--text)}
 
 /* pourparlers (etape 11) */
 .dip-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
@@ -548,7 +567,6 @@ body.playing .home{background:rgba(12,26,48,.55)}
 .checks{display:flex;flex-wrap:wrap;gap:6px 14px;font:600 13px/1.2 var(--text)}
 .checks label{display:flex;align-items:center;gap:6px;cursor:pointer}
 .blitz-t{font:700 11px/1 var(--mono);color:var(--ccp)}
-#hudRace{cursor:pointer}
 .vic-list{display:grid;gap:10px}
 .vic-row{display:grid;grid-template-columns:minmax(150px,1.2fr) 1fr 1fr;gap:10px;align-items:center}
 .vic-row b{font:800 13px/1.2 var(--text)}
@@ -561,13 +579,11 @@ body.playing .home{background:rgba(12,26,48,.55)}
 .vic-off{opacity:.45}
 
 /* ecran, deuxieme version (etape 13) */
-.res.lux{display:grid;grid-template-columns:auto auto;gap:1px 4px;align-items:center;cursor:help;padding:2px 6px}
-.res.lux .i{width:13px;height:13px}
-.res.lux b{font:700 11px/1 var(--mono)}
 .dock-fold{display:none}
 .tuto{position:fixed;z-index:14;left:10px;bottom:calc(var(--hud-bot, 90px) + 12px);width:min(320px,calc(100vw - 20px));padding:10px 12px 12px;display:grid;gap:8px;font:600 13px/1.4 var(--text)}
-body.has-map .tuto{bottom:212px}
 .tuto b{font:800 14px/1.2 var(--text)}
+/* avec la mini-carte : juste au-dessus d'elle, de sa largeur, pour ne pas couvrir le tiroir */
+body.has-map .tuto{bottom:206px;width:214px;font-size:12px}
 .tuto .tuto-n{font:700 11px/1 var(--mono)}
 .tuto-act{display:flex;gap:6px;justify-content:flex-end}
 .help-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
@@ -579,7 +595,36 @@ body.has-map .tuto{bottom:212px}
   .dock{flex-wrap:wrap;justify-content:center}
   .dock-fold{display:grid}
   .dock:not(.open) [data-opt]{display:none}
-  .res.lux{display:none}
   .sci{top:calc(var(--hud-top) + 6px);max-height:calc(100vh - var(--hud-top) - var(--hud-bot) - 20px)}
-  .space-race .sr-row i{width:7px;height:7px}
 }
+
+/* le journal qui depasse en bas a droite (etape 0.22) : il monte chaque matin, puis redescend */
+.peek{position:fixed;z-index:11;right:10px;bottom:0;width:236px;background:#f1e9d4;color:#241c14;border:2px solid var(--paper);border-bottom:0;box-shadow:var(--shadow);transform:translateY(calc(100% - 34px));transition:transform .45s cubic-bezier(.3,1.3,.5,1);pointer-events:auto;font-family:'Old Standard TT',serif}
+.peek.up{transform:none}
+body:not(.playing) .peek{display:none}
+.peek-tab{display:flex;align-items:center;gap:8px;width:100%;height:32px;padding:0 10px;border:0;border-bottom:1.5px solid #241c14;background:none;color:inherit;cursor:pointer;font:700 15px/1 'Old Standard TT',serif;text-align:left}
+.peek-tab i{margin-left:auto;font:italic 400 12px/1 'Old Standard TT',serif}
+.peek-ico{display:block;width:16px;height:16px;line-height:0}
+.peek-ico svg{width:16px;height:16px}
+.peek.fresh .peek-tab{background:#ffd23f}
+.peek-body{display:grid;gap:8px;padding:8px 10px calc(10px + env(safe-area-inset-bottom,0px))}
+.peek-stats{margin:0;font:400 13px/1.4 'Old Standard TT',serif}
+.peek-stats b{font-weight:700}
+.peek-papers{display:grid;gap:6px}
+.peek-papers .btn{font:700 15px/1.1 'UnifrakturMaguntia','Old Standard TT',serif;padding:7px 8px;background:#fbf7ee;color:#241c14;border-color:#241c14}
+.peek-papers .btn[data-peek="ccp"]{font-family:'Playfair Display',serif;font-weight:900;color:#8a1c1c;letter-spacing:.04em;text-transform:uppercase;font-size:13px}
+.peek-papers .btn:hover{background:#241c14;color:#fbf7ee}
+
+/* les telephones (etape 0.22) : le rouge pour appeler, le vert qui sonne quand l'autre camp appelle */
+.phone .pix-ico{width:22px!important;height:22px!important}
+.phone .pix-ico svg{width:22px!important;height:22px!important}
+.phone.red{border-color:#c8283a}
+.phone.green{border-color:#2e7d45;animation:ring .5s steps(2) infinite}
+@keyframes ring{0%{transform:rotate(-4deg)}100%{transform:rotate(4deg)}}
+@media (prefers-reduced-motion:reduce){.phone.green{animation:none}.peek{transition:none}}
+@media (max-width:720px){.peek{width:180px}.peek-papers .btn{font-size:13px}}
+
+/* les fenetres se tirent par leur titre (etape 0.22) */
+.sci-head,.xr-head,.un-head,.sel-head,.chat-head{cursor:grab;touch-action:none}
+.moving .sci-head,.moving .xr-head,.moving .un-head,.moving .sel-head,.moving .chat-head{cursor:grabbing}
+.moving{opacity:.94;user-select:none}

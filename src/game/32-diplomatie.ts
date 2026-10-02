@@ -140,10 +140,11 @@ HOOKS.step.push((dt: number) => {
     offerAcc = 0;
     const ai = other(GAME.side), ratio = strength(ai) / Math.max(1, strength(GAME.side));
     const kind: TreatyKind | null = (GAME.t - DIP.lastHostile < 200 && ratio < .7 && !treatyOn('treve')) ? 'treve' : (!treatyOn('commerce') && DIP.mood > -10) ? 'commerce' : (DIP.mood > 50 && !treatyOn('paix')) ? 'paix' : null;
-    if (kind){ DIP.offer = { kind, from: ai, t0: GAME.t, due: GAME.t + 120 }; toast('L’autre camp propose : ' + TREATY_NAME[kind].toLowerCase() + '. Écran P pour répondre.'); renderDipSoon(); }
+    if (kind){ DIP.offer = { kind, from: ai, t0: GAME.t, due: GAME.t + 120 }; toast('Le téléphone vert sonne : l’autre camp propose ' + TREATY_NAME[kind].toLowerCase() + '.'); SH.sfx('click'); renderDipSoon(); }
   }
   if (DIP.offer && GAME.t > DIP.offer.due){ DIP.offer = null; DIP.mood = clamp(DIP.mood - 5, -100, 100); renderDipSoon(); }
-  $('btnDip').classList.toggle('alert', !!DIP.offer);
+  // le telephone vert sonne tant que l'autre camp attend une reponse
+  $('btnRing').hidden = !DIP.offer;
 });
 // le commerce rapporte des Catcoins aux deux camps
 TALLY.push((side, _add, addX) => { if (treatyOn('commerce')) addX('coins', 4 + RES[side].pop * .02, 'Accord commercial'); });
@@ -251,19 +252,26 @@ Object.assign(FOOT, { ambassade: [20, 16], mirador: [10, 10], hautparleurs: [10,
 Object.assign(ICONS, {
   paix: [['............', '...kk.......', '..kwwk......', '.kwwwwk..kk.', '.kwkwwwkkwwk', 'kwwwwwwwwwk.', '.kwwwwwwwk..', '..kwwwwwk...', '...kkgkk....', '....kgg.....', '.....kg.....', '............'], { k: '#2a2a2e', w: '#f4f1e8', g: '#5aa469' }],
 });
-const btnDip = $('btnDip'); { const di = btnDip.querySelector('.dip-ico'); if (di) di.innerHTML = ico('paix'); }
+// les deux telephones d'epoque (etape 0.22) : le rouge, le mien, pour appeler ; le vert, le leur, qui sonne
+Object.assign(ICONS, {
+  telrouge: [['..kkkkkkkk..', '.krrrrrrrrk.', 'krrkkkkkkrrk', 'krk......krk', 'kk..kkkk..kk', '...krrrrk...', '..krrkkrrk..', '.krrkwwkrrk.', '.krrkwwkrrk.', '.krrrkkrrrk.', '.krrrrrrrrk.', '.kkkkkkkkkk.'], { k: '#2a1414', r: '#d42a2a', w: '#f4f1e8' }],
+  telvert: [['..kkkkkkkk..', '.kggggggggk.', 'kggkkkkkkggk', 'kgk......kgk', 'kk..kkkk..kk', '...kggggk...', '..kggkkggk..', '.kggkwwkggk.', '.kggkwwkggk.', '.kgggkkgggk.', '.kggggggggk.', '.kkkkkkkkkk.'], { k: '#10241a', g: '#3fa45a', w: '#f4f1e8' }],
+});
+const btnDip = $('btnDip'); { const di = btnDip.querySelector('.dip-ico'); if (di) di.innerHTML = ico('telrouge'); }
+{ const ri = $('btnRing').querySelector('.ring-ico'); if (ri) ri.innerHTML = ico('telvert'); }
+$('btnRing').addEventListener('click', () => { toggleDip(true); SH.sfx('click'); });
 const MOOD_TXT = (m: number) => m < -60 ? 'glaciale' : m < -20 ? 'froide' : m < 20 ? 'tiède' : m < 60 ? 'cordiale' : 'chaleureuse';
 let dipSoon = false;
 function renderDipSoon(){ if (!dipSoon){ dipSoon = true; setTimeout(() => { dipSoon = false; if (!$('dip').hidden) renderDip(); }, 50); } }
 export function renderDip(){
   const el = $('dip'), me = GAME.side, ai = other(me), R = RES[me];
   const talk = canTalk(), port = hasNear(me, 'port'), cp = hasNear(me, 'checkpoint');
-  let h = '<div class="sci-head"><b>Pourparlers</b><span>Humeur de l’autre camp : <b>' + MOOD_TXT(DIP.mood) + '</b> (' + Math.round(DIP.mood) + '). ' + Math.floor(R.x.coins) + ' Catcoins.</span><button class="btn k" type="button" id="dipClose" aria-label="Fermer">×</button></div>';
+  let h = '<div class="sci-head"><b>' + ico('telrouge') + ' Le téléphone rouge</b><span>Humeur de l’autre camp : <b>' + MOOD_TXT(DIP.mood) + '</b> (' + Math.round(DIP.mood) + '). ' + Math.floor(R.x.coins) + ' Catcoins.</span><button class="btn k" type="button" id="dipClose" aria-label="Fermer">×</button></div>';
   h += '<div class="dip-grid">';
   // traites
   h += '<section class="dip-box"><h3>Traités</h3>';
   if (!talk) h += '<p class="sel-note">Pour parler à l’autre camp, il faut un checkpoint ou une ambassade au bord du Rideau de Laine.</p>';
-  if (DIP.offer){ const o = DIP.offer; h += '<div class="dip-offer"><b>L’autre camp propose : ' + (o.kind === 'capitulation' ? 'la capitulation' : TREATY_NAME[o.kind]) + '</b><div><button class="btn" type="button" data-dip="oui">Accepter</button><button class="btn" type="button" data-dip="non">Refuser</button></div></div>'; }
+  if (DIP.offer){ const o = DIP.offer; h += '<div class="dip-offer">' + ico('telvert') + '<b>Le téléphone vert sonne. L’autre camp propose : ' + (o.kind === 'capitulation' ? 'la capitulation' : TREATY_NAME[o.kind]) + '</b><div><button class="btn" type="button" data-dip="oui">Accepter</button><button class="btn" type="button" data-dip="non">Refuser</button></div></div>'; }
   for (const k of Object.keys(TREATY_NAME) as TreatyKind[]){
     const on = treatyOn(k), pend = DIP.pending.some(p => p.kind === k), left = on && DIP.treaties[k] !== Infinity ? Math.ceil(((DIP.treaties[k] || 0) - GAME.t) / 60) + ' min' : '';
     h += '<div class="dip-row"><span><b>' + TREATY_NAME[k] + '</b><small>' + TREATY_DESC[k] + '</small></span>' + (on ? '<i class="dip-on">En vigueur' + (left ? ', ' + left : '') + '</i>' : pend ? '<i>Réponse attendue…</i>' : '<button class="btn" type="button" data-prop="' + k + '"' + (talk ? '' : ' disabled') + '>Proposer</button>') + '</div>';

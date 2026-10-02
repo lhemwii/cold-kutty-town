@@ -126,19 +126,35 @@ export const HINTS: Record<string, string> = {
 };
 /** apercu du batiment a poser (SH.ghost) : refait seulement quand la place, le type ou la direction changent */
 export interface Ghost { key: string; l: Building; parts: Part[] | null; why: string }
+/** les outils qui gardent le tiroir de construction ouvert (ses onglets Routes et Frontiere) */
+export const BUILD_FAMILY: string[] = ['build', 'road', 'curve', 'rail', 'wall', 'buyland'];
 export let toolPts: Vec2[] = [], hoverW: Vec2 | null = null, hoverB: Building | null = null; SH.ghost = null;
 export function setTool(m: string){
   state.tool = m; toolPts = [];
   for (const b of document.querySelectorAll('[data-tool]')) if (b instanceof HTMLElement) b.setAttribute('aria-pressed', String(b.dataset.tool === m));
-  $('buildMenu').hidden = m !== 'build';
+  // le tiroir de construction reste ouvert pour les routes, les voies et le Rideau (onglet Routes)
+  const fam = BUILD_FAMILY.includes(m);
+  $('buildMenu').hidden = !fam;
+  for (const b of document.querySelectorAll('[data-tool="build"]')) b.setAttribute('aria-pressed', String(fam));
+  if (fam && m !== 'build' && typeof SH.pickCat === 'function') SH.pickCat(m);
+  for (const b of document.querySelectorAll('[data-tile]')) if (b instanceof HTMLElement) b.setAttribute('aria-checked', String(b.dataset.tile === m));
   const ct = SH.TOOLS ? SH.TOOLS[m] : null;
-  $('modeHint').textContent = HINTS[m] || (ct ? ct.hint : '');
+  $('modeHint').textContent = m === 'walk' ? walkHint() : HINTS[m] || (ct ? ct.hint : '');
   if (ct && ct.start) ct.start();
   scene.classList.toggle('build', m === 'build' || m === 'road' || m === 'curve' || m === 'wall' || m === 'barge' || m === 'landing' || !!ct);
   scene.classList.toggle('demolish', m === 'demolish');
   SH.ghost = null;
 }
-for (const b of document.querySelectorAll('[data-tool]')) if (b instanceof HTMLElement) b.addEventListener('click', () => { const m = b.dataset.tool || 'walk'; setTool(state.tool === m && m !== 'walk' ? 'walk' : m); SH.sfx('click'); });
+for (const b of document.querySelectorAll('[data-tool]')) if (b instanceof HTMLElement) b.addEventListener('click', () => { const m = b.dataset.tool || 'walk'; setTool((state.tool === m || (m === 'build' && BUILD_FAMILY.includes(state.tool))) && m !== 'walk' ? 'walk' : m); SH.sfx('click'); });
+// l'aide de la vue (« Glisse pour te deplacer… ») : seulement la premiere fois, puis elle s'efface
+const WALK_KEY = 'ckt-aide-vue';
+let walkSeen = (() => { try { return localStorage.getItem(WALK_KEY) === '1'; } catch (_) { return false; } })();
+function walkHint(): string {
+  if (walkSeen) return '';
+  walkSeen = true; try { localStorage.setItem(WALK_KEY, '1'); } catch (_) {}
+  setTimeout(() => { const h = document.getElementById('modeHint'); if (h && h.textContent === HINTS.walk) h.textContent = ''; }, 15000);
+  return HINTS.walk;
+}
 
 export let toastTimer = 0;
 export function toast(msg: string){ const el = $('toast'); el.textContent = msg; el.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => el.hidden = true, 2800); }
@@ -282,7 +298,8 @@ export type HistoryEntry = ({ kind: 'build'; id: number; l: number; r: number; c
   | { kind: 'upgrade'; id: number; l: number; r: number } | { kind: 'demolish'; b: Building; refund: number }) & { t?: number };
 export const HISTORY: HistoryEntry[] = [];
 export function pushHistory(h: HistoryEntry){ h.t = GAME.t; HISTORY.push(h); if (HISTORY.length > 30) HISTORY.shift(); updateUndo(); }
-export function updateUndo(){ const b = $of('btnUndo', HTMLButtonElement); b.disabled = !HISTORY.length; b.title = HISTORY.length ? 'Annuler la dernière action (Ctrl+Z)' : 'Rien à annuler'; }
+// plus de bouton Annuler (etape 0.22) : Ctrl+Z reste au clavier
+export function updateUndo(){}
 export function undo(){
   const h = HISTORY.pop(); updateUndo();
   if (!h){ toast('Rien à annuler.'); return; }
@@ -309,7 +326,6 @@ export function undo(){
   if (state.sel && !SH.BLD.includes(state.sel)) SH.selectBuilding(null);
   SH.saveSoon(); SH.renderHUD();
 }
-$('btnUndo').addEventListener('click', () => { undo(); SH.sfx('click'); });
 export function demolishAt(a: number, b: number){
   const l = bldAt(a, b);
   if (l){
@@ -408,19 +424,8 @@ $('zoomLabel').addEventListener('click', () => setZoom(SH.KDEF));
 $('rotL').addEventListener('click', () => rotateBy(-Math.PI / 4));
 $('rotR').addEventListener('click', () => rotateBy(Math.PI / 4));
 $('compass').addEventListener('click', () => { const k = Math.round(cam.phi / TAU); cam.phiT = k * TAU; });
-export const WX_MODES = ['auto', 'clair', 'pluie', 'neige', 'brouillard'], WX_LABEL: Record<string, string> = { auto: 'automatique', clair: 'soleil', pluie: 'pluie', neige: 'neige', brouillard: 'brouillard' };
-// la meteo choisie, dessinee sur le bouton de la colonne de vue
-const wxSvg = (body: string) => '<svg viewBox="0 0 16 16" aria-hidden="true">' + body + '</svg>';
-export const WX_ICON: Record<string, string> = {
-  auto: wxSvg('<circle cx="5.5" cy="5.5" r="2.6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M5 0h1v1.6H5zM0 5h1.6v1H0zM1.2 1.2l.8-.8 1.1 1.1-.8.8zM8.9 1.3l.8.8-1.1 1.1-.8-.8z" fill="currentColor"/><path d="M7 14h6.5a2.5 2.5 0 0 0 .2-5A3.5 3.5 0 0 0 7.2 8.4 2.8 2.8 0 0 0 7 14z" fill="currentColor"/>'),
-  clair: wxSvg('<path d="M7 0h2v3H7zM7 13h2v3H7zM0 7h3v2H0zM13 7h3v2h-3zM2 3.4 3.4 2l2 2L4 5.4zM10.6 12l1.4-1.4 2 2-1.4 1.4zM2 12.6l2-2 1.4 1.4-2 2zM10.6 4l2-2L14 3.4l-2 2zM8 4.2a3.8 3.8 0 1 1 0 7.6 3.8 3.8 0 0 1 0-7.6z" fill="currentColor"/>'),
-  pluie: wxSvg('<path d="M4 9h8.5a2.5 2.5 0 0 0 .2-5A4 4 0 0 0 5 3.2 3 3 0 0 0 4 9z" fill="currentColor"/><path d="M4 11h1.5l-1 4H3zM8 11h1.5l-1 4H7zM12 11h1.5l-1 4H11z" fill="currentColor"/>'),
-  neige: wxSvg('<path d="M7.2 0h1.6v16H7.2zM0 7.2h16v1.6H0zM1.9 3l1.1-1.1 11.1 11.1-1.1 1.1zM13 1.9l1.1 1.1L3 14.1l-1.1-1.1z" fill="currentColor"/><circle cx="8" cy="8" r="2.4" fill="var(--ink)"/><circle cx="8" cy="8" r="1.2" fill="currentColor"/>'),
-  brouillard: wxSvg('<path d="M1 3h11v2H1zM4 7h11v2H4zM1 11h11v2H1z" fill="currentColor"/>'),
-};
-export function updateWxUI(){ const b = $('btnWx'), nm = 'Météo : ' + (WX_LABEL[WEATHER.mode] || WEATHER.mode); b.innerHTML = WX_ICON[WEATHER.mode] || WX_ICON.auto; b.title = nm; b.setAttribute('aria-label', nm); }
-$('btnWx').addEventListener('click', () => { WEATHER.mode = WX_MODES[(WX_MODES.indexOf(WEATHER.mode) + 1) % WX_MODES.length]; updateWxUI(); if (WEATHER.mode === 'auto') WEATHER.next = 0; });
-updateWxUI();
+// la meteo n'est plus pilotable : toujours au hasard (etape 0.22)
+WEATHER.mode = 'auto';
 
 /* ---- temps : pause et vitesse (le temps du jeu, pas seulement l'horloge) ---- */
 export const SPEEDS = [1, 2, 4];
@@ -432,9 +437,13 @@ $('clockSpeed').addEventListener('click', () => setSpeed(SPEEDS[(SPEEDS.indexOf(
 export const pad2 = (n: number) => String(n).padStart(2, '0');
 export let clockShown = -1;
 export function updateClockUI(){
+  // le temps de jeu depuis le debut de la partie (etape 0.22), a cote de l'heure du jour
+  const gs = Math.floor(GAME.t), gk = Math.floor(gs / 60);
+  if (gk !== gameShown){ gameShown = gk; const h = Math.floor(gk / 60); $('gameT').textContent = h ? h + ' h ' + pad2(gk % 60) : gk + ' min'; }
   const m = Math.floor(CLOCK.h * 60) % 1440; if (m === clockShown) return;
   clockShown = m; $('clockTime').textContent = pad2(Math.floor(m / 60)) + ':' + pad2(m % 60);
 }
+let gameShown = -1;
 
 /* ---- pointeur : se balader, zoomer, tourner, agir ---- */
 /** un glisser en cours : ou il a commence, la camera d'alors, et ce qu'il fait (tourner la vue, tourner le batiment, ou deplacer) */

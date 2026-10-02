@@ -138,8 +138,8 @@ export function renderVic(){
   el.innerHTML = h;
   $('vicClose').addEventListener('click', () => toggleVic(false));
 }
-export function toggleVic(on?: boolean){ const el = $('vic'), show = on == null ? el.hidden : on; el.hidden = !show; if (show){ $('sci').hidden = true; $('dip').hidden = true; renderVic(); } }
-$('hudRace').addEventListener('click', () => { toggleVic(); SH.sfx('click'); });
+export function toggleVic(on?: boolean){ const el = $('vic'), show = on == null ? el.hidden : on; el.hidden = !show; $('btnVic').setAttribute('aria-pressed', String(show)); if (show){ $('sci').hidden = true; $('dip').hidden = true; renderVic(); } }
+$('btnVic').addEventListener('click', () => { toggleVic(); SH.sfx('click'); });
 SH.KEYS = SH.KEYS || {};
 SH.KEYS.o = () => toggleVic();
 const prevEsc = SH.cardEscape;

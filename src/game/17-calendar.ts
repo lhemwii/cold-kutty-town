@@ -5,7 +5,7 @@ import { TYPES } from './04-types.ts';
 import { terPct } from './08-territory.ts';
 import { catPos, type Cat } from './10-town.ts';
 import { CLOCK, OV_ON, WEATHER, render, scene } from './11-render.ts';
-import { $, $of, ico, toast } from './13-ui.ts';
+import { $, $of, ico } from './13-ui.ts';
 /** Une saison de l'ile. */
 export type Season = 'hiver' | 'printemps' | 'été' | 'automne';
 /** A qui s'adresse une fete ou une ligne du carnet : un camp, ou les deux. */
@@ -93,11 +93,31 @@ export function campStats(): CampStats {
   const one = (s2: Side): CampStat => { const R = SH.RES[s2]; return { pct: Math.round(terPct(s2) * 100), croq: Math.floor(R.croq), laine: Math.floor(R.laine), ron: Math.floor(R.ron), pop: R.pop, short: !!R.short, space: SH.SPACE[s2].stage }; };
   return { usc: one('usc'), ccp: one('ccp'), weather: WEATHER.shown === 'clair' || WEATHER.k < .4 ? 'clair' : WEATHER.shown, season: seasonOf(CAL.m), fete: feteOf(CAL.m), wall: SH.WALLS.length > 0 };
 }
+/* ---- le journal qui depasse en bas a droite (etape 0.22) : il monte chaque matin avec les chiffres du jour, puis redescend ---- */
+let peekT = 0;
+export function setPeek(up: boolean){
+  const el = $('paperPeek'); el.classList.toggle('up', up); $('peekTab').setAttribute('aria-expanded', String(up));
+  clearTimeout(peekT); if (up) peekT = setTimeout(() => { if (!el.matches(':hover')) setPeek(false); }, 9000);
+}
+// les chiffres du matin, compares a ceux de la veille
+function peekStats(now: CampStats, before: CampStats | null){
+  const me = GAME.side, a = now[me], b = before ? before[me] : null, o = now[other(me)];
+  const d = (v: number, w: number | undefined) => w == null ? '' : ' (' + (v - w >= 0 ? '+' : '−') + Math.abs(v - w) + ')';
+  return 'Ce matin : <b>' + a.pop + ' habitants</b>' + d(a.pop, b?.pop) + '. Croquettes ' + a.croq + d(a.croq, b?.croq) + ', laine ' + a.laine + d(a.laine, b?.laine) + ', ronrons ' + a.ron + d(a.ron, b?.ron) + '.'
+    + (a.short ? ' <b>Disette : il manque des croquettes.</b>' : '') + ' Ton territoire : <b>' + a.pct + ' %</b> de l’île, contre ' + o.pct + ' % pour ' + (me === 'usc' ? 'la CCR' : 'l’USC') + '.';
+}
+$('peekTab').addEventListener('click', () => { setPeek(!$('paperPeek').classList.contains('up')); SH.sfx('click'); });
+$('paperPeek').addEventListener('pointerleave', () => { if ($('paperPeek').classList.contains('up')){ clearTimeout(peekT); peekT = setTimeout(() => setPeek(false), 2500); } });
+for (const b of document.querySelectorAll('[data-peek]')) if (b instanceof HTMLElement) b.addEventListener('click', () => { const np = b.dataset.peek; if (np === 'usc' || np === 'ccp') PAPER.side = np; openPaper(); setPeek(false); });
+{ const pi = $('paperPeek').querySelector('.peek-ico'); if (pi) pi.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 3h14v11H1z" fill="#241c14"/><path d="M2.2 4.2h11.6v8.6H2.2z" fill="#fbf7ee"/><path d="M3 5h10v1.5H3zM3 8h4v1H3zM3 10h4v1H3zM9 8h4v3.8H9z" fill="#241c14"/></svg>'; }
+HOOKS.reset.push(() => { $('paperPeek').hidden = true; setPeek(false); });
 export function deliverPaper(first: boolean){
+  const before = PAPER.issue ? PAPER.issue.stats : null;
   PAPER.issue = { n: PAPER.n++, m: CAL.m, log: DAYLOG.splice(0), stats: campStats(), ed: null, busy: false, note: '', photo: {} };
-  const b = $('btnPaper'); if (b){ b.hidden = false; b.classList.toggle('fresh', !first); }
+  const pk = $('paperPeek'); pk.hidden = false; pk.classList.toggle('fresh', !first);
+  $('peekStats').innerHTML = peekStats(PAPER.issue.stats, before); $('peekN').textContent = 'n° ' + PAPER.issue.n;
   if (!first){
-    toast('Le journal du matin est arrivé : clique sur Journal pour le lire.');
+    setPeek(true);
     SH.radioQueue.push(['neutre', 'Radio du port', 'Les crieurs de journaux sont dans les rues : la Gazette de Kutty à l’ouest, la Pravdachat à l’est.']);
   }
   if (!$('paper').hidden){ renderPaper(); generatePaper(PAPER.issue); }
@@ -222,12 +242,11 @@ export function renderPaper(){
 }
 export function openPaper(){
   if (!PAPER.issue) deliverPaper(true);
-  $('paper').hidden = false; $('btnPaper').classList.remove('fresh'); SH.sfx('paper');
+  $('paper').hidden = false; $('paperPeek').classList.remove('fresh'); SH.sfx('paper');
   renderPaper(); generatePaper(PAPER.issue);
   setTimeout(() => $('paperClose').focus({ preventScroll: true }), 30);
 }
 export function closePaper(){ $('paper').hidden = true; scene.focus({ preventScroll: true }); }
-$('btnPaper').addEventListener('click', openPaper);
 $('paperClose').addEventListener('click', closePaper);
 $('paper').addEventListener('click', (e) => { if (e.target === $('paper')) closePaper(); });
 for (const b of document.querySelectorAll('[data-np]')) if (b instanceof HTMLElement) b.addEventListener('click', () => { const np = b.dataset.np; if (np === 'usc' || np === 'ccp') PAPER.side = np; renderPaper(); });

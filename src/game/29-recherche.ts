@@ -187,20 +187,53 @@ function renderSciButton(){
   btn.title = t ? 'Recherche : ' + t.name + ' (' + Math.round((S.prog[t.id] || 0) / t.cost * 100) + ' %). E pour l’arbre.' : 'Recherche : rien en cours. E pour choisir.';
   btn.classList.toggle('idle', !t);
 }
+/* ---- l'arbre en vrai graphe (etape 0.22) : une colonne par profondeur, une bande par branche, des liens d'une recherche a l'autre ---- */
+const NW = 158, NH = 56, CW = 196, RH = 66, LW = 112;
+const DEPTH = new Map<string, number>();
+const depthOf = (t: Tech): number => { const d0 = DEPTH.get(t.id); if (d0 != null) return d0; const d = t.req.length ? 1 + Math.max(...t.req.map(r => { const q = TECH.get(r); return q ? depthOf(q) : 0; })) : 0; DEPTH.set(t.id, d); return d; };
+const POS = new Map<string, { x: number; y: number }>(), BANDS: { br: Branch; y: number; h: number }[] = [];
+let TREE_W = 0, TREE_H = 0;
+{
+  let y = 8;
+  for (const br of Object.keys(BRANCH_NAME) as Branch[]){
+    const ts = TECHS.filter(t => t.branch === br), used = new Map<number, number>();
+    for (const t of ts){ const d = depthOf(t), k = used.get(d) || 0; used.set(d, k + 1); POS.set(t.id, { x: LW + d * CW, y: y + k * RH }); TREE_W = Math.max(TREE_W, LW + d * CW + NW + 12); }
+    const rows = Math.max(1, ...used.values()); BANDS.push({ br, y, h: rows * RH - 10 }); y += rows * RH + 8;
+  }
+  TREE_H = y;
+}
+let sciKey = '';
 export function renderSci(){
   const el = $('sci'), S = SCI[GAME.side], side = GAME.side;
   const cur = S.cur ? TECH.get(S.cur) : null;
-  let h = '<div class="sci-head"><b>Recherche</b><span>' + Math.round(S.rate * 10) / 10 + ' points par minute' + (cur ? ' ; en cours : ' + cur.name : ' ; choisis une recherche') + (S.bank > 1 ? ' ; ' + Math.round(S.bank) + ' points en réserve' : '') + '. Construis des universités et des laboratoires pour aller plus vite.</span><button class="btn k" type="button" id="sciClose" aria-label="Fermer">×</button></div><div class="sci-cols">';
-  for (const br of Object.keys(BRANCH_NAME) as Branch[]){
-    h += '<div class="sci-col"><h3>' + BRANCH_NAME[br] + '</h3>';
-    for (const t of TECHS.filter(x => x.branch === br)){
-      const done = S.done.has(t.id), open = techOpen(side, t), p = S.prog[t.id] || 0, isCur = S.cur === t.id;
-      const reqTxt = t.req.length ? 'Demande : ' + t.req.map(r => TECH.get(r)?.name || r).join(', ') + '. ' : '';
-      h += '<button type="button" class="tech' + (done ? ' done' : '') + (isCur ? ' cur' : '') + (!done && !open ? ' lock' : '') + '" data-tech="' + t.id + '"' + (!done && !open ? ' aria-disabled="true"' : '') + '><b>' + t.name + '</b><span class="tc">' + (done ? 'Faite' : Math.round(p) + ' / ' + t.cost + ' points') + '</span><small>' + (done ? '' : reqTxt) + t.gives + '</small>' + (!done && p > 0 ? '<span class="tbar"><i style="width:' + Math.round(p / t.cost * 100) + '%"></i></span>' : '') + '</button>';
-    }
-    h += '</div>';
+  const headTxt = Math.round(S.rate * 10) / 10 + ' points par minute' + (cur ? ' ; en cours : ' + cur.name : ' ; choisis une recherche') + (S.bank > 1 ? ' ; ' + Math.round(S.bank) + ' points en réserve' : '') + '. Universités et laboratoires vont plus vite.';
+  const key = side + ':' + [...S.done].join(',') + ':' + S.cur;
+  // l'arbre ne se refait que s'il change : sinon on met a jour les chiffres (le defilement et le survol restent)
+  if (key === sciKey && el.querySelector('.tree')){
+    const hs = el.querySelector('.sci-head span'); if (hs) hs.textContent = headTxt;
+    for (const n of el.querySelectorAll('[data-tech]')) if (n instanceof HTMLElement){ const t = TECH.get(n.dataset.tech || ''); if (!t || S.done.has(t.id)) continue; const p = S.prog[t.id] || 0, tc = n.querySelector('.tc'), bi = n.querySelector('.tbar i'); if (tc) tc.textContent = Math.round(p) + ' / ' + t.cost; if (bi instanceof HTMLElement) bi.style.width = Math.round(p / t.cost * 100) + '%'; }
+    return;
   }
-  el.innerHTML = h + '</div>';
+  sciKey = key;
+  let h = '<div class="sci-head"><b>Recherche</b><span>' + headTxt + '</span><button class="btn k" type="button" id="sciClose" aria-label="Fermer">×</button></div>';
+  h += '<div class="tree-wrap"><div class="tree" style="width:' + TREE_W + 'px;height:' + TREE_H + 'px">';
+  for (const b of BANDS) h += '<div class="tree-band" style="top:' + (b.y - 4) + 'px;height:' + (b.h + 8) + 'px"><span>' + BRANCH_NAME[b.br] + '</span></div>';
+  // les liens : du bord droit de ce qu'il faut avoir au bord gauche de la recherche
+  h += '<svg class="tree-links" width="' + TREE_W + '" height="' + TREE_H + '" aria-hidden="true">';
+  for (const t of TECHS) for (const r of t.req){
+    const a = POS.get(r), b = POS.get(t.id); if (!a || !b) continue;
+    const x0 = a.x + NW, y0 = a.y + NH / 2, x1 = b.x, y1 = b.y + NH / 2, mx = (x0 + x1) / 2;
+    const st = S.done.has(r) ? (S.done.has(t.id) ? 'done' : 'open') : 'lock';
+    h += '<path class="' + st + '" d="M' + x0 + ' ' + y0 + 'C' + mx + ' ' + y0 + ' ' + mx + ' ' + y1 + ' ' + x1 + ' ' + y1 + '"/>';
+  }
+  h += '</svg>';
+  for (const t of TECHS){
+    const q = POS.get(t.id); if (!q) continue;
+    const done = S.done.has(t.id), open = techOpen(side, t), p = S.prog[t.id] || 0, isCur = S.cur === t.id;
+    const reqTxt = t.req.length ? 'Demande : ' + t.req.map(r => TECH.get(r)?.name || r).join(', ') + '. ' : '';
+    h += '<button type="button" class="tech' + (done ? ' done' : '') + (isCur ? ' cur' : '') + (!done && !open ? ' lock' : '') + '" style="left:' + q.x + 'px;top:' + q.y + 'px;width:' + NW + 'px;height:' + NH + 'px" data-tech="' + t.id + '" title="' + t.name + '. ' + (done ? 'Faite. ' : reqTxt) + t.gives + '"' + (!done && !open ? ' aria-disabled="true"' : '') + '><b>' + t.name + '</b><span class="tc">' + (done ? 'Faite' : Math.round(p) + ' / ' + t.cost) + '</span><small>' + t.gives + '</small>' + (!done ? '<span class="tbar"><i style="width:' + Math.round(p / t.cost * 100) + '%"></i></span>' : '') + '</button>';
+  }
+  el.innerHTML = h + '</div></div><p class="sci-foot">Clique une recherche ouverte pour y verser tes points. Un lien vert : la recherche d’avant est faite.</p>';
   $('sciClose').addEventListener('click', () => toggleSci(false));
   for (const b of el.querySelectorAll('[data-tech]')) if (b instanceof HTMLElement) b.addEventListener('click', () => {
     const t = TECH.get(b.dataset.tech || ''); if (!t) return;
@@ -212,7 +245,7 @@ export function renderSci(){
 export function toggleSci(on?: boolean){
   const el = $('sci'), show = on == null ? el.hidden : on;
   el.hidden = !show; btn.setAttribute('aria-pressed', String(show));
-  if (show){ const d = document.getElementById('dip'); if (d) d.hidden = true; renderSci(); }
+  if (show){ const d = document.getElementById('dip'); if (d) d.hidden = true; sciKey = ''; renderSci(); }
 }
 btn.addEventListener('click', () => { toggleSci(); SH.sfx('click'); });
 SH.KEYS = SH.KEYS || {};

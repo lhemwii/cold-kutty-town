@@ -318,7 +318,7 @@ export function buildResPanel(){
   h += '<div class="xr-net"><div class="xr-sub">Métiers <span data-v="pop"></span></div>';
   for (const m of METIERS) h += '<div class="xr-job" data-job="' + m + '"><span>' + METIER_NAME[m] + '</span><span class="xr-bar"><i></i></span><button class="btn k xr-p" type="button" data-m="' + m + '" data-d="-1" aria-label="Moins de priorité pour ' + METIER_NAME[m] + '">−</button><span class="pips"><i></i><i></i><i></i></span><button class="btn k xr-p" type="button" data-m="' + m + '" data-d="1" aria-label="Plus de priorité pour ' + METIER_NAME[m] + '">+</button></div>';
   el.innerHTML = h + '</div>';
-  $('xresClose').addEventListener('click', () => { el.hidden = true; $('btnRes').setAttribute('aria-pressed', 'false'); });
+  $('xresClose').addEventListener('click', () => toggleRes(false));
   for (const b of el.querySelectorAll('.xr-p')) if (b instanceof HTMLElement) b.addEventListener('click', () => { const m = b.dataset.m as Metier, P = PRIO[GAME.side]; P[m] = Math.max(0, Math.min(3, P[m] + (+(b.dataset.d || 0)))); SH.refreshAccess(); renderResPanel(); SH.saveSoon(); });
 }
 export function renderResPanel(){
@@ -338,11 +338,33 @@ export function renderResPanel(){
     row.querySelectorAll('.pips i').forEach((p, i) => p.classList.toggle('on', i < PRIO[GAME.side][m]));
   }
 }
-$('btnRes').addEventListener('click', () => { const el = $('xres'); el.hidden = !el.hidden; $('btnRes').setAttribute('aria-pressed', String(!el.hidden)); renderResPanel(); SH.sfx('click'); });
+/** ouvre ou ferme l'onglet Ressources (un clic sur une ressource de la barre du haut, etape 0.22) */
+export function toggleRes(on?: boolean){
+  const el = $('xres'), show = on == null ? !!el.hidden : on;
+  el.hidden = !show; $('hudRes').classList.toggle('open', show);
+  if (show) renderResPanel();
+  SH.sfx('click');
+}
+SH.toggleRes = toggleRes;
+
+/* ---- la barre du haut : le luxe, les matieres et les reseaux en petites cases ---- */
+{
+  const box = $('hudX');
+  box.innerHTML = XRES.map(k => '<button class="rx" type="button" data-x="' + k + '" title="' + XRES_NAME[k] + ' : ' + XRES_HELP[k] + '">' + ico(k) + '<b>0</b></button>').join('')
+    + '<button class="rx" type="button" data-x="elec" title="Électricité : part des besoins couverte">' + ico('elec') + '<b>0</b></button>'
+    + '<button class="rx" type="button" data-x="eau" title="Eau : part des besoins couverte">' + ico('eau') + '<b>0</b></button>';
+  for (const b of box.querySelectorAll('.rx')) b.addEventListener('click', () => toggleRes());
+}
+let barKey = '';
+function renderBar(){
+  const R = RES[GAME.side], pc = (c: number) => Math.round(c * 100) + '%';
+  const vals: [string, string, boolean][] = XRES.map(k => [k, String(Math.floor(R.x[k])), R.rx[k] < 0 && R.x[k] < -R.rx[k] * 2]);
+  vals.push(['elec', R.elecU > 0 ? pc(R.elecCov) : String(Math.round(R.elecP)), R.elecCov < .99 && R.elecU > 0], ['eau', R.eauU > 0 ? pc(R.eauCov) : String(Math.round(R.eauP)), R.eauCov < .99 && R.eauU > 0]);
+  const key = vals.map(v => v[1] + v[2]).join(':'); if (key === barKey) return; barKey = key;
+  for (const [k, v, low] of vals){ const b = document.querySelector('.rx[data-x="' + k + '"]'); if (!b) continue; const t = b.querySelector('b'); if (t) t.textContent = v; b.classList.toggle('low', low); }
+}
 let resAcc = 0;
-HOOKS.step.push((dt: number) => { resAcc += dt; if (resAcc > .5){ resAcc = 0; renderResPanel(); } });
-// le bouton porte l'icone d'une pelote tricotee
-{ const ri = $('btnRes').querySelector('.res-ico'); if (ri) ri.innerHTML = ico('tricot'); }
+HOOKS.step.push((dt: number) => { resAcc += Math.max(dt, .016); if (resAcc > .5){ resAcc = 0; if (GAME.mode !== 'menu') renderBar(); renderResPanel(); } });
 
 /* ---- bilan de fin de mois : ce qui a ete gagne et depense pendant le mois ---- */
 let monthSeen = -1, monthStart: number[] = [];

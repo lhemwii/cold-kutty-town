@@ -25,7 +25,8 @@ Object.assign(ICONS, {
     { k: '#2a2a2e', y: '#e8b84a', w: '#cfe8ff', r: '#c8283a', m: '#8a8f99' }],
 });
 CAT_ICON.transport = 'transport';
-if (!CATS_MENU.some(c => c[0] === 'transport')) CATS_MENU.push(['transport', 'Transports']);
+// en deuxieme onglet : les routes, les voies ferrees et le Rideau y sont aussi (tuiles d'outils, 14-hud)
+if (!CATS_MENU.some(c => c[0] === 'transport')) CATS_MENU.splice(1, 0, ['transport', 'Routes et voies']);
 
 /* ---- les voies ferrees ---- */
 export const RAILS: Road[] = [];

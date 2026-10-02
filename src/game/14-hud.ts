@@ -4,7 +4,7 @@ import { nearestShore } from './02-ground.ts';
 import { TYPES } from './04-types.ts';
 import { typeName } from './05-types-extra.ts';
 import { VEST_DEF, drawVestige, type VestDef, type VestKind, type Vestige } from './07-world.ts';
-import { TER, influenceOf, sideAt, terPct } from './08-territory.ts';
+import { TER, influenceOf, sideAt } from './08-territory.ts';
 import { footOf, matOf } from './10-town.ts';
 import { FAR, PALL } from './11-render.ts';
 import { $, $of, CAT_ICON, ICONS, andList, costHTML, ico, pips, pixelSVG, progress, pushHistory, setTool, toast, type Pal } from './13-ui.ts';
@@ -64,10 +64,6 @@ export function renderHUD(){
     b.classList.toggle('warn', !!(k === 'c' && R.short) || (rt < 0 && v < -rt * 2));
     b.classList.toggle('down', rt < 0);
   }
-  const pu = terPct('usc'), pc = terPct('ccp');
-  $('tbU').style.width = (pu * 100).toFixed(2) + '%'; $('tbC').style.width = (pc * 100).toFixed(2) + '%';
-  $('tbUpct').textContent = (pu * 100).toFixed(1).replace('.', ',') + ' %';
-  $('tbCpct').textContent = (pc * 100).toFixed(1).replace('.', ',') + ' %';
   if (resPopK) showResPop(resPopK);
   const key = Math.floor(R.laine) + ':' + Math.floor(R.ron) + ':' + Math.floor(R.croq / 5) + ':' + SH.BLD.length;
   if (key !== hudKey){ hudKey = key; refreshPalette(); }
@@ -97,8 +93,9 @@ for (const b of document.querySelectorAll('.res[data-k]')){
   b.addEventListener('focus', () => showResPop(k));
   b.addEventListener('mouseleave', () => { resPopK = null; $('resPop').hidden = true; });
   b.addEventListener('blur', () => { resPopK = null; $('resPop').hidden = true; });
-  b.addEventListener('click', () => { if (resPopK === k && !$('resPop').hidden){ resPopK = null; $('resPop').hidden = true; } else showResPop(k); });
 }
+// un clic sur une ressource ouvre l'onglet Ressources (24-ressources : SH.toggleRes)
+for (const b of document.querySelectorAll('.res[data-k]')) b.addEventListener('click', () => { resPopK = null; $('resPop').hidden = true; if (typeof SH.toggleRes === 'function') SH.toggleRes(); });
 
 /* ---- menu de construction : categories et vignettes dessinees par le moteur ---- */
 export let buildCat = 'logement';
@@ -150,6 +147,33 @@ export function vestThumb(kind: VestKind, w: number, h: number){
   setView(saved);
   return THUMBS[key] = cv;
 }
+/** une tuile du tiroir qui choisit un outil plutot qu'un batiment (routes, voies, Rideau, achat de terrain) */
+export interface ToolTile { tool: string; name: string; key?: string; svg: string; cost: string; desc: string }
+const svg16 = (body: string) => '<svg viewBox="0 0 16 16" aria-hidden="true">' + body + '</svg>';
+/** les tuiles d'outils de chaque onglet du tiroir ; les modules suivants peuvent en ajouter */
+export const TOOL_TILES: Record<string, ToolTile[]> = {
+  transport: [
+    { tool: 'road', name: 'Route droite', key: 'R', svg: svg16('<path d="M5 1h6l3 14H2z" fill="currentColor"/><path d="M7.4 3h1.2v2H7.4zM7.2 7h1.6v2.5H7.2zM7 11.5h2V14H7z" fill="var(--ink)"/>'), cost: 'laine au pas', desc: 'Clique le départ puis l’arrivée. D’abord un chemin de terre : clique-le ensuite pour le goudronner. Passe aussi en montagne.' },
+    { tool: 'curve', name: 'Route courbe', key: 'C', svg: svg16('<path d="M2 14C2 6 6 2 14 2v4C9 6 6 9 6 14z" fill="currentColor"/>'), cost: 'laine au pas', desc: 'Le départ, le point qui tire la courbe, puis l’arrivée.' },
+    { tool: 'rail', name: 'Voie ferrée', key: 'V', svg: svg16('<path d="M4 1h1.5L4 15H2.5zM10.5 1H12l1.5 14H12z" fill="currentColor"/><path d="M3 3h10v1.4H3zM3 7h10v1.4H3zM2.6 11h10.8v1.4H2.6z" fill="currentColor"/>'), cost: 'laine au pas', desc: 'Des rails entre deux gares : les trains relient les villes à la capitale.' },
+    { tool: 'wall', name: 'Rideau de Laine', key: 'M', svg: svg16('<path d="M1 5h14v9H1z" fill="currentColor"/><path d="M1 8h14v1H1zM1 11h14v1H1zM5 5h1v3H5zM10 5h1v3h-1zM3 9h1v2H3zM8 9h1v2H8zM13 9h1v2h-1z" fill="var(--ink)"/><path d="M1 3l2 1 2-1 2 1 2-1 2 1 2-1 2 1" stroke="currentColor" fill="none"/>'), cost: '3 laine les 10 pas', desc: 'Il fige ta frontière : l’autre camp ne la repousse plus.' },
+  ],
+};
+function toolTile(t: ToolTile){
+  const b = document.createElement('button'); b.className = 'btn bbtn tile'; b.type = 'button'; b.setAttribute('role', 'radio'); b.dataset.tile = t.tool;
+  b.setAttribute('aria-checked', String(state.tool === t.tool)); b.title = t.name + (t.key ? ' (' + t.key + ')' : '') + '. ' + t.desc;
+  b.innerHTML = '<span class="tile-ico">' + t.svg + '</span><span class="bb-name">' + t.name + '</span><span class="bb-cost">' + t.cost + '</span>' + (t.key ? '<kbd class="tile-k">' + t.key + '</kbd>' : '');
+  b.addEventListener('click', () => { setTool(state.tool === t.tool ? 'build' : t.tool); SH.sfx('click'); });
+  return b;
+}
+// les fleches des deux rangees du tiroir
+for (const b of document.querySelectorAll('[data-sc]')) if (b instanceof HTMLElement) b.addEventListener('click', () => { const row = $(b.dataset.sc || 'palette'); row.scrollBy({ left: (+(b.dataset.d || 1)) * Math.max(160, row.clientWidth * .7) }); });
+for (const id of ['palette', 'buildCats']) $(id).addEventListener('wheel', (e) => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX)){ $(id).scrollLeft += e.deltaY; e.preventDefault(); } }, { passive: false });
+// l'onglet de l'outil choisi au clavier (R, C, V, M) s'ouvre dans le tiroir
+SH.pickCat = (tool: string) => {
+  const k = Object.keys(TOOL_TILES).find(c => TOOL_TILES[c].some(t => t.tool === tool)); if (!k || k === buildCat) return;
+  buildCat = k; for (const o of $('buildCats').children) o.setAttribute('aria-selected', String(o instanceof HTMLElement && o.dataset.cat === k)); fillPalette();
+};
 export function buildMenu(){
   const cats = $('buildCats'), menu: [string, string][] = SH.CATS_MENU; cats.textContent = '';
   for (const [k, label] of menu){
@@ -162,7 +186,8 @@ export function buildMenu(){
   fillPalette();
 }
 export function fillPalette(){
-  const pal = $('palette'); pal.textContent = '';
+  const pal = $('palette'); pal.textContent = ''; pal.scrollLeft = 0;
+  for (const t of TOOL_TILES[buildCat] || []) pal.appendChild(toolTile(t));
   for (const type of Object.keys(SH.ECO)){
     const e: EcoDef = SH.ECO[type]; if (e.cat !== buildCat) continue;
     const b = document.createElement('button'); b.className = 'btn bbtn'; b.type = 'button'; b.setAttribute('role', 'radio'); b.dataset.t = type;
@@ -172,19 +197,29 @@ export function fillPalette(){
     const ct = document.createElement('span'); ct.className = 'bb-cost'; ct.innerHTML = costHTML(SH.priceOf(type, GAME.side));
     const eff = document.createElement('span'); eff.className = 'bb-eff'; eff.innerHTML = effLine(e);
     b.append(img, nm, ct, eff);
-    b.addEventListener('click', () => { state.buildType = type; state.dirManual = false; for (const o of pal.children) o.setAttribute('aria-checked', String(o instanceof HTMLElement && o.dataset.t === type)); SH.ghost = null; if (state.tool !== 'build') setTool('build'); $('modeHint').innerHTML = '<b>' + typeName(type, GAME.side) + '</b><span>' + (e.desc || '') + '</span>'; SH.sfx('click'); });
+    b.addEventListener('click', () => { state.buildType = type; state.dirManual = false; if (state.tool !== 'build') setTool('build'); for (const o of pal.children) o.setAttribute('aria-checked', String(o instanceof HTMLElement && o.dataset.t === type)); SH.ghost = null; $('modeHint').innerHTML = '<b>' + typeName(type, GAME.side) + '</b><span class="hint-eff">' + effLine(e, 9) + '</span><span>' + (e.desc || '') + '</span>'; SH.sfx('click'); });
     pal.appendChild(b);
   }
   refreshPalette();
 }
 // ce qu'un batiment rapporte, en une ligne courte illustree (html)
-export function effLine(e: EcoDef){
+// (etape 0.22 : tout ce qu'il produit, pate, tricot, charbon, electricite, eau, recherche... ; max : nombre d'illustrations)
+const X_NAME: Record<string, string> = { pate: 'pâté', tricot: 'tricot', herbe: 'herbe à chat', coins: 'Catcoins', charbon: 'charbon', uranium: 'uranium', petrole: 'pétrole' };
+export function effLine(e: EcoDef, max = 3){
   const bits: string[] = [], it = (k: string, nm: string, v: string) => '<span class="ci">' + ico(k, nm) + '<b>' + v + '</b></span>';
   if (e.pop) bits.push(it('pop', 'habitants', '+' + e.pop));
   if (e.c > 0) bits.push(it('croq', 'croquettes par minute', '+' + e.c)); if (e.l > 0) bits.push(it('laine', 'laine par minute', '+' + e.l)); if (e.r > 0) bits.push(it('ron', 'ronrons par minute', '+' + e.r));
+  for (const [k, v] of Object.entries(e.x || {})) if (v && v > 0) bits.push(it(k, X_NAME[k] + ' par minute', '+' + v));
+  if (e.elec && e.elec > 0) bits.push(it('elec', 'électricité', '+' + e.elec));
+  if (e.eau && e.eau > 0) bits.push(it('eau', 'eau', '+' + e.eau));
+  if (e.sci) bits.push(it('science', 'recherche par minute', '+' + e.sci));
+  if (e.stock) bits.push(it('croq', 'place de stock', '+' + e.stock + ' stock'));
   if (e.fun) bits.push(it('fun', 'loisirs', String(e.fun)));
-  if (e.cat === 'frontiere' || e.cat === 'mer') bits.push('<span class="ci">rayon <b>' + e.rad + '</b></span>');
-  return '<span class="cost">' + bits.slice(0, 2).join('') + '</span>';
+  if (e.cat === 'frontiere' || e.cat === 'mer' || !bits.length) bits.push('<span class="ci">territoire <b>' + e.rad + '</b></span>');
+  // ce qu'il consomme pour produire, en dernier
+  const use: string[] = [];
+  if (e.conv){ if (e.c < 0) use.push(it('croq', 'croquettes consommées', String(e.c).replace('-', '−'))); if (e.l < 0) use.push(it('laine', 'laine consommée', String(e.l).replace('-', '−'))); for (const [k, v] of Object.entries(e.x || {})) if (v && v < 0) use.push(it(k, X_NAME[k] + ' consommé', String(v).replace('-', '−'))); }
+  return '<span class="cost">' + bits.slice(0, max).join('') + (use.length && max > 3 ? '<span class="ci">avec</span>' + use.join('') : '') + '</span>';
 }
 /** ce qui manque pour payer un prix, en texte (« 12 laine et 5 ronrons ») ; vide si on peut payer */
 export function lackText(p: Price): string {
@@ -194,8 +229,8 @@ export function lackText(p: Price): string {
 }
 export function refreshPalette(){
   for (const b of $('palette').children){
-    if (!(b instanceof HTMLElement)) continue;
-    const t = b.dataset.t || '', p: Price = SH.priceOf(t, GAME.side), e: EcoDef | undefined = SH.ECO[t], lack = lackText(p);
+    if (!(b instanceof HTMLElement) || !b.dataset.t) continue;
+    const t = b.dataset.t, p: Price = SH.priceOf(t, GAME.side), e: EcoDef | undefined = SH.ECO[t], lack = lackText(p);
     // verrouille tant que la recherche qu'il demande n'est pas faite (etape 8)
     const lock = e && e.tech && SH.hasTech && !SH.hasTech(GAME.side, e.tech) ? (SH.techName ? SH.techName(e.tech) : e.tech) : '';
     b.classList.toggle('poor', !!lack); b.classList.toggle('locked', !!lock); const c = b.querySelector('.bb-cost'); if (c) c.innerHTML = costHTML(p);
@@ -327,7 +362,7 @@ export function bargeTarget(a: number, b: number){
 /* ---- disposition : le bas des blocs du haut et la hauteur du bas de l'ecran, pour les panneaux de droite ---- */
 export function layoutHUD(){
   const st = document.documentElement.style;
-  let top = 0; for (const id of ['hudRes', 'hudRace', 'hudTime']){ const r = $(id).getBoundingClientRect(); if (r.height) top = Math.max(top, r.bottom); }
+  let top = 0; for (const id of ['hudRes', 'hudTime']){ const r = $(id).getBoundingClientRect(); if (r.height) top = Math.max(top, r.bottom); }
   // la radio compte quand elle passe sous la colonne de droite (ecran etroit)
   const ra = $('radio').getBoundingClientRect(); if (ra.height && ra.right > window.innerWidth - 70) top = Math.max(top, ra.bottom);
   const bo = $('bottom').getBoundingClientRect();
@@ -335,7 +370,7 @@ export function layoutHUD(){
   st.setProperty('--hud-bot', Math.round(bo.height ? window.innerHeight - bo.top : 0) + 'px');
 }
 const hudRO = new ResizeObserver(layoutHUD);
-for (const id of ['topbar', 'hudRes', 'hudRace', 'hudTime', 'bottom']) hudRO.observe($(id));
+for (const id of ['topbar', 'hudRes', 'hudTime', 'bottom']) hudRO.observe($(id));
 window.addEventListener('resize', layoutHUD);
 
 // appeles depuis des modules plus petits en numero

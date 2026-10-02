@@ -25,37 +25,41 @@
 <!-- HUD de la partie, disposition A (docs/PLAN.md, etape 0.20) : trois blocs en haut, la vue en colonne a droite,
      les outils en bas au centre avec le tiroir de construction au-dessus, la mini-carte en bas a gauche -->
 <header class="hud-top" id="topbar" hidden>
-  <section class="hud-res panel" id="hudRes" role="group" aria-label="Ressources">
+  <section class="hud-res panel" id="hudRes" role="group" aria-label="Ressources : un clic ouvre l’onglet Ressources">
     <button class="res" type="button" data-k="c" aria-describedby="resPop"><span class="ico" data-ico="croq"></span><span class="res-lab">Croquettes</span><b id="vC">0</b><i id="dC">+0</i></button>
     <button class="res" type="button" data-k="l" aria-describedby="resPop"><span class="ico" data-ico="laine"></span><span class="res-lab">Laine</span><b id="vL">0</b><i id="dL">+0</i></button>
     <button class="res" type="button" data-k="r" aria-describedby="resPop"><span class="ico" data-ico="paw"></span><span class="res-lab">Ronrons</span><b id="vR">0</b><i id="dR">+0</i></button>
-    <div class="res lux" id="hudLux" title="Luxe et Catcoins"></div>
-    <div class="res pop" title="Habitants et emplois"><span class="ico" data-ico="pop"></span><b id="vP">0</b><i id="dP">habitants</i></div>
-  </section>
-  <section class="hud-race panel" id="hudRace" aria-label="Territoire des deux camps" title="Part de l’île tenue par chaque camp. Elle compte dans le score de fin de partie.">
-    <span class="flag rf" data-flag="usc"></span>
-    <div class="terbar"><i class="t-usc" id="tbU"></i><i class="t-ccp" id="tbC"></i></div>
-    <span class="flag rf" data-flag="ccp"></span>
-    <b class="pct pu" id="tbUpct">0 %</b><span class="ter-goal" id="tbGoal">territoire</span><b class="pct pc" id="tbCpct">0 %</b>
-    <div class="space-race" id="spaceRace" aria-label="Course à l’espace"></div>
+    <button class="res pop" type="button" data-k="p" title="Habitants et emplois"><span class="ico" data-ico="pop"></span><b id="vP">0</b><i id="dP">habitants</i></button>
+    <div class="res-x" id="hudX" role="group" aria-label="Luxe, matières et réseaux"></div>
   </section>
   <section class="hud-time panel" id="hudTime" aria-label="Date et temps">
-    <div class="tb-clock"><span id="calLabel">septembre</span><output id="clockTime">10:30</output><span class="blitz-t" id="blitzT" hidden></span></div>
+    <div class="tb-clock"><span id="calLabel">septembre</span><span class="tb-row"><output id="clockTime">10:30</output><span class="game-t" id="gameT" title="Temps de jeu depuis le début de la partie">0 min</span></span><span class="blitz-t" id="blitzT" hidden></span></div>
     <button class="btn k" id="clockPlay" type="button" aria-label="Mettre en pause" title="Pause (Espace)" aria-pressed="false"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="3" width="3.5" height="10" fill="currentColor"/><rect x="9.5" y="3" width="3.5" height="10" fill="currentColor"/></svg></button>
     <button class="btn k" id="clockSpeed" type="button" aria-label="Vitesse du jeu" title="Vitesse (1, 2, 3)">×1</button>
     <span class="k-sep"></span>
-    <button class="btn k" type="button" id="btnPaper" aria-label="Journal" title="Le journal du mois" hidden><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 3h14v11H1z" fill="currentColor"/><path d="M3 5h10v1.5H3zM3 8h4v1H3zM3 10h4v1H3zM3 12h4v.8H3zM9 8h4v4.8H9z" fill="var(--ink)"/></svg></button>
-    <button class="btn k" type="button" id="btnMenu" aria-label="Menu" title="Menu"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3h12v2H2zM2 7h12v2H2zM2 11h12v2H2z" fill="currentColor"/></svg></button>
+    <button class="btn k" type="button" id="btnVic" aria-pressed="false" aria-label="La course aux victoires" title="La course aux victoires (O)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 1h8v2h3v3c0 2-1.5 3.3-3.4 3.5C11 11 10 12 9 12.3V14h3v1.5H4V14h3v-1.7C6 12 5 11 4.4 9.5 2.5 9.3 1 8 1 6V3h3zM2.5 4.5V6c0 1 .7 1.8 1.6 2L4 4.5zM12 4.5 11.9 8c.9-.2 1.6-1 1.6-2V4.5z" fill="currentColor"/></svg></button>
+    <button class="btn k" type="button" id="btnGear" aria-expanded="false" aria-controls="gearPop" aria-label="Paramètres" title="Paramètres : son, mode photo, aide, tutoriel, menu"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M7 1h2l.4 2 1.4.6 1.7-1.2 1.4 1.4-1.2 1.7.6 1.4 2 .4v2l-2 .4-.6 1.4 1.2 1.7-1.4 1.4-1.7-1.2-1.4.6L9 15H7l-.4-2-1.4-.6-1.7 1.2-1.4-1.4 1.2-1.7L2.7 9 1 9V7l2-.4.6-1.4-1.2-1.7 1.4-1.4 1.7 1.2L6.6 3z" fill="currentColor"/><circle cx="8" cy="8" r="2.2" fill="var(--ink)"/></svg></button>
   </section>
   <section class="radio panel" id="radio" aria-label="Radio" hidden>
     <div class="radio-tag"><i id="radioDot"></i><span id="radioStation">RADIO</span></div>
     <div class="radio-track"><div class="radio-text" id="radioText" aria-live="off"></div></div>
   </section>
 </header>
+<div class="gear panel" id="gearPop" role="menu" aria-label="Paramètres" hidden>
+  <button class="btn" id="btnSound" type="button" role="menuitemcheckbox" aria-pressed="false" aria-label="Activer le son" title="Son">
+    <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 6h3l4-3v10L5 10H2z" fill="currentColor"/><path class="snd-on" d="M11 5.2a4 4 0 0 1 0 5.6M12.8 3.4a6.5 6.5 0 0 1 0 9.2" stroke="currentColor" stroke-width="1.5" fill="none"/><path class="snd-off" d="M11 5.5l4 4M15 5.5l-4 4" stroke="currentColor" stroke-width="1.5"/></svg><span>Son</span>
+  </button>
+  <button class="btn" id="btnPhoto" type="button" role="menuitem" aria-pressed="false" aria-label="Mode photo" title="Mode photo">
+    <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 5h3l1.5-2h5L12 5h3v8H1z" fill="currentColor"/><circle cx="8" cy="9" r="2.6" fill="var(--ink)"/><circle cx="8" cy="9" r="1.4" fill="currentColor"/></svg><span>Mode photo</span>
+  </button>
+  <button class="btn" id="btnHelp" type="button" role="menuitem" aria-label="Aide" title="Aide et raccourcis (H)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 5.5C5 3.6 6.4 2.5 8 2.5s3 1 3 2.8c0 1.6-1.2 2.2-2 2.7-.6.4-.9.7-.9 1.5V10H6.9v-.7c0-1.3.6-2 1.5-2.6.7-.4 1.1-.8 1.1-1.5 0-.8-.6-1.3-1.5-1.3S6.5 4.5 6.5 5.5z" fill="currentColor"/><rect x="6.9" y="11.5" width="2.2" height="2.2" fill="currentColor"/></svg><span>Aide</span></button>
+  <button class="btn" id="btnTuto" type="button" role="menuitem" title="Relancer le tutoriel"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2h9l3 3v9H2z" fill="currentColor"/><path d="M4 6h8v1.2H4zM4 8.5h8v1.2H4zM4 11h5v1.2H4z" fill="var(--ink)"/></svg><span>Tutoriel</span></button>
+  <button class="btn" type="button" id="btnMenu" role="menuitem" aria-label="Menu principal" title="Menu principal"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3h12v2H2zM2 7h12v2H2zM2 11h12v2H2z" fill="currentColor"/></svg><span>Menu principal</span></button>
+</div>
 <div class="res-pop panel" id="resPop" role="tooltip" hidden></div>
 <section class="xres panel" id="xres" aria-label="Ressources" hidden></section>
 
-<!-- la vue : zoom, rotation, boussole, meteo, son, photo -->
+<!-- la vue : zoom, rotation, boussole, lignes (le son, la photo et l'aide sont dans les parametres) -->
 <nav class="view panel" aria-label="Vue">
   <button class="btn" id="zoomIn" type="button" aria-label="Zoomer" title="Zoomer (+)">
     <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="7" width="12" height="2" fill="currentColor"/><rect x="7" y="2" width="2" height="12" fill="currentColor"/></svg>
@@ -75,14 +79,6 @@
   <span class="v-sep"></span>
   <button class="btn" id="btnLines" type="button" aria-pressed="false" aria-label="Vue des lignes" title="Lignes : trains, métro, routes (L)">
     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 12C5 12 5 4 8 4s3 8 6 8" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="2.5" cy="12" r="1.8" fill="currentColor"/><circle cx="8" cy="4" r="1.8" fill="currentColor"/><circle cx="13.5" cy="12" r="1.8" fill="currentColor"/></svg>
-  </button>
-  <button class="btn" id="btnWx" type="button" aria-label="Météo : automatique" title="Météo : automatique"></button>
-  <button class="btn" id="btnSound" type="button" aria-pressed="false" aria-label="Activer le son" title="Son">
-    <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 6h3l4-3v10L5 10H2z" fill="currentColor"/><path class="snd-on" d="M11 5.2a4 4 0 0 1 0 5.6M12.8 3.4a6.5 6.5 0 0 1 0 9.2" stroke="currentColor" stroke-width="1.5" fill="none"/><path class="snd-off" d="M11 5.5l4 4M15 5.5l-4 4" stroke="currentColor" stroke-width="1.5"/></svg>
-  </button>
-  <button class="btn" id="btnHelp" type="button" aria-label="Aide" title="Aide et raccourcis (H)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 5.5C5 3.6 6.4 2.5 8 2.5s3 1 3 2.8c0 1.6-1.2 2.2-2 2.7-.6.4-.9.7-.9 1.5V10H6.9v-.7c0-1.3.6-2 1.5-2.6.7-.4 1.1-.8 1.1-1.5 0-.8-.6-1.3-1.5-1.3S6.5 4.5 6.5 5.5z" fill="currentColor"/><rect x="6.9" y="11.5" width="2.2" height="2.2" fill="currentColor"/></svg></button>
-  <button class="btn" id="btnPhoto" type="button" aria-pressed="false" aria-label="Mode photo" title="Mode photo">
-    <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 5h3l1.5-2h5L12 5h3v8H1z" fill="currentColor"/><circle cx="8" cy="9" r="2.6" fill="var(--ink)"/><circle cx="8" cy="9" r="1.4" fill="currentColor"/></svg>
   </button>
 </nav>
 
@@ -106,7 +102,7 @@
 <section class="units panel" id="units" aria-label="Unités choisies" hidden></section>
 <section class="units panel" id="card" aria-label="Fiche" hidden></section>
 <section class="sci panel" id="sci" role="dialog" aria-label="Recherche" hidden></section>
-<section class="sci panel" id="dip" role="dialog" aria-label="Pourparlers" hidden></section>
+<section class="sci panel" id="dip" role="dialog" aria-label="Le téléphone rouge" hidden></section>
 <section class="sci panel" id="vic" role="dialog" aria-label="Victoires" hidden></section>
 <section class="sci panel" id="help" role="dialog" aria-label="Aide" hidden></section>
 <section class="tuto panel" id="tuto" aria-live="polite" hidden></section>
@@ -156,26 +152,22 @@
   </section>
   <div class="toast" id="toast" hidden></div>
   <div class="bilan panel" id="bilan" role="status" hidden></div>
-  <section class="drawer panel" id="buildMenu" aria-label="Construire" hidden>
-    <div class="cats" id="buildCats" role="tablist" aria-label="Catégories"></div>
-    <div class="palette" id="palette" role="radiogroup" aria-label="Bâtiment à construire"></div>
-  </section>
-  <div class="hint" id="modeHint"></div>
-  <nav class="dock panel" id="dock" aria-label="Outils">
-    <button class="btn tool dock-fold" type="button" id="dockFold" aria-expanded="false" title="Tous les outils"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3h12v2H2zM2 7h12v2H2zM2 11h12v2H2z" fill="currentColor"/></svg><span>Outils</span></button>
-    <button class="btn tool" type="button" data-tool="build" aria-pressed="false" title="Construire (B)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 14V7l6-5 6 5v7h-4v-4H6v4z" fill="currentColor"/></svg><span>Construire</span><kbd>B</kbd></button>
-    <button class="btn tool" type="button" data-tool="road" aria-pressed="false" title="Route droite (R)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 1h6l3 14H2z" fill="currentColor"/><path d="M7.4 3h1.2v2H7.4zM7.2 7h1.6v2.5H7.2zM7 11.5h2V14H7z" fill="var(--ink)"/></svg><span>Route</span><kbd>R</kbd></button>
-    <button class="btn tool" type="button" data-tool="curve" data-opt="1" aria-pressed="false" title="Route courbe (C)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 14C2 6 6 2 14 2v4C9 6 6 9 6 14z" fill="currentColor"/></svg><span>Courbe</span><kbd>C</kbd></button>
-    <button class="btn tool" type="button" data-tool="rail" data-opt="1" aria-pressed="false" title="Voie ferrée (V)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 1h1.5L4 15H2.5zM10.5 1H12l1.5 14H12z" fill="currentColor"/><path d="M3 3h10v1.4H3zM3 7h10v1.4H3zM2.6 11h10.8v1.4H2.6z" fill="currentColor"/></svg><span>Voie</span><kbd>V</kbd></button>
-    <button class="btn tool" type="button" data-tool="wall" data-opt="1" aria-pressed="false" title="Rideau de Laine (M)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 5h14v9H1z" fill="currentColor"/><path d="M1 8h14v1H1zM1 11h14v1H1zM5 5h1v3H5zM10 5h1v3h-1zM3 9h1v2H3zM8 9h1v2H8zM13 9h1v2h-1z" fill="var(--ink)"/><path d="M1 3l2 1 2-1 2 1 2-1 2 1 2-1 2 1" stroke="currentColor" fill="none"/></svg><span>Rideau</span><kbd>M</kbd></button>
-    <button class="btn tool" type="button" data-tool="demolish" aria-pressed="false" title="Démolir (X)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 2l11 11-1 1L2 3zM13 2l1 1L3 14l-1-1z" fill="currentColor"/></svg><span>Démolir</span><kbd>X</kbd></button>
-    <span class="tools-sep"></span>
-    <button class="btn tool" type="button" id="btnRes" data-opt="1" aria-pressed="false" title="Ressources : luxe, Catcoins, charbon, électricité, eau, métiers"><span class="pix-ico res-ico"></span><span>Ressources</span></button>
-    <button class="btn tool sci-btn" type="button" id="btnSci" aria-pressed="false" title="Recherche (E)"><span class="pix-ico sci-ico"></span><span>Recherche</span><kbd>E</kbd><i class="sci-bar"><i id="sciBar"></i></i></button>
-    <button class="btn tool" type="button" id="btnDip" data-opt="1" aria-pressed="false" title="Pourparlers : traités, commerce (P)"><span class="pix-ico dip-ico"></span><span>Pourparlers</span><kbd>P</kbd></button>
-    <span class="tools-sep"></span>
-    <button class="btn tool" type="button" id="btnUndo" disabled title="Rien à annuler"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3L1 7l5 4V8.5c3.5 0 6 1 7.5 4C13 8 10.5 5.5 6 5.5z" fill="currentColor"/></svg><span>Annuler</span><kbd>Ctrl Z</kbd></button>
-  </nav>
+  <!-- la phrase d'aide colle au cadre de construction, lui-meme pose sur les boutons (etape 0.22) -->
+  <div class="build-stack">
+    <div class="hint" id="modeHint"></div>
+    <section class="drawer panel" id="buildMenu" aria-label="Construire" hidden>
+      <div class="scroller"><button class="btn sc" type="button" data-sc="palette" data-d="-1" aria-label="Bâtiments précédents">‹</button><div class="palette" id="palette" role="radiogroup" aria-label="Bâtiment à construire"></div><button class="btn sc" type="button" data-sc="palette" data-d="1" aria-label="Bâtiments suivants">›</button></div>
+      <div class="scroller cats-row"><button class="btn sc" type="button" data-sc="buildCats" data-d="-1" aria-label="Catégories précédentes">‹</button><div class="cats" id="buildCats" role="tablist" aria-label="Catégories"></div><button class="btn sc" type="button" data-sc="buildCats" data-d="1" aria-label="Catégories suivantes">›</button></div>
+    </section>
+    <nav class="dock" id="dock" aria-label="Outils">
+      <button class="btn tool panel dock-fold" type="button" id="dockFold" aria-expanded="false" title="Tous les outils"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3h12v2H2zM2 7h12v2H2zM2 11h12v2H2z" fill="currentColor"/></svg><span>Outils</span></button>
+      <button class="btn tool panel" type="button" data-tool="build" aria-pressed="false" title="Construire : bâtiments, routes, voies ferrées, Rideau (B)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 14V7l6-5 6 5v7h-4v-4H6v4z" fill="currentColor"/></svg><span>Construire</span><kbd>B</kbd></button>
+      <button class="btn tool panel" type="button" data-tool="demolish" aria-pressed="false" title="Démolir (X)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 2l11 11-1 1L2 3zM13 2l1 1L3 14l-1-1z" fill="currentColor"/></svg><span>Démolir</span><kbd>X</kbd></button>
+      <button class="btn tool panel sci-btn" type="button" id="btnSci" aria-pressed="false" title="Recherche (E)"><span class="pix-ico sci-ico"></span><span>Recherche</span><kbd>E</kbd><i class="sci-bar"><i id="sciBar"></i></i></button>
+      <button class="btn tool panel phone red" type="button" id="btnDip" data-opt="1" aria-pressed="false" title="Le téléphone rouge : appeler l’autre camp (traités, commerce) (P)"><span class="pix-ico dip-ico"></span><span>Téléphone</span><kbd>P</kbd></button>
+      <button class="btn tool panel phone green" type="button" id="btnRing" hidden title="Le téléphone vert sonne : l’autre camp appelle"><span class="pix-ico ring-ico"></span><span>Ils appellent</span></button>
+    </nav>
+  </div>
 </div>
 
 <div class="landing panel" id="landing" hidden>
@@ -184,6 +176,14 @@
 </div>
 
 <div class="countdown" id="countdown" hidden></div>
+
+<aside class="peek" id="paperPeek" aria-label="Le journal du matin" hidden>
+  <button class="peek-tab" type="button" id="peekTab" aria-expanded="false"><span class="peek-ico" aria-hidden="true"></span><span>Le journal</span><i id="peekN"></i></button>
+  <div class="peek-body">
+    <p class="peek-stats" id="peekStats"></p>
+    <div class="peek-papers"><button class="btn" type="button" data-peek="usc">Gazette de Kutty</button><button class="btn" type="button" data-peek="ccp">Pravdachat</button></div>
+  </div>
+</aside>
 
 <div class="paper" id="paper" hidden>
   <div class="paper-card" role="dialog" aria-modal="true" aria-labelledby="npHead">
