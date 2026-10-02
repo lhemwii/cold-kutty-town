@@ -72,7 +72,6 @@ export function placeProblem(type: string, side: Side, ca: number, cb: number, d
   for (const r of SH.ROADS) if (rectRoadDist(l, r) < RW + .5) return 'Une route passe ici.';
   for (const w of SH.WALLS){ const m = [(w.pa + w.qa) / 2, (w.pb + w.qb) / 2]; if (m[0] > l.a0 - 6 && m[0] < l.a1 + 6 && m[1] > l.b0 - 6 && m[1] < l.b1 + 6) return 'Le Rideau de Laine passe ici.'; }
   if (type === 'checkpoint' && !SH.WALLS.some(w => Math.hypot((w.pa + w.qa) / 2 - ca, (w.pb + w.qb) / 2 - cb) < 45)) return 'Le Checkpoint se pose à côté d’un Rideau de Laine.';
-  if (type === 'qg' && SH.BLD.some(o => o.type === 'qg' && o.side === side)) return 'Un seul QG par camp.';
   for (const f of HOOKS.place){ const why = f(type, side, ca, cb, dir); if (why) return why; }
   return '';
 }

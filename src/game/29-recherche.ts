@@ -86,7 +86,7 @@ TYPES.universite = { name: 'Université', nameCCP: 'Université du Peuple', fem:
   void seed;
   return { parts: [part(lot.ca, lot.cb, 0, body), part(lot.ca, lot.cb + 2, 3, tower)], lights: [sideLight(a0, a1, b0, b1, 0, 8, 1), Lc(lot.ca, b1 + 6, 12, 1.2)] };
 } };
-ECO.universite = bdef('recherche', 60, { costR: 20, l: -1, jobs: 6, sci: 6, rad: 44, up: true, elec: -2, desc: 'Des chercheurs : des points de recherche (écran E).' });
+ECO.universite = bdef('recherche', 60, { costR: 20, l: -1, jobs: 6, sci: 6, rad: 44, up: true, elec: -2, desc: 'Des chercheurs : des points de recherche (écran U).' });
 FOOT.universite = [32, 22];
 TYPES.labo = { name: 'Laboratoire', nameCCP: 'Institut du Plan', fem: false, build(lot: Building, seed: number){
   const ccp = lot.side === 'ccp', a0 = lot.ca - 10, a1 = lot.ca + 10, b0 = lot.cb - 7, b1 = lot.cb + 5, hh = 8;
@@ -184,23 +184,43 @@ const sciIco = btn.querySelector('.sci-ico'); if (sciIco) sciIco.innerHTML = ico
 function renderSciButton(){
   const S = SCI[GAME.side], t = S.cur ? TECH.get(S.cur) : null, bar = document.getElementById('sciBar');
   if (bar) bar.style.width = t ? Math.min(100, Math.round((S.prog[t.id] || 0) / t.cost * 100)) + '%' : '0';
-  btn.title = t ? 'Recherche : ' + t.name + ' (' + Math.round((S.prog[t.id] || 0) / t.cost * 100) + ' %). E pour l’arbre.' : 'Recherche : rien en cours. E pour choisir.';
+  btn.title = t ? 'Recherche : ' + t.name + ' (' + Math.round((S.prog[t.id] || 0) / t.cost * 100) + ' %). U pour l’arbre.' : 'Recherche : rien en cours. U pour choisir.';
   btn.classList.toggle('idle', !t);
 }
-/* ---- l'arbre en vrai graphe (etape 0.22) : une colonne par profondeur, une bande par branche, des liens d'une recherche a l'autre ---- */
-const NW = 158, NH = 56, CW = 196, RH = 66, LW = 112;
+/* ---- l'arbre de progression (etapes 0.22 et 0.23) ----
+   Une colonne par profondeur. Chaque recherche pend sous la premiere qu'elle demande : une foret, dessinee comme un arbre
+   genealogique (une ligne par feuille, le parent au milieu de ses enfants). Les liens passent dans les couloirs entre les
+   colonnes et entre les lignes, jamais sous une case. Une couleur par branche. */
+const NW = 156, NH = 50, CW = 196, RH = 60, PADX = 12, PADY = 30;
+const BRANCH_COL: Record<Branch, string> = { industrie: '#8a5a2b', societe: '#2e7d45', transports: '#5b6170', armee: '#4d5a32', espace: '#2a45a6', atome: '#7a8f1e', renseignement: '#6b3f82' };
 const DEPTH = new Map<string, number>();
 const depthOf = (t: Tech): number => { const d0 = DEPTH.get(t.id); if (d0 != null) return d0; const d = t.req.length ? 1 + Math.max(...t.req.map(r => { const q = TECH.get(r); return q ? depthOf(q) : 0; })) : 0; DEPTH.set(t.id, d); return d; };
-const POS = new Map<string, { x: number; y: number }>(), BANDS: { br: Branch; y: number; h: number }[] = [];
+const POS = new Map<string, { x: number; y: number }>();
 let TREE_W = 0, TREE_H = 0;
 {
-  let y = 8;
-  for (const br of Object.keys(BRANCH_NAME) as Branch[]){
-    const ts = TECHS.filter(t => t.branch === br), used = new Map<number, number>();
-    for (const t of ts){ const d = depthOf(t), k = used.get(d) || 0; used.set(d, k + 1); POS.set(t.id, { x: LW + d * CW, y: y + k * RH }); TREE_W = Math.max(TREE_W, LW + d * CW + NW + 12); }
-    const rows = Math.max(1, ...used.values()); BANDS.push({ br, y, h: rows * RH - 10 }); y += rows * RH + 8;
-  }
-  TREE_H = y;
+  const kids = new Map<string, Tech[]>(), order = Object.keys(BRANCH_NAME) as Branch[];
+  const byBranch = (u: Tech, v: Tech) => order.indexOf(u.branch) - order.indexOf(v.branch);
+  for (const t of TECHS) if (t.req.length){ const p = t.req[0]; (kids.get(p) || kids.set(p, []).get(p) || []).push(t); }
+  for (const L of kids.values()) L.sort(byBranch);
+  let leaf = 0;
+  const place = (t: Tech): number => {
+    const ch = kids.get(t.id) || [];
+    const rows = ch.map(place), row = rows.length ? (rows[0] + rows[rows.length - 1]) / 2 : leaf++;
+    POS.set(t.id, { x: PADX + depthOf(t) * CW, y: PADY + row * RH });
+    return row;
+  };
+  for (const t of TECHS.filter(x => !x.req.length).sort(byBranch)) place(t);
+  for (const t of TECHS) TREE_W = Math.max(TREE_W, PADX + depthOf(t) * CW + NW + PADX);
+  TREE_H = PADY + leaf * RH;
+}
+// un lien : du bord droit de la case d'avant au bord gauche de la suivante, par les couloirs
+function linkPath(a: { x: number; y: number }, b: { x: number; y: number }): string {
+  const x0 = a.x + NW, y0 = a.y + NH / 2, x1 = b.x, y1 = b.y + NH / 2, g0 = x0 + (CW - NW) / 2, g1 = x1 - (CW - NW) / 2, r = 6;
+  // une colonne d'ecart : un seul couloir vertical
+  if (b.x - a.x <= CW) return 'M' + x0 + ' ' + y0 + 'H' + (g0 - r) + 'Q' + g0 + ' ' + y0 + ' ' + g0 + ' ' + (y0 + Math.sign(y1 - y0) * r) + 'V' + (y1 - Math.sign(y1 - y0) * r) + 'Q' + g0 + ' ' + y1 + ' ' + (g0 + r) + ' ' + y1 + 'H' + x1;
+  // plus loin : on longe l'entre-deux lignes au-dessus de la case d'arrivee
+  const yc = b.y - (RH - NH) / 2;
+  return 'M' + x0 + ' ' + y0 + 'H' + g0 + 'V' + yc + 'H' + g1 + 'V' + y1 + 'H' + x1;
 }
 let sciKey = '';
 export function renderSci(){
@@ -216,22 +236,21 @@ export function renderSci(){
   }
   sciKey = key;
   let h = '<div class="sci-head"><b>Recherche</b><span>' + headTxt + '</span><button class="btn k" type="button" id="sciClose" aria-label="Fermer">×</button></div>';
+  h += '<div class="tree-legend">' + (Object.keys(BRANCH_NAME) as Branch[]).map(br => '<span><i style="background:' + BRANCH_COL[br] + '"></i>' + BRANCH_NAME[br] + '</span>').join('') + '</div>';
   h += '<div class="tree-wrap"><div class="tree" style="width:' + TREE_W + 'px;height:' + TREE_H + 'px">';
-  for (const b of BANDS) h += '<div class="tree-band" style="top:' + (b.y - 4) + 'px;height:' + (b.h + 8) + 'px"><span>' + BRANCH_NAME[b.br] + '</span></div>';
-  // les liens : du bord droit de ce qu'il faut avoir au bord gauche de la recherche
+  for (let d = 0; d * CW < TREE_W - NW; d++) h += '<span class="tree-col" style="left:' + (PADX + d * CW) + 'px">' + (d ? 'Palier ' + (d + 1) : 'Pour commencer') + '</span>';
   h += '<svg class="tree-links" width="' + TREE_W + '" height="' + TREE_H + '" aria-hidden="true">';
   for (const t of TECHS) for (const r of t.req){
     const a = POS.get(r), b = POS.get(t.id); if (!a || !b) continue;
-    const x0 = a.x + NW, y0 = a.y + NH / 2, x1 = b.x, y1 = b.y + NH / 2, mx = (x0 + x1) / 2;
     const st = S.done.has(r) ? (S.done.has(t.id) ? 'done' : 'open') : 'lock';
-    h += '<path class="' + st + '" d="M' + x0 + ' ' + y0 + 'C' + mx + ' ' + y0 + ' ' + mx + ' ' + y1 + ' ' + x1 + ' ' + y1 + '"/>';
+    h += '<path class="' + st + '" d="' + linkPath(a, b) + '"/>';
   }
   h += '</svg>';
   for (const t of TECHS){
     const q = POS.get(t.id); if (!q) continue;
     const done = S.done.has(t.id), open = techOpen(side, t), p = S.prog[t.id] || 0, isCur = S.cur === t.id;
     const reqTxt = t.req.length ? 'Demande : ' + t.req.map(r => TECH.get(r)?.name || r).join(', ') + '. ' : '';
-    h += '<button type="button" class="tech' + (done ? ' done' : '') + (isCur ? ' cur' : '') + (!done && !open ? ' lock' : '') + '" style="left:' + q.x + 'px;top:' + q.y + 'px;width:' + NW + 'px;height:' + NH + 'px" data-tech="' + t.id + '" title="' + t.name + '. ' + (done ? 'Faite. ' : reqTxt) + t.gives + '"' + (!done && !open ? ' aria-disabled="true"' : '') + '><b>' + t.name + '</b><span class="tc">' + (done ? 'Faite' : Math.round(p) + ' / ' + t.cost) + '</span><small>' + t.gives + '</small>' + (!done ? '<span class="tbar"><i style="width:' + Math.round(p / t.cost * 100) + '%"></i></span>' : '') + '</button>';
+    h += '<button type="button" class="tech' + (done ? ' done' : '') + (isCur ? ' cur' : '') + (!done && !open ? ' lock' : '') + '" style="left:' + q.x + 'px;top:' + q.y + 'px;width:' + NW + 'px;height:' + NH + 'px;--br:' + BRANCH_COL[t.branch] + '" data-tech="' + t.id + '" title="' + t.name + ' (' + BRANCH_NAME[t.branch] + '). ' + (done ? 'Faite. ' : reqTxt) + t.gives + '"' + (!done && !open ? ' aria-disabled="true"' : '') + '><b>' + t.name + '</b><span class="tc">' + (done ? 'Faite' : Math.round(p) + ' / ' + t.cost) + '</span><small>' + t.gives + '</small>' + (!done ? '<span class="tbar"><i style="width:' + Math.round(p / t.cost * 100) + '%"></i></span>' : '') + '</button>';
   }
   el.innerHTML = h + '</div></div><p class="sci-foot">Clique une recherche ouverte pour y verser tes points. Un lien vert : la recherche d’avant est faite.</p>';
   $('sciClose').addEventListener('click', () => toggleSci(false));
@@ -249,7 +268,7 @@ export function toggleSci(on?: boolean){
 }
 btn.addEventListener('click', () => { toggleSci(); SH.sfx('click'); });
 SH.KEYS = SH.KEYS || {};
-SH.KEYS.e = () => toggleSci();
+SH.KEYS.u = () => toggleSci();
 const prevEsc = SH.cardEscape;
 SH.cardEscape = (): boolean => { if (!$('sci').hidden){ toggleSci(false); return true; } return typeof prevEsc === 'function' ? prevEsc() : false; };
 // au survol d'un batiment de recherche : ses points

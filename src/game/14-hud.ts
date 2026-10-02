@@ -147,6 +147,29 @@ export function vestThumb(kind: VestKind, w: number, h: number){
   setView(saved);
   return THUMBS[key] = cv;
 }
+/* ---- au survol d'une case du tiroir, sa fiche flotte au-dessus (etape 0.23) : le tiroir reste leger ---- */
+/** batiments montres dans un onglet en plus de ceux de sa categorie (le second QG dans Frontiere) */
+export const EXTRA_BUILD: Record<string, string[]> = {};
+let popFor: HTMLElement | null = null;
+function placePop(b: HTMLElement){
+  const el = $('bbPop'), r = b.getBoundingClientRect();
+  el.style.left = Math.round(Math.max(8, Math.min(window.innerWidth - el.offsetWidth - 8, r.left + r.width / 2 - el.offsetWidth / 2))) + 'px';
+  el.style.top = Math.round(Math.max(8, r.top - el.offsetHeight - 8)) + 'px';
+}
+function hoverPop(b: HTMLElement, html: () => string){
+  const show = () => { const el = $('bbPop'); popFor = b; el.innerHTML = html(); el.hidden = false; placePop(b); };
+  const hide = () => { if (popFor === b){ popFor = null; $('bbPop').hidden = true; } };
+  b.addEventListener('mouseenter', show); b.addEventListener('focus', show);
+  b.addEventListener('mouseleave', hide); b.addEventListener('blur', hide); b.addEventListener('click', () => { if (popFor === b) show(); });
+}
+// la fiche d'un batiment : prix, ce qu'il produit et consomme, a quoi il sert, ce qui manque
+function tilePopHTML(type: string): string {
+  const e: EcoDef = SH.ECO[type], p: Price = SH.priceOf(type, GAME.side), lack = lackText(p);
+  const lock = e.tech && SH.hasTech && !SH.hasTech(GAME.side, e.tech) ? (SH.techName ? SH.techName(e.tech) : e.tech) : '';
+  return '<b class="bp-name">' + typeName(type, GAME.side) + '</b><span class="bp-cost">' + costHTML(p) + '</span><span class="bp-eff">' + effLine(e, 9) + '</span>' + (e.desc ? '<p>' + e.desc + '</p>' : '')
+    + (lock ? '<p class="bp-bad">Il faut d’abord la recherche « ' + lock + ' ».</p>' : lack ? '<p class="bp-bad">Il manque ' + lack + '.</p>' : '');
+}
+$('palette').addEventListener('scroll', () => { if (popFor) placePop(popFor); });
 /** une tuile du tiroir qui choisit un outil plutot qu'un batiment (routes, voies, Rideau, achat de terrain) */
 export interface ToolTile { tool: string; name: string; key?: string; svg: string; cost: string; desc: string }
 const svg16 = (body: string) => '<svg viewBox="0 0 16 16" aria-hidden="true">' + body + '</svg>';
@@ -161,7 +184,8 @@ export const TOOL_TILES: Record<string, ToolTile[]> = {
 };
 function toolTile(t: ToolTile){
   const b = document.createElement('button'); b.className = 'btn bbtn tile'; b.type = 'button'; b.setAttribute('role', 'radio'); b.dataset.tile = t.tool;
-  b.setAttribute('aria-checked', String(state.tool === t.tool)); b.title = t.name + (t.key ? ' (' + t.key + ')' : '') + '. ' + t.desc;
+  b.setAttribute('aria-checked', String(state.tool === t.tool)); b.setAttribute('aria-label', t.name + (t.key ? ' (' + t.key + ')' : '') + '. ' + t.desc);
+  hoverPop(b, () => '<b class="bp-name">' + t.name + (t.key ? ' <kbd>' + t.key + '</kbd>' : '') + '</b><span class="bp-cost">' + t.cost + '</span><p>' + t.desc + '</p>');
   b.innerHTML = '<span class="tile-ico">' + t.svg + '</span><span class="bb-name">' + t.name + '</span><span class="bb-cost">' + t.cost + '</span>' + (t.key ? '<kbd class="tile-k">' + t.key + '</kbd>' : '');
   b.addEventListener('click', () => { setTool(state.tool === t.tool ? 'build' : t.tool); SH.sfx('click'); });
   return b;
@@ -188,16 +212,16 @@ export function buildMenu(){
 export function fillPalette(){
   const pal = $('palette'); pal.textContent = ''; pal.scrollLeft = 0;
   for (const t of TOOL_TILES[buildCat] || []) pal.appendChild(toolTile(t));
-  for (const type of Object.keys(SH.ECO)){
-    const e: EcoDef = SH.ECO[type]; if (e.cat !== buildCat) continue;
+  for (const type of new Set([...(EXTRA_BUILD[buildCat] || []), ...Object.keys(SH.ECO)])){
+    const e: EcoDef = SH.ECO[type]; if (!e || (e.cat !== buildCat && !(EXTRA_BUILD[buildCat] || []).includes(type))) continue;
     const b = document.createElement('button'); b.className = 'btn bbtn'; b.type = 'button'; b.setAttribute('role', 'radio'); b.dataset.t = type;
     b.setAttribute('aria-checked', String(type === state.buildType));
     const cv = thumb(type, GAME.side, 72, 56); const img = document.createElement('canvas'); img.width = 72; img.height = 56; img.getContext('2d')?.drawImage(cv, 0, 0);
     const nm = document.createElement('span'); nm.className = 'bb-name'; nm.textContent = typeName(type, GAME.side);
     const ct = document.createElement('span'); ct.className = 'bb-cost'; ct.innerHTML = costHTML(SH.priceOf(type, GAME.side));
-    const eff = document.createElement('span'); eff.className = 'bb-eff'; eff.innerHTML = effLine(e);
-    b.append(img, nm, ct, eff);
-    b.addEventListener('click', () => { state.buildType = type; state.dirManual = false; if (state.tool !== 'build') setTool('build'); for (const o of pal.children) o.setAttribute('aria-checked', String(o instanceof HTMLElement && o.dataset.t === type)); SH.ghost = null; $('modeHint').innerHTML = '<b>' + typeName(type, GAME.side) + '</b><span class="hint-eff">' + effLine(e, 9) + '</span><span>' + (e.desc || '') + '</span>'; SH.sfx('click'); });
+    b.append(img, nm, ct);
+    b.addEventListener('click', () => { state.buildType = type; state.dirManual = false; if (state.tool !== 'build') setTool('build'); for (const o of pal.children) o.setAttribute('aria-checked', String(o instanceof HTMLElement && o.dataset.t === type)); SH.ghost = null; SH.sfx('click'); });
+    hoverPop(b, () => tilePopHTML(type));
     pal.appendChild(b);
   }
   refreshPalette();
@@ -235,8 +259,7 @@ export function refreshPalette(){
     // verrouille tant que la recherche qu'il demande n'est pas faite (etape 8)
     const lock = e && e.tech && SH.hasTech && !SH.hasTech(GAME.side, e.tech) ? (SH.techName ? SH.techName(e.tech) : e.tech) : '';
     b.classList.toggle('poor', !!lack); b.classList.toggle('locked', !!lock); const c = b.querySelector('.bb-cost'); if (c) c.innerHTML = costHTML(p);
-    const ef = b.querySelector('.bb-eff'); if (ef && e) ef.innerHTML = lock ? '<span class="bb-lock">Recherche : ' + lock + '</span>' : effLine(e);
-    b.title = typeName(t, GAME.side) + '. ' + (e && e.desc ? e.desc : '') + (lock ? ' Il faut d’abord la recherche « ' + lock + ' ».' : lack ? ' Il manque ' + lack + '.' : '');
+    b.setAttribute('aria-label', typeName(t, GAME.side) + '. ' + (e && e.desc ? e.desc : '') + (lock ? ' Il faut d’abord la recherche « ' + lock + ' ».' : lack ? ' Il manque ' + lack + '.' : ''));
   }
 }
 

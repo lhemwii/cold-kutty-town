@@ -57,6 +57,8 @@
   <button class="btn" type="button" id="btnMenu" role="menuitem" aria-label="Menu principal" title="Menu principal"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3h12v2H2zM2 7h12v2H2zM2 11h12v2H2z" fill="currentColor"/></svg><span>Menu principal</span></button>
 </div>
 <div class="res-pop panel" id="resPop" role="tooltip" hidden></div>
+<div class="bb-pop panel" id="bbPop" role="tooltip" hidden></div>
+<div class="cur-tip" id="curTip" aria-live="polite" hidden></div>
 <section class="xres panel" id="xres" aria-label="Ressources" hidden></section>
 
 <!-- la vue : zoom, rotation, boussole, lignes (le son, la photo et l'aide sont dans les parametres) -->
@@ -169,7 +171,7 @@
       <button class="btn tool panel dock-fold" type="button" id="dockFold" aria-expanded="false" title="Tous les outils"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3h12v2H2zM2 7h12v2H2zM2 11h12v2H2z" fill="currentColor"/></svg><span>Outils</span></button>
       <button class="btn tool panel" type="button" data-tool="build" aria-pressed="false" title="Construire : bâtiments, routes, voies ferrées, Rideau (B)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 14V7l6-5 6 5v7h-4v-4H6v4z" fill="currentColor"/></svg><span>Construire</span><kbd>B</kbd></button>
       <button class="btn tool panel" type="button" data-tool="demolish" aria-pressed="false" title="Démolir (X)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 2l11 11-1 1L2 3zM13 2l1 1L3 14l-1-1z" fill="currentColor"/></svg><span>Démolir</span><kbd>X</kbd></button>
-      <button class="btn tool panel sci-btn" type="button" id="btnSci" aria-pressed="false" title="Recherche (E)"><span class="pix-ico sci-ico"></span><span>Recherche</span><kbd>E</kbd><i class="sci-bar"><i id="sciBar"></i></i></button>
+      <button class="btn tool panel sci-btn" type="button" id="btnSci" aria-pressed="false" title="Recherche (U)"><span class="pix-ico sci-ico"></span><span>Recherche</span><kbd>U</kbd><i class="sci-bar"><i id="sciBar"></i></i></button>
       <button class="btn tool panel phone red" type="button" id="btnDip" data-opt="1" aria-pressed="false" title="Le téléphone rouge : appeler l’autre camp (traités, commerce) (P)"><span class="pix-ico dip-ico"></span><span>Téléphone</span><kbd>P</kbd></button>
       <button class="btn tool panel phone green" type="button" id="btnRing" hidden title="Le téléphone vert sonne : l’autre camp appelle"><span class="pix-ico ring-ico"></span><span>Ils appellent</span></button>
     </nav>
@@ -278,7 +280,7 @@
       <li><b>04</b><span>Les routes, droites ou courbes, ne sont pas obligatoires : elles font rouler les voitures et relient tes villes à la capitale. Améliore tes bâtiments : un ponton devient quai, puis grand port.</span></li>
       <li><b>05</b><span>Des vestiges catzi traînent sur l’île : fouille-les quand ton territoire les atteint.</span></li>
       <li><b>06</b><span>Des camps deviennent des villes : relie-les à la capitale par la route ou le train, sinon elles perdent la moitié de leur production.</span></li>
-      <li><b>07</b><span>Recherche (E), armée, course à l’espace, espions, traités et commerce au Rideau de Laine (P).</span></li>
+      <li><b>07</b><span>Recherche (U), armée, course à l’espace, espions, traités et commerce au Rideau de Laine (P).</span></li>
       <li><b>08</b><span>On gagne par la guerre, la science, le bonheur des habitants, la richesse ou les circonstances, selon les victoires cochées ; en Blitz, au meilleur score.</span></li>
     </ul>
     <p class="field-note">Glisser pour se déplacer, molette pour zoomer, clic droit glissé pour tourner. En construction, clic droit glissé ou T pour tourner le bâtiment. En jeu, H montre toutes les commandes.</p>

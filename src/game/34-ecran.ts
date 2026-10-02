@@ -1,10 +1,11 @@
 import { SH, type Building, type Side } from './00-shared.ts';
 import { GAME, HOOKS, M, SIDES, fput, prj, state } from './01-core.ts';
 import { GA0, GB0, type Vec2 } from './02-ground.ts';
-import { SID, TC, TER, claimDisc } from './08-territory.ts';
+import { SID, TC, TER, claimDisc, terIdx } from './08-territory.ts';
 import { scene } from './11-render.ts';
 import { $, setTool, toast, worldUnder } from './13-ui.ts';
-import { TOOL_TILES } from './14-hud.ts';
+import { TYPES } from './04-types.ts';
+import { EXTRA_BUILD, TOOL_TILES } from './14-hud.ts';
 import { RES, canAfford, payPrice, type Price } from './15-economy.ts';
 import { store } from './22-home.ts';
 import { SCI } from './29-recherche.ts';
@@ -69,6 +70,48 @@ const TAGS: Record<string, [string, string]> = {
 };
 for (const [k, t] of Object.entries(TAGS)) if (SH.ECO[k]) SH.ECO[k].tag = t;
 
+/* ---- un second QG, sur une autre ile (etape 0.23) : un QG par ile, dans son territoire ---- */
+// les iles : les morceaux de terre ferme d'un seul tenant, calcules a la demande sur la grille du territoire
+let COMP = new Int32Array(0), compOk = false;
+HOOKS.world.push(() => { compOk = false; }); HOOKS.reset.push(() => { compOk = false; }); HOOKS.load.push(() => { compOk = false; });
+export function islandOf(a: number, b: number): number {
+  if (!compOk || COMP.length !== TER.N){
+    COMP = new Int32Array(TER.N).fill(-1); compOk = true;
+    const Wd = TER.W, q = new Int32Array(TER.N); let id = 0;
+    for (let s = 0; s < TER.N; s++){
+      if (!TER.land[s] || COMP[s] >= 0) continue;
+      let h = 0, t = 0; q[t++] = s; COMP[s] = id;
+      while (h < t){ const i = q[h++], x = i % Wd; for (const j of [i - 1, i + 1, i - Wd, i + Wd]){ if (j < 0 || j >= TER.N || (j === i - 1 && x === 0) || (j === i + 1 && x === Wd - 1)) continue; if (TER.land[j] && COMP[j] < 0){ COMP[j] = id; q[t++] = j; } } }
+      id++;
+    }
+  }
+  const i = terIdx(a, b); return i < 0 ? -1 : COMP[i];
+}
+HOOKS.place.push((type: string, side: Side, ca: number, cb: number): string => {
+  if (type !== 'qg') return '';
+  const isl = islandOf(ca, cb);
+  if ((SH.BLD as Building[]).some(o => o.type === 'qg' && o.side === side && islandOf(o.ca, o.cb) === isl)) return 'Tu as déjà un QG sur cette île : celui-ci se pose sur une autre (amène d’abord un avant-poste en barge).';
+  return '';
+});
+(EXTRA_BUILD.frontiere = EXTRA_BUILD.frontiere || []).push('qg');
+if (SH.ECO.qg) SH.ECO.qg.desc = 'Un QG de plus, sur une autre île que les tiens : une nouvelle capitale régionale, son territoire et sa ville.';
+
+/* ---- la radio devient un batiment de l'onglet Frontiere (etape 0.23) : sa fiche donne les nouvelles diffusees ---- */
+if (SH.ECO.radio){ SH.ECO.radio.cat = 'frontiere'; SH.ECO.radio.desc = 'La radio du camp : grande influence, et sa fiche donne les dernières nouvelles de l’île.'; }
+Object.assign(TYPES.radio, { name: 'Radio Kutty Libre', nameCCP: 'Radio Miaou-Scou', fem: true });
+{ const prev = SH.selExtra;
+  SH.selExtra = (l: Building, b: (label: string, sub: string, fn: () => void, why?: string) => HTMLButtonElement, act: HTMLElement) => {
+    if (typeof prev === 'function') prev(l, b, act);
+    if (l.type !== 'radio' || !l.done) return;
+    const log = (SH.RADIO_LOG || []) as { side: string; station: string; msg: string }[], box = document.createElement('div'); box.className = 'onair';
+    box.innerHTML = '<b>À l’antenne</b>' + (log.length ? log.slice(0, 5).map(r => '<p><i>' + r.station + '</i>' + r.msg + '</p>').join('') : '<p>Rien pour l’instant : la tour émet bientôt.</p>');
+    act.append(box);
+  };
+}
+// la fiche d'une tour radio se rafraichit quand une nouvelle tombe
+let lastOnAir: unknown = null;
+HOOKS.step.push(() => { const L = (SH.RADIO_LOG || []) as unknown[], s = state.sel; if (s && s.type === 'radio' && L[0] !== lastOnAir){ lastOnAir = L[0]; $('sel').dataset.key = ''; SH.renderHUD(); } });
+
 /* ---- les parametres : son, mode photo, aide, tutoriel, menu (etape 0.22) ---- */
 function toggleGear(on?: boolean){
   const el = $('gearPop'), show = on == null ? el.hidden : on;
@@ -95,10 +138,10 @@ document.addEventListener('pointerdown', (e) => {
 
 /* ---- l'aide : toutes les commandes ---- */
 const HELP: [string, [string, string][]][] = [
-  ['La vue', [['Glisser', 'se déplacer'], ['Molette, + et -', 'zoomer'], ['Clic droit glissé', 'tourner la vue'], ['Page préc., Page suiv.', 'tourner d’un huitième'], ['N', 'le nord en haut'], ['Flèches, ZQSD', 'se déplacer au clavier'], ['L', 'la vue des lignes (trains, métro)']]],
+  ['La vue', [['Glisser', 'se déplacer'], ['Molette, + et -', 'zoomer'], ['Clic droit glissé', 'tourner la vue'], ['A, E (ou Page préc., Page suiv.)', 'tourner la vue à gauche, à droite'], ['N', 'le nord en haut'], ['ZQSD ou flèches', 'se déplacer au clavier'], ['L', 'la vue des lignes (trains, métro)']]],
   ['Bâtir', [['B', 'construire : bâtiments, et dans l’onglet Routes et voies les routes, voies et Rideau'], ['T, Maj+T', 'tourner le bâtiment'], ['R', 'route droite (Maj : seize directions)'], ['Ctrl glissé', 'route à main levée'], ['C', 'route courbe'], ['V', 'voie ferrée'], ['M', 'Rideau de Laine'], ['X', 'démolir'], ['Ctrl+Z', 'annuler la dernière action'], ['Échap', 'arrêter, revenir au choix']]],
   ['Unités', [['Clic', 'en choisir une (Maj : en ajouter)'], ['Ctrl glissé', 'un cadre'], ['G', 'toutes celles à l’écran'], ['Clic droit', 'y aller, ou attaquer un ennemi'], ['Clic droit sur un navire', 'embarquer'], ['Appui long (téléphone)', 'comme le clic droit']]],
-  ['Écrans', [['E', 'la recherche'], ['P ou téléphone rouge', 'appeler l’autre camp (traités, commerce)'], ['Téléphone vert', 'l’autre camp appelle : sa proposition'], ['O ou la coupe', 'la course aux victoires'], ['Clic sur une ressource', 'l’onglet Ressources : luxe, électricité, eau, métiers'], ['Engrenage', 'son, mode photo, aide, tutoriel, menu'], ['H', 'cette aide'], ['Titre d’une fenêtre', 'la glisser pour la déplacer']]],
+  ['Écrans', [['U', 'la recherche'], ['P ou téléphone rouge', 'appeler l’autre camp (traités, commerce)'], ['Téléphone vert', 'l’autre camp appelle : sa proposition'], ['O ou la coupe', 'la course aux victoires'], ['Clic sur une ressource', 'l’onglet Ressources : luxe, électricité, eau, métiers'], ['Engrenage', 'son, mode photo, aide, tutoriel, menu'], ['H', 'cette aide'], ['Titre d’une fenêtre', 'la glisser pour la déplacer']]],
   ['La partie', [['Espace', 'pause'], ['1, 2, 3', 'vitesse'], ['Clic sur un chat', 'son passeport, lui parler'], ['Clic sur une route', 'la goudronner'], ['Le journal, en bas à droite', 'la Gazette et la Pravdachat']]],
 ];
 export function toggleHelp(on?: boolean){
@@ -128,7 +171,7 @@ const TUTO: Step[] = [
   { t: 'Les routes', txt: 'Pas obligatoires : elles font rouler les voitures et relient tes villes à la capitale. Construire, onglet Routes et voies. Un chemin de terre suffit, même en montagne.', done: () => (SH.ROADS as { side: string }[]).filter(r => r.side === GAME.side).length >= 1 },
   { t: 'À manger', txt: 'Les chats mangent des croquettes : une pêcherie sur la côte, ou une ferme (onglet Croquettes).', done: () => mine(l => !!SH.ECO[l.type] && SH.ECO[l.type].cat === 'nourriture') },
   { t: 'La laine', txt: 'La laine paie presque tout : une bergerie (onglet Laine), ou une exploitation forestière en forêt.', done: () => mine(l => !!SH.ECO[l.type] && SH.ECO[l.type].cat === 'laine') },
-  { t: 'La recherche', txt: 'Bâtis une université (onglet Recherche), puis choisis une recherche avec E.', done: () => SCI[GAME.side].done.size > 0 || !!SCI[GAME.side].cur },
+  { t: 'La recherche', txt: 'Bâtis une université (onglet Recherche), puis choisis une recherche avec U.', done: () => SCI[GAME.side].done.size > 0 || !!SCI[GAME.side].cur },
   { t: 'Gagner', txt: 'La coupe, en haut à droite, montre les cinq façons de gagner. Le téléphone rouge appelle l’autre camp. L’engrenage : son, aide et mode photo.', done: () => false },
 ];
 let tutoStep = (() => { const v = store.get(TUTO_KEY, 0); return typeof v === 'number' ? v : +String(v) || 0; })();

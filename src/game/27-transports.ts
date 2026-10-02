@@ -233,7 +233,7 @@ SH.TOOLS.rail = {
   start(){ railPts = []; },
   esc(): boolean { if (railPts.length){ railPts = []; return true; } return false; },
   click(a: number, b: number){
-    if (SH.hasTech && !SH.hasTech(GAME.side, 'chemin_de_fer')){ toast('Il faut d’abord la recherche « Chemin de fer » (écran E).'); return; }
+    if (SH.hasTech && !SH.hasTech(GAME.side, 'chemin_de_fer')){ toast('Il faut d’abord la recherche « Chemin de fer » (écran U).'); return; }
     const p = railEnd(a, b); railPts.push(p);
     if (railPts.length < 2){ SH.sfx('click'); return; }
     const pts = sampleLine(railPts[0], railPts[1]), why = railProblem(pts, GAME.side);

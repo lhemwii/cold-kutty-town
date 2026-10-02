@@ -42,7 +42,7 @@ Trois niveaux pour la plupart des bâtiments : le port passe de ponton à quai p
 
 ## Commandes
 
-H montre toutes les commandes. Glisser pour se déplacer, molette pour zoomer, clic droit glissé pour tourner. En construction, clic droit glissé ou T pour tourner le bâtiment de 22,5 degrés (Maj+T dans l’autre sens). B construire (routes, voies et Rideau dans l’onglet Routes et voies), R route, C courbe, V voie ferrée, M Rideau, X démolir, Échap arrêter, Espace pause, 1 2 3 vitesse, Ctrl+Z annuler.
+H montre toutes les commandes. Glisser ou ZQSD pour se déplacer, molette pour zoomer, clic droit glissé ou A et E pour tourner. U ouvre la recherche. En construction, clic droit glissé ou T pour tourner le bâtiment de 22,5 degrés (Maj+T dans l’autre sens). B construire (routes, voies et Rideau dans l’onglet Routes et voies), R route, C courbe, V voie ferrée, M Rideau, X démolir, Échap arrêter, Espace pause, 1 2 3 vitesse, Ctrl+Z annuler.
 
 Pourparlers : P ouvre l’écran des traités et du commerce (il faut un checkpoint ou une ambassade au bord du Rideau).
 

@@ -204,7 +204,7 @@ Le jeu passe à une base prête pour la haute définition et pour Steam, sans ri
 - [x] Troisième message : la liste des bâtiments devient un tableau à double entrée (règles communes, version USC, version CCR) ; rivières ; unités transportées par bateau ; pêche ; Blitz à durée choisie et Sans fin ; cinq jalons pour la victoire scientifique ; habitants qui s’enfuient à travers le Rideau et points de passage ; ressources proposées.
 - [x] Retenus : herbe à chat, pétrole, influence. Ni acier ni bois ; mines dans les montagnes et exploitations forestières qui rapportent de la laine.
 
-## Étape 0.22. Retours de jeu sur la nouvelle version (en cours)
+## Étape 0.22. Retours de jeu sur la nouvelle version (faite)
 
 L’icône de l’onglet reste comme elle est ; le logo à tête de chat de l’accueil est retiré.
 
@@ -225,7 +225,15 @@ L’icône de l’onglet reste comme elle est ; le logo à tête de chat de l’
 - [x] La fiche d’un chat devient un passeport de son pays, avec sa photo.
 - [x] Les unités à terre sont bien des chats.
 - [x] La radio prend un style d’époque ; un téléphone rouge (le mien) et un téléphone vert (le leur) pour parler à l’autre camp.
-- [ ] À préciser ensemble : « pouvoir amener un QG ».
+- [x] « Pouvoir amener un QG » : précisé, c’est un second QG sur une autre île (étape 0.23).
+
+## Étape 0.23. Deuxième série de retours (faite)
+
+- [x] Un second QG sur une autre île : onglet Frontière, un QG par île, dans son territoire (amené par un avant-poste en barge ou un camp de bâtisseurs) ; 150 laine, 80 croquettes, 40 ronrons. Le premier, au débarquement, reste gratuit.
+- [x] Clavier : ZQSD (ou les flèches) pour se déplacer, A et E pour tourner la vue à gauche et à droite, R reste la route. La recherche passe sur U.
+- [x] Le bandeau radio du haut est retiré. La radio devient un bâtiment de l’onglet Frontière (Radio Kutty Libre, Radio Miaou-Scou) : de l’influence, et sa fiche donne les dernières nouvelles de l’île.
+- [x] Le tiroir de construction est allégé : chaque case montre son dessin, son nom et son prix ; sa fiche (production, consommation, rôle, ce qui manque) flotte au survol. Plus de phrase collée au tiroir : ce qui empêche la pose s’affiche près du curseur.
+- [x] L’arbre de recherche devient un arbre : chaque recherche pend sous celle qu’elle demande, une colonne par palier, une couleur par branche ; les liens passent dans les couloirs, plus jamais sous une case (les recherches du renseignement ne se mélangent plus aux autres).
 
 # Feuille de route de la nouvelle version
 

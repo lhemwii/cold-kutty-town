@@ -103,6 +103,8 @@ export const costOf = (type: string): number => (ECO[type] ? ECO[type].cost : 20
 // prix complet d'un batiment pour un camp : laine, croquettes, ronrons (les avant-postes coutent de plus en plus cher)
 export function priceOf(type: string, side: Side): Price {
   const e = ECO[type]; if (!e) return { l: 20, c: 0, r: 0 };
+  // un QG de plus, sur une autre ile (etape 0.23) : le premier, au debarquement, ne se paie pas
+  if (type === 'qg') return { l: 150, c: 80, r: 40 };
   const n = type === 'drapeau' ? SH.BLD.filter(l => l.side === side && l.type === 'drapeau').length : 0;
   return { l: e.cost, c: e.costC + n * 5, r: e.costR + n * 3 };
 }

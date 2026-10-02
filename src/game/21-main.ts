@@ -48,8 +48,11 @@ export const radioText = $('radioText'), radioStation = $('radioStation'), radio
 export let radioIdx = -1, radioX = 0, radioW = 0, radioHold = 0; export const radioQueue: RadioItem[] = []; SH.radioQueue = radioQueue; export let radioSide: RadioSide = 'usc';
 export let radioGo: RadioGo | null = null;
 export const radioEl = $('radio');
+/** les dernieres nouvelles diffusees, les plus recentes d'abord (lues par la fiche de la tour radio) */
+export const RADIO_LOG: { side: RadioSide; station: string; msg: string }[] = []; SH.RADIO_LOG = RADIO_LOG;
 export function radioShow(item: RadioItem){
   const [side, station, msg, go] = item;
+  RADIO_LOG.unshift({ side, station, msg: msg.replace(DASHES, ',') }); if (RADIO_LOG.length > 8) RADIO_LOG.pop();
   radioSide = side; radioGo = go || null;
   radioEl.classList.toggle('go', !!radioGo);
   radioEl.title = radioGo ? 'Clique pour y aller' : '';
@@ -104,7 +107,7 @@ export function stepRadio(dt: number, t: number){
     if (msg) radioQueue.unshift(['neutre', 'Météo marine', msg]);
   }
   radioDot.classList.toggle('off', Math.floor(t * 2) % 2 === 0);
-  if (reduceMotion){ radioHold += dt; if (radioHold > 8) radioNext(); return; }
+  if (reduceMotion || radioEl.hidden){ radioHold += dt; if (radioHold > (radioEl.hidden ? 14 : 8)) radioNext(); return; }
   radioX -= 42 * dt;
   radioText.style.transform = 'translateX(' + Math.round(radioX) + 'px)';
   if (radioX < -radioW - 20) radioNext();
@@ -314,7 +317,8 @@ export function newWorld(seed: number, size: string, conf: string){
 export function enterPlay(){
   GAME.mode = 'play';
   $('intro').hidden = true; $('landing').hidden = true; $('endBox').hidden = true;
-  $('topbar').hidden = false; $('bottom').hidden = false; $('radio').hidden = false;
+  // (etape 0.23) plus de bandeau radio en haut : les nouvelles passent par la tour radio (onglet Frontiere)
+  $('topbar').hidden = false; $('bottom').hidden = false;
   document.body.dataset.side = GAME.side; document.body.classList.add('playing');
   THUMBS_CLEAR(); buildMenu(); setTool('walk'); SH.renderHUD(); updateCalUI();
   if (!PAPER.issue) deliverPaper(true);

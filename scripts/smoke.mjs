@@ -19,7 +19,7 @@ try {
     await page.waitForFunction(() => window.__okt.BLD().some(l => l.type === 'qg' && l.side === window.__okt.GAME.side && l.done), null, { timeout: 90000 });
   });
   await step('menu de construction', async () => { await page.keyboard.press('b'); await page.waitForSelector('#buildMenu:not([hidden])'); await page.keyboard.press('Escape'); });
-  for (const [k, id] of [['e', 'sci'], ['p', 'dip'], ['o', 'vic'], ['h', 'help']]) await step('écran ' + id, async () => { await page.keyboard.press(k); await page.waitForSelector('#' + id + ':not([hidden])'); await page.keyboard.press('Escape'); });
+  for (const [k, id] of [['u', 'sci'], ['p', 'dip'], ['o', 'vic'], ['h', 'help']]) await step('écran ' + id, async () => { await page.keyboard.press(k); await page.waitForSelector('#' + id + ':not([hidden])'); await page.keyboard.press('Escape'); });
   await step('sauvegarde', async () => { const n = await page.evaluate(() => { const o = window.__okt, s = o.snapshot(); o.loadGame(s); return o.BLD().length; }); if (!n) throw new Error('rien après rechargement'); });
   if (errors.length) throw new Error('erreurs de la page : ' + errors.join(' | '));
   console.log('fumée : tout va bien');

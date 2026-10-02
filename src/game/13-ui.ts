@@ -129,6 +129,12 @@ export interface Ghost { key: string; l: Building; parts: Part[] | null; why: st
 /** les outils qui gardent le tiroir de construction ouvert (ses onglets Routes et Frontiere) */
 export const BUILD_FAMILY: string[] = ['build', 'road', 'curve', 'rail', 'wall', 'buyland'];
 export let toolPts: Vec2[] = [], hoverW: Vec2 | null = null, hoverB: Building | null = null; SH.ghost = null;
+/** petit mot pres du curseur (vide : cache) */
+export function curTip(txt: string, x: number, y: number){
+  const el = $('curTip'); if (!txt){ el.hidden = true; return; }
+  if (el.textContent !== txt) el.textContent = txt;
+  el.hidden = false; el.style.transform = 'translate(' + Math.round(Math.min(x + 16, window.innerWidth - el.offsetWidth - 8)) + 'px,' + Math.round(Math.max(8, y - el.offsetHeight - 14)) + 'px)';
+}
 export function setTool(m: string){
   state.tool = m; toolPts = [];
   for (const b of document.querySelectorAll('[data-tool]')) if (b instanceof HTMLElement) b.setAttribute('aria-pressed', String(b.dataset.tool === m));
@@ -139,7 +145,9 @@ export function setTool(m: string){
   if (fam && m !== 'build' && typeof SH.pickCat === 'function') SH.pickCat(m);
   for (const b of document.querySelectorAll('[data-tile]')) if (b instanceof HTMLElement) b.setAttribute('aria-checked', String(b.dataset.tile === m));
   const ct = SH.TOOLS ? SH.TOOLS[m] : null;
-  $('modeHint').textContent = m === 'walk' ? walkHint() : HINTS[m] || (ct ? ct.hint : '');
+  // les outils du tiroir disent leur mode d'emploi au survol de leur case : pas de phrase collee au tiroir
+  $('modeHint').textContent = m === 'walk' ? walkHint() : fam ? '' : HINTS[m] || (ct ? ct.hint : '');
+  curTip('', 0, 0); $('bbPop').hidden = true;
   if (ct && ct.start) ct.start();
   scene.classList.toggle('build', m === 'build' || m === 'road' || m === 'curve' || m === 'wall' || m === 'barge' || m === 'landing' || !!ct);
   scene.classList.toggle('demolish', m === 'demolish');
@@ -530,10 +538,9 @@ scene.addEventListener('pointermove', e => {
     hoverB = !OV_ON && state.tool === 'walk' && !SH.hoverCat ? bldPick(lx, ly) : null;
     scene.classList.toggle('pick', !!SH.hoverCat || !!hoverB || (!OV_ON && state.tool === 'walk' && !!vestPick(lx, ly)));
     if (state.tool === 'build' && GAME.mode === 'play' && !OV_ON){
-      const s = buildSpot(hoverW[0], hoverW[1]), e2: EcoDef = SH.ECO[s.type];
-      if (s.why) $('modeHint').textContent = s.why;
-      else $('modeHint').innerHTML = '<b>' + typeName(s.type, GAME.side) + '</b>' + costHTML(SH.priceOf(s.type, GAME.side)) + (SH.effLine ? '<span class="hint-eff">' + SH.effLine(e2) + '</span>' : '') + '<span>' + (e2.desc || '') + '</span>';
-    }
+      // (etape 0.23) ce qui empeche la pose flotte pres du curseur, rien quand on peut poser
+      const s = buildSpot(hoverW[0], hoverW[1]); curTip(s.why, e.clientX, e.clientY);
+    } else curTip('', 0, 0);
     if (typeof SH.showTip === 'function') SH.showTip(e, hoverB);
   }
 });
@@ -574,7 +581,7 @@ export function endPointer(e: PointerEvent){
 }
 scene.addEventListener('pointerup', endPointer);
 scene.addEventListener('pointercancel', endPointer);
-scene.addEventListener('pointerleave', () => { pointer = null; SH.hoverCat = null; hoverB = null; if (!drag) hoverW = null; });
+scene.addEventListener('pointerleave', () => { curTip('', 0, 0); pointer = null; SH.hoverCat = null; hoverB = null; if (!drag) hoverW = null; });
 export let wheelAcc = 0, wheelT = 0, wheelSnap = 0;
 scene.addEventListener('wheel', e => {
   e.preventDefault();
@@ -590,7 +597,9 @@ window.addEventListener('keydown', e => {
   if (!typing(e) && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z'){ e.preventDefault(); undo(); return; }
   if (typing(e) || e.metaKey || e.ctrlKey || e.altKey) return;
   const k = e.key.toLowerCase();
-  if (['arrowleft','arrowright','arrowup','arrowdown','q','a','z','w','s','d'].includes(k)){ keys.add(k); cam.target = null; cam.follow = null; e.preventDefault(); return; }
+  // ZQSD (et WASD sans A) pour se deplacer ; A et E tournent la vue d'un huitieme (etape 0.23)
+  if (GAME.mode === 'play' && (k === 'a' || k === 'e')){ rotateBy(k === 'a' ? -Math.PI / 4 : Math.PI / 4); return; }
+  if (['arrowleft','arrowright','arrowup','arrowdown','q','z','w','s','d'].includes(k)){ keys.add(k); cam.target = null; cam.follow = null; e.preventDefault(); return; }
   if (k === 'escape'){ if (typeof SH.unitEscape === 'function' && SH.unitEscape()) return; if (SH.TOOLS && SH.TOOLS[state.tool] && SH.TOOLS[state.tool].esc && SH.TOOLS[state.tool].esc()) return; if (typeof SH.cardEscape === 'function' && SH.cardEscape()) return; if (state.chatCat) SH.closeChat(); else if (toolPts.length) toolPts = []; else if (state.sel || state.selV) SH.selectBuilding(null); else if (state.tool !== 'landing') setTool('walk'); return; }
   if (GAME.mode !== 'play'){ if (k === '+' || k === '=') zoomStep(1); else if (k === '-' || k === '_') zoomStep(-1); return; }
   if (k === 'b') setTool(state.tool === 'build' ? 'walk' : 'build');
@@ -612,7 +621,7 @@ window.addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
 window.addEventListener('blur', () => keys.clear());
 export function stepKeys(dt: number){
   let dx = 0, dy = 0;
-  if (keys.has('arrowleft') || keys.has('q') || keys.has('a')) dx -= 1;
+  if (keys.has('arrowleft') || keys.has('q')) dx -= 1;
   if (keys.has('arrowright') || keys.has('d')) dx += 1;
   if (keys.has('arrowup') || keys.has('z') || keys.has('w')) dy -= 1;
   if (keys.has('arrowdown') || keys.has('s')) dy += 1;
